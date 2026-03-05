@@ -1,0 +1,49 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+bin/
+dist/
+
+# Go workspace / modules
+go.work.sum
+
+# Coverage and profiling
+coverage.out
+*.cover
+*.cov
+*.prof
+*.pprof
+
+# Build and cache directories
+build/
+tmp/
+.tmp/
+.cache/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment and local config
+.env
+.env.*
+!.env.example
+config.local.*
+*.local.yaml
+*.local.yml
