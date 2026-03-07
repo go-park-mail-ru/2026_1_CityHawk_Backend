@@ -2,4 +2,7 @@ module cityhawk/backend
 
 go 1.22
 
-require github.com/joho/godotenv v1.5.1 // indirect
+require (
+	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/joho/godotenv v1.5.1
+)
