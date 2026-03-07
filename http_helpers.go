@@ -38,8 +38,12 @@ func authMiddleware(auth *authService, next http.Handler) http.Handler {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid access token"})
 			return
 		}
+		if strings.TrimSpace(c.Subject) == "" {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid access token"})
+			return
+		}
 
-		ctx := context.WithValue(r.Context(), userIDContextKey, c.UserID)
+		ctx := context.WithValue(r.Context(), userIDContextKey, c.Subject)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

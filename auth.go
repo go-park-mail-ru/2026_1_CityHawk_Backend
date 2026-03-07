@@ -24,19 +24,18 @@ type refreshResponse struct {
 }
 
 type claims struct {
-	UserID string `json:"uid"`
-	Email  string `json:"email"`
-	Type   string `json:"type"`
+	Email string `json:"email,omitempty"`
+	Type  string `json:"type"`
 	jwt.RegisteredClaims
 }
 
 func (a *authService) issueTokenPair(u user) (refreshResponse, error) {
-	accessToken, err := a.signToken(u, "access", a.accessTTL)
+	accessToken, err := a.signAccessToken(u, a.accessTTL)
 	if err != nil {
 		return refreshResponse{}, err
 	}
 
-	refreshToken, err := a.signToken(u, "refresh", a.refreshTTL)
+	refreshToken, err := a.generateOpaqueToken(32)
 	if err != nil {
 		return refreshResponse{}, err
 	}
@@ -51,23 +50,24 @@ func (a *authService) issueTokenPair(u user) (refreshResponse, error) {
 	}, nil
 }
 
-func (a *authService) rotateRefresh(oldRefreshToken string) (refreshResponse, error) {
-	c, err := a.parseToken(oldRefreshToken)
-	if err != nil || c.Type != "refresh" {
-		return refreshResponse{}, errors.New("invalid token")
-	}
-
-	if !a.isRefreshActive(oldRefreshToken) {
+func (a *authService) rotateRefresh(oldRefreshToken string, users *userStore) (refreshResponse, error) {
+	userID, err := a.consumeRefresh(oldRefreshToken)
+	if err != nil {
 		return refreshResponse{}, errors.New("token revoked")
 	}
 
-	a.revokeRefresh(oldRefreshToken)
+	return a.issueTokenPairForUserID(userID, users)
+}
 
-	u := user{ID: c.UserID, Email: c.Email}
+func (a *authService) issueTokenPairForUserID(userID string, users *userStore) (refreshResponse, error) {
+	u, ok := users.getByID(userID)
+	if !ok {
+		return refreshResponse{}, errors.New("user not found")
+	}
 	return a.issueTokenPair(u)
 }
 
-func (a *authService) signToken(u user, tokenType string, ttl time.Duration) (string, error) {
+func (a *authService) signAccessToken(u user, ttl time.Duration) (string, error) {
 	now := time.Now().UTC()
 	jti, err := randomHex(16)
 	if err != nil {
@@ -75,9 +75,8 @@ func (a *authService) signToken(u user, tokenType string, ttl time.Duration) (st
 	}
 
 	claims := claims{
-		UserID: u.ID,
-		Email:  u.Email,
-		Type:   tokenType,
+		Email: u.Email,
+		Type:  "access",
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   u.ID,
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -92,7 +91,8 @@ func (a *authService) signToken(u user, tokenType string, ttl time.Duration) (st
 
 func (a *authService) parseToken(tokenString string) (claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &claims{}, func(token *jwt.Token) (any, error) {
-		if token.Method != jwt.SigningMethodHS256 {
+		method, ok := token.Method.(*jwt.SigningMethodHMAC)
+		if !ok || method.Alg() != jwt.SigningMethodHS256.Alg() {
 			return nil, errors.New("unexpected signing method")
 		}
 		return a.secret, nil
@@ -121,25 +121,30 @@ func (a *authService) revokeRefresh(token string) {
 	delete(a.refreshSessions.session, tokenHash(token))
 }
 
-func (a *authService) isRefreshActive(token string) bool {
+func (a *authService) consumeRefresh(token string) (string, error) {
 	a.refreshSessions.mu.Lock()
 	defer a.refreshSessions.mu.Unlock()
 
 	hash := tokenHash(token)
 	s, ok := a.refreshSessions.session[hash]
 	if !ok {
-		return false
+		return "", errors.New("token revoked")
 	}
 
 	if time.Now().UTC().After(s.ExpiresAt) {
 		delete(a.refreshSessions.session, hash)
-		return false
+		return "", errors.New("token expired")
 	}
 
-	return true
+	delete(a.refreshSessions.session, hash)
+	return s.UserID, nil
 }
 
 func tokenHash(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
+}
+
+func (a *authService) generateOpaqueToken(size int) (string, error) {
+	return randomHex(size)
 }

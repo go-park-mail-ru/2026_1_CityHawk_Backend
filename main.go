@@ -40,9 +40,9 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", healthHandler)
-	mux.HandleFunc("POST /auth/register", registerHandler(store))
+	mux.HandleFunc("POST /auth/register", registerHandler(store, auth))
 	mux.HandleFunc("POST /auth/login", loginHandler(store, auth))
-	mux.HandleFunc("POST /auth/refresh", refreshHandler(auth))
+	mux.HandleFunc("POST /auth/refresh", refreshHandler(store, auth))
 	mux.HandleFunc("POST /auth/logout", logoutHandler(auth))
 	mux.Handle("GET /me", authMiddleware(auth, meHandler(store)))
 

@@ -20,13 +20,13 @@ go run .
 
 ## JWT
 
-- `access_token`: короткоживущий, stateless, используется для доступа к API.
-- `refresh_token`: долгоживущий, хранится на сервере (в памяти) в хешированном виде, используется для обновления `access_token`.
-- При `POST /auth/refresh` выполняется ротация refresh-токена: старый токен отзывается, выдается новая пара токенов.
-- `POST /auth/logout` отзывает переданный `refresh_token`.
+- `access_token`: короткоживущий JWT (HS256), в `sub` кладется `user_id`.
+- `refresh_token`: долгоживущий opaque-токен (не JWT), хранится на сервере (in-memory) в хешированном виде и связан с `user_id`, возвращается в `register/login` и дополнительно ставится в `HttpOnly` cookie.
+- `POST /auth/refresh` читает refresh из cookie, выполняет ротацию и возвращает новый `access_token` (новый refresh снова кладется в cookie).
+- `POST /auth/logout` читает refresh из cookie и отзывает сессию.
 
 ## Переменные окружения
 
-- `JWT_SECRET` (обязательно для production)
+- `JWT_SECRET` 
 - `ACCESS_TOKEN_TTL` (по умолчанию `15m`)
 - `REFRESH_TOKEN_TTL` (по умолчанию `168h`)
