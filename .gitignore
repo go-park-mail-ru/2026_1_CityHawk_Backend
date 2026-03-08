@@ -24,6 +24,8 @@ build/
 tmp/
 .tmp/
 .cache/
+.gocache/
+.gomodcache/
 
 # IDE and editor files
 .idea/
