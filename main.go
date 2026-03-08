@@ -39,16 +39,18 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", healthHandler)
-	mux.HandleFunc("POST /auth/register", registerHandler(store, auth))
-	mux.HandleFunc("POST /auth/login", loginHandler(store, auth))
-	mux.HandleFunc("POST /auth/refresh", refreshHandler(store, auth))
-	mux.HandleFunc("POST /auth/logout", logoutHandler(auth))
-	mux.Handle("GET /me", authMiddleware(auth, meHandler(store)))
+	mux.HandleFunc("/health", healthHandler)
+	mux.HandleFunc("/auth/register", registerHandler(store, auth))
+	mux.HandleFunc("/auth/login", loginHandler(store, auth))
+	mux.HandleFunc("/auth/refresh", refreshHandler(store, auth))
+	mux.HandleFunc("/auth/logout", logoutHandler(auth))
+	mux.Handle("/me", authMiddleware(auth, meHandler(store)))
 
 	server := http.Server{
-		Addr:    ":" + port,
-		Handler: mux,
+		Addr:         ":" + port,
+		Handler:      corsMiddleware(mux),
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 
 	log.Printf("server started on :%s", port)

@@ -8,13 +8,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const userIDTimeLayout = "20060102150405.000000000"
+
 func createUser(email, password string) (user, error) {
 	passwordHash, err := hashPassword(password)
 	if err != nil {
 		return user{}, err
 	}
 	return user{
-		ID:           time.Now().UTC().Format("20060102150405.000000000"),
+		ID:           time.Now().UTC().Format(userIDTimeLayout),
 		Email:        email,
 		PasswordHash: passwordHash,
 	}, nil
