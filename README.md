@@ -176,21 +176,62 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-  "id": "vdnh",
-  "title": "ВДНХ",
-  "category": "park",
-  "short_description": "Большой парковый и выставочный комплекс для прогулок и активностей.",
-  "full_description": "ВДНХ объединяет павильоны, парковые зоны и культурные площадки. Подходит для долгих прогулок, семейных выходных и посещения временных выставок.",
-  "address": "Москва, проспект Мира, 119",
-  "image_url": "https://example.com/images/vdnh.jpg",
-  "tags": ["прогулка", "выставки", "семья"],
-  "working_hours": "ежедневно, 10:00-22:00",
-  "price_level": "free"
+    "item": {
+        "id": "vdnh",
+        "title": "ВДНХ",
+        "category": "park",
+        "short_description": "Большой парковый и выставочный комплекс для прогулок и активностей.",
+        "full_description": "ВДНХ объединяет павильоны, парковые зоны и культурные площадки. Подходит для долгих прогулок, семейных выходных и посещения временных выставок.",
+        "address": "Москва, проспект Мира, 119",
+        "image_url": "images/vdnh.jpg",
+        "tags": [
+            "прогулка",
+            "выставки",
+            "семья"
+        ],
+        "working_hours": "ежедневно, 10:00-22:00",
+        "price_level": "free"
+    }
 }
 ```
 
 - Возможные ошибки:
   - `404`: `{"error":"place not found"}`
+  - `405`: `{"error":"method not allowed"}`
+
+### `GET /places/category/{category}`
+
+Отфильтрованные карточки по категориям (краткий формат).
+
+- Тело запроса: нет
+- Пример: `GET /places/category/park`
+- Успешный ответ `200`:
+
+```json
+{
+    "items": [
+        {
+            "id": "vdnh",
+            "title": "ВДНХ",
+            "category": "park",
+            "short_description": "Большой парковый и выставочный комплекс для прогулок и активностей.",
+            "address": "Москва, проспект Мира, 119",
+            "image_url": "images/vdnh.jpg"
+        },
+        {
+            "id": "zaryadye",
+            "title": "Парк Зарядье",
+            "category": "park",
+            "short_description": "Центральный парк с панорамным мостом и видами на Кремль.",
+            "address": "Москва, ул. Варварка, 6",
+            "image_url": "images/zaryadye.jpg"
+        }
+    ]
+}
+```
+
+- Возможные ошибки:
+  - `404`: `{"error":"category not found"}`
   - `405`: `{"error":"method not allowed"}`
 
 ## JWT

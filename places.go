@@ -110,6 +110,27 @@ func (s *placeStore) getByID(id string) (place, bool) {
 	return p, ok
 }
 
+func (s *placeStore) listCardsByCategory(category string) ([]placeCard, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var cards []placeCard
+	for _, id := range s.order {
+		p := s.byID[id]
+		if p.Category == category {
+			cards = append(cards, placeCard{
+				ID:               p.ID,
+				Title:            p.Title,
+				Category:         p.Category,
+				ShortDescription: p.ShortDescription,
+				Address:          p.Address,
+				ImageURL:         p.ImageURL,
+			})
+		}
+	}
+	return cards, len(cards) > 0
+}
+
 func placesListHandler(store *placeStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -127,7 +148,7 @@ func placeDetailsHandler(store *placeStore) http.HandlerFunc {
 			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
 			return
 		}
-		id := strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/places/"))
+		id := strings.TrimPrefix(r.URL.Path, "/places/")
 		if id == "" || strings.Contains(id, "/") {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "place not found"})
 			return
@@ -138,7 +159,28 @@ func placeDetailsHandler(store *placeStore) http.HandlerFunc {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "place not found"})
 			return
 		}
+		writeJSON(w, http.StatusOK, map[string]any{"item": p})
+	}
+}
 
-		writeJSON(w, http.StatusOK, p)
+func placesByCategoryListHandler(store *placeStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+			return
+		}
+		category := strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/places/category/"))
+		if category == "" || strings.Contains(category, "/") {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "category not found"})
+			return
+		}
+
+		p, ok := store.listCardsByCategory(category)
+		if !ok {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "category not found"})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{"items": p})
 	}
 }

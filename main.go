@@ -48,6 +48,7 @@ func main() {
 	mux.Handle("/me", authMiddleware(auth, meHandler(store)))
 	mux.HandleFunc("/places", placesListHandler(places))
 	mux.HandleFunc("/places/", placeDetailsHandler(places))
+	mux.HandleFunc("/places/category/", placesByCategoryListHandler(places))
 
 	server := http.Server{
 		Addr:         ":" + port,
