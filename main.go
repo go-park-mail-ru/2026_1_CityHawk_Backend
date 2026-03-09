@@ -29,6 +29,7 @@ func main() {
 	refreshTTL := parseDurationEnv("REFRESH_TOKEN_TTL", 7*24*time.Hour)
 
 	store := &userStore{byEmail: make(map[string]user)}
+	places := newPlaceStore()
 	auth := &authService{
 		secret:     []byte(secret),
 		accessTTL:  accessTTL,
@@ -45,6 +46,10 @@ func main() {
 	mux.HandleFunc("/auth/refresh", refreshHandler(store, auth))
 	mux.HandleFunc("/auth/logout", logoutHandler(auth))
 	mux.Handle("/me", authMiddleware(auth, meHandler(store)))
+	mux.HandleFunc("/places", placesListHandler(places))
+	mux.HandleFunc("/places/", placeDetailsHandler(places))
+	mux.HandleFunc("/places/best", placesBestHandler(places))
+	mux.HandleFunc("/places/category/", placesByCategoryListHandler(places))
 
 	server := http.Server{
 		Addr:         ":" + port,
