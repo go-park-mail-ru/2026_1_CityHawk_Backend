@@ -154,7 +154,7 @@ Authorization: Bearer <access_token>
     {
       "id": "vdnh",
       "title": "ВДНХ",
-      "category": "park",
+      "categories": ["park"],
       "short_description": "Большой парковый и выставочный комплекс для прогулок и активностей.",
       "address": "Москва, проспект Мира, 119",
       "image_url": "https://example.com/images/vdnh.jpg"
@@ -179,16 +179,11 @@ Authorization: Bearer <access_token>
     "item": {
         "id": "vdnh",
         "title": "ВДНХ",
-        "category": "park",
+        "categories": ["park"],
         "short_description": "Большой парковый и выставочный комплекс для прогулок и активностей.",
         "full_description": "ВДНХ объединяет павильоны, парковые зоны и культурные площадки. Подходит для долгих прогулок, семейных выходных и посещения временных выставок.",
         "address": "Москва, проспект Мира, 119",
         "image_url": "images/vdnh.jpg",
-        "tags": [
-            "прогулка",
-            "выставки",
-            "семья"
-        ],
         "working_hours": "ежедневно, 10:00-22:00",
         "price_level": "free"
     }
@@ -213,7 +208,7 @@ Authorization: Bearer <access_token>
         {
             "id": "vdnh",
             "title": "ВДНХ",
-            "category": "park",
+            "categories": ["park"],
             "short_description": "Большой парковый и выставочный комплекс для прогулок и активностей.",
             "address": "Москва, проспект Мира, 119",
             "image_url": "images/vdnh.jpg"
@@ -221,7 +216,7 @@ Authorization: Bearer <access_token>
         {
             "id": "zaryadye",
             "title": "Парк Зарядье",
-            "category": "park",
+            "categories": ["park", "photo"],
             "short_description": "Центральный парк с панорамным мостом и видами на Кремль.",
             "address": "Москва, ул. Варварка, 6",
             "image_url": "images/zaryadye.jpg"
@@ -232,6 +227,32 @@ Authorization: Bearer <access_token>
 
 - Возможные ошибки:
   - `404`: `{"error":"category not found"}`
+  - `405`: `{"error":"method not allowed"}`
+
+### `GET /places/best`
+
+Топ карточек мест по `like_count` (по убыванию), максимум `8` элементов.
+
+- Тело запроса: нет
+- Успешный ответ `200`:
+
+```json
+{
+  "items": [
+    {
+      "id": "zaryadye",
+      "title": "Парк Зарядье",
+      "categories": ["park", "photo"],
+      "like_count": 150,
+      "short_description": "Центральный парк с панорамным мостом и видами на Кремль.",
+      "address": "Москва, ул. Варварка, 6",
+      "image_url": "images/zaryadye.jpg"
+    }
+  ]
+}
+```
+
+- Возможные ошибки:
   - `405`: `{"error":"method not allowed"}`
 
 ## JWT
