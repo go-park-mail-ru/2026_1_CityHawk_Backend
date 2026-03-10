@@ -46,6 +46,7 @@ func main() {
 	mux.HandleFunc("/auth/refresh", refreshHandler(store, auth))
 	mux.HandleFunc("/auth/logout", logoutHandler(auth))
 	mux.Handle("/me", authMiddleware(auth, meHandler(store)))
+	mux.HandleFunc("/api/home", homeHandler())
 	mux.HandleFunc("/places", placesListHandler(places))
 	mux.HandleFunc("/places/", placeDetailsHandler(places))
 	mux.HandleFunc("/places/best", placesBestHandler(places))
