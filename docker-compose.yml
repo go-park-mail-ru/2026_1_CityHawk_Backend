@@ -1,0 +1,17 @@
+services:
+  cityhawk-backend:                      # any name you prefer
+    build: .
+    ports:
+      - "8080:8080"                      # map host→container
+    environment:
+      # defaults mirror the code's fallbacks
+      - PORT=8080
+      - JWT_SECRET=${JWT_SECRET:-dev-insecure-secret-change-me}
+      - ACCESS_TOKEN_TTL=${ACCESS_TOKEN_TTL:-15m}
+      - REFRESH_TOKEN_TTL=${REFRESH_TOKEN_TTL:-168h}  # 7d
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

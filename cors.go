@@ -8,7 +8,7 @@ import (
 func corsMiddleware(next http.Handler) http.Handler {
 	allowedOrigin := os.Getenv("FRONTEND_ORIGIN")
 	if allowedOrigin == "" {
-		allowedOrigin = "http://localhost:3000"
+		allowedOrigin = "http://cityhawk.ru"
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
