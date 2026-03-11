@@ -10,7 +10,7 @@ import (
 
 const userIDTimeLayout = "20060102150405.000000000"
 
-func createUser(email, password string) (user, error) {
+func createUser(email, password, username string) (user, error) {
 	passwordHash, err := hashPassword(password)
 	if err != nil {
 		return user{}, err
@@ -18,6 +18,7 @@ func createUser(email, password string) (user, error) {
 	return user{
 		ID:           time.Now().UTC().Format(userIDTimeLayout),
 		Email:        email,
+		Username:     username,
 		PasswordHash: passwordHash,
 	}, nil
 }
