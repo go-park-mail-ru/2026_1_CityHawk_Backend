@@ -39,7 +39,7 @@ func TestPlacesHandlers(t *testing.T) {
 
 	t.Run("details/category/best", func(t *testing.T) {
 		details := placeDetailsHandler(store)
-		req := httptest.NewRequest(http.MethodGet, "/places/vdnh", nil)
+		req := httptest.NewRequest(http.MethodGet, "/places/futurione", nil)
 		rec := httptest.NewRecorder()
 		details.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK {
@@ -47,7 +47,7 @@ func TestPlacesHandlers(t *testing.T) {
 		}
 		detailsPayload := decodeJSONMap(t, rec.Body)
 		item, ok := detailsPayload["item"].(map[string]any)
-		if !ok || item["id"] != "vdnh" {
+		if !ok || item["id"] != "futurione" {
 			t.Fatalf("unexpected details response: %+v", detailsPayload)
 		}
 
@@ -99,10 +99,43 @@ func TestPlacesHandlers(t *testing.T) {
 			t.Fatalf("unexpected best response: %+v", bestPayload)
 		}
 		first, ok := bestItems[0].(map[string]any)
-		if !ok || first["id"] != "zaryadye" {
+		if !ok || first["id"] != "futurione" {
 			t.Fatalf("unexpected first best item: %+v", bestPayload)
 		}
 	})
+}
+
+func TestHomeHandlerReturnsHomePayload(t *testing.T) {
+	store := newPlaceStore()
+	h := homeHandler(store)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/home", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("home status = %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	payload := decodeJSONMap(t, rec.Body)
+	places, ok := payload["places"].([]any)
+	if !ok || len(places) == 0 {
+		t.Fatalf("home payload missing places: %+v", payload)
+	}
+	moodLeft, ok := payload["moodLeft"].([]any)
+	if !ok || len(moodLeft) == 0 {
+		t.Fatalf("home payload missing moodLeft: %+v", payload)
+	}
+	moodTall, ok := payload["moodTall"].(map[string]any)
+	if !ok || moodTall["title"] == "" {
+		t.Fatalf("home payload missing moodTall: %+v", payload)
+	}
+
+	badReq := httptest.NewRequest(http.MethodPost, "/api/home", nil)
+	badRec := httptest.NewRecorder()
+	h.ServeHTTP(badRec, badReq)
+	if badRec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("home bad method status = %d, want %d", badRec.Code, http.StatusMethodNotAllowed)
+	}
 }
 
 func TestPlaceStoreAndHelpers(t *testing.T) {
@@ -113,9 +146,9 @@ func TestPlaceStoreAndHelpers(t *testing.T) {
 		t.Fatal("listCards returned empty result")
 	}
 
-	p, ok := store.getByID("vdnh")
-	if !ok || p.ID != "vdnh" {
-		t.Fatalf("getByID(vdnh) failed: ok=%v, place=%+v", ok, p)
+	p, ok := store.getByID("futurione")
+	if !ok || p.ID != "futurione" {
+		t.Fatalf("getByID(futurione) failed: ok=%v, place=%+v", ok, p)
 	}
 
 	parkCards, ok := store.listCardsByCategory("park")

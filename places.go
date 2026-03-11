@@ -32,6 +32,32 @@ type placeCard struct {
 	ImageURL         string   `json:"image_url"`
 }
 
+type homePlaceCard struct {
+	ID          string `json:"id"`
+	ImageURL    string `json:"imageUrl"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+
+type moodCard struct {
+	ID       string `json:"id"`
+	ImageURL string `json:"imageUrl"`
+	Title    string `json:"title"`
+	Modifier string `json:"modifier,omitempty"`
+}
+
+type homeMoodTall struct {
+	ID       string `json:"id"`
+	ImageURL string `json:"imageUrl"`
+	Title    string `json:"title"`
+}
+
+type homePayload struct {
+	Places   []homePlaceCard `json:"places"`
+	MoodLeft []moodCard      `json:"moodLeft"`
+	MoodTall homeMoodTall    `json:"moodTall"`
+}
+
 type placeStore struct {
 	mu    sync.RWMutex
 	byID  map[string]place
@@ -53,6 +79,23 @@ func (s *placeStore) listCards() []placeCard {
 			ShortDescription: p.ShortDescription,
 			Address:          p.Address,
 			ImageURL:         p.ImageURL,
+		})
+	}
+	return cards
+}
+
+func (s *placeStore) listHomeCards() []homePlaceCard {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	cards := make([]homePlaceCard, 0, len(s.order))
+	for _, id := range s.order {
+		p := s.byID[id]
+		cards = append(cards, homePlaceCard{
+			ID:          p.ID,
+			ImageURL:    p.ImageURL,
+			Title:       p.Title,
+			Description: p.ShortDescription,
 		})
 	}
 	return cards
@@ -94,6 +137,31 @@ func containsCategory(categories []string, category string) bool {
 		}
 	}
 	return false
+}
+
+func homeHandler(store *placeStore) http.HandlerFunc {
+	payload := homePayload{
+		Places: store.listHomeCards(),
+		MoodLeft: []moodCard{
+			{ID: "mood-night", ImageURL: "/public/static/img/club.jpeg", Title: "Ночная жизнь", Modifier: "mood-card--wide"},
+			{ID: "mood-eat", ImageURL: "/public/static/img/eat.jpg", Title: "Гастро-места"},
+			{ID: "mood-love", ImageURL: "/public/static/img/love.jpg", Title: "Романтический вечер"},
+		},
+		MoodTall: homeMoodTall{
+			ID:       "mood-photo",
+			ImageURL: "/public/static/img/photo.jpeg",
+			Title:    "Места для фото",
+		},
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, payload)
+	}
 }
 
 func placesListHandler(store *placeStore) http.HandlerFunc {

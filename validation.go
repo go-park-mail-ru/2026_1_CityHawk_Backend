@@ -5,6 +5,7 @@ import (
 	"net/mail"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
 const (
@@ -69,7 +70,7 @@ func normalizeAndValidatePassword(raw string) (string, error) {
 	if password == "" {
 		return "", errors.New("password is required")
 	}
-	if len(password) < minPasswordLen {
+	if utf8.RuneCountInString(password) < minPasswordLen {
 		return "", errors.New("password must be at least 8 characters")
 	}
 	if len(password) > maxPasswordLen {
@@ -83,7 +84,8 @@ func normalizeAndValidateUsername(raw string) (string, error) {
 	if username == "" {
 		return "", errors.New("username is required")
 	}
-	if len(username) < minUsernameLen || len(username) > maxUsernameLen {
+	usernameLen := utf8.RuneCountInString(username)
+	if usernameLen < minUsernameLen || usernameLen > maxUsernameLen {
 		return "", errors.New("username must be 3-32 characters")
 	}
 	if !usernamePattern.MatchString(username) {
