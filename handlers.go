@@ -7,7 +7,13 @@ import (
 	"time"
 )
 
-type authRequest struct {
+type registerRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Username string `json:"username"`
+}
+
+type loginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
@@ -60,20 +66,21 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 
 func registerHandler(store *userStore, auth *authService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req authRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		var req registerRequest
+		decoder := json.NewDecoder(r.Body)
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&req); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
 			return
 		}
 
-		email := strings.TrimSpace(strings.ToLower(req.Email))
-		password := strings.TrimSpace(req.Password)
-		if email == "" || password == "" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "email and password are required"})
+		email, password, username, err := validateRegisterInput(req)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
 
-		u, err := createUser(email, password)
+		u, err := createUser(email, password, username)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 			return
@@ -97,16 +104,17 @@ func registerHandler(store *userStore, auth *authService) http.HandlerFunc {
 
 func loginHandler(store *userStore, auth *authService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req authRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		var req loginRequest
+		decoder := json.NewDecoder(r.Body)
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&req); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
 			return
 		}
 
-		email := strings.TrimSpace(strings.ToLower(req.Email))
-		password := strings.TrimSpace(req.Password)
-		if email == "" || password == "" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "email and password are required"})
+		email, password, err := validateLoginInput(req)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
 
@@ -175,8 +183,9 @@ func meHandler(store *userStore) http.Handler {
 		}
 
 		writeJSON(w, http.StatusOK, map[string]string{
-			"id":    u.ID,
-			"email": u.Email,
+			"id":       u.ID,
+			"email":    u.Email,
+			"username": u.Username,
 		})
 	})
 }

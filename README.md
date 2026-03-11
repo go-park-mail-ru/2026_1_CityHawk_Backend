@@ -31,7 +31,8 @@ ok
 ```json
 {
   "email": "user@example.com",
-  "password": "secret123"
+  "password": "secret123",
+  "username": "cityhawk_user"
 }
 ```
 
@@ -47,7 +48,7 @@ ok
 ```
 
 - Возможные ошибки:
-  - `400`: `{"error":"invalid json"}` / `{"error":"email and password are required"}`
+  - `400`: `{"error":"invalid json"}` / ошибки валидации полей (`email`, `password`, `username`)
   - `409`: `{"error":"email already exists"}`
   - `500`: `{"error":"failed to issue tokens"}` или `{"error":"internal error"}`
 
@@ -76,7 +77,7 @@ ok
 ```
 
 - Возможные ошибки:
-  - `400`: `{"error":"invalid json"}` / `{"error":"email and password are required"}`
+  - `400`: `{"error":"invalid json"}` / ошибки валидации полей (`email`, `password`)
   - `401`: `{"error":"invalid credentials"}`
   - `500`: `{"error":"failed to issue tokens"}`
 
