@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"sync"
 	"time"
 )
@@ -33,7 +32,7 @@ func (s *userStore) create(u user) error {
 	defer s.mu.Unlock()
 
 	if _, exists := s.byEmail[u.Email]; exists {
-		return errors.New("email already exists")
+		return errEmailExists
 	}
 	s.byEmail[u.Email] = u
 	return nil

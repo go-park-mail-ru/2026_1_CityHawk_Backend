@@ -41,6 +41,15 @@ func mustJSONBody(t *testing.T, payload any) *bytes.Reader {
 	return bytes.NewReader(raw)
 }
 
+func findCookieByName(cookies []*http.Cookie, name string) *http.Cookie {
+	for _, c := range cookies {
+		if c.Name == name {
+			return c
+		}
+	}
+	return nil
+}
+
 func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	store, auth := newTestAuthDeps(t)
 
@@ -56,18 +65,26 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	}
 
 	registerPayload := decodeJSONMap(t, registerRec.Body)
-	accessToken, _ := registerPayload["access_token"].(string)
-	refreshToken, _ := registerPayload["refresh_token"].(string)
-	if accessToken == "" || refreshToken == "" {
-		t.Fatalf("missing tokens in register response: %+v", registerPayload)
+	if registerPayload["message"] != "registration successful" {
+		t.Fatalf("unexpected register response: %+v", registerPayload)
 	}
 
 	if _, ok := store.getByEmail("tester@example.com"); !ok {
 		t.Fatal("registered user not found in store")
 	}
 
+	registerCookies := registerRec.Result().Cookies()
+	accessCookie := findCookieByName(registerCookies, accessCookieName)
+	refreshCookie := findCookieByName(registerCookies, refreshCookieName)
+	if accessCookie == nil || accessCookie.Value == "" {
+		t.Fatalf("access cookie not set: %+v", registerCookies)
+	}
+	if refreshCookie == nil || refreshCookie.Value == "" {
+		t.Fatalf("refresh cookie not set: %+v", registerCookies)
+	}
+
 	meReq := httptest.NewRequest(http.MethodGet, "/me", nil)
-	meReq.Header.Set("Authorization", "Bearer "+accessToken)
+	meReq.AddCookie(accessCookie)
 	meRec := httptest.NewRecorder()
 	authMiddleware(auth, meHandler(store)).ServeHTTP(meRec, meReq)
 	if meRec.Code != http.StatusOK {
@@ -80,7 +97,6 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 		t.Fatalf("unexpected username: %+v", mePayload)
 	}
 
-	refreshCookie := registerRec.Result().Cookies()[0]
 	refreshReq := httptest.NewRequest(http.MethodPost, "/auth/refresh", nil)
 	refreshReq.AddCookie(refreshCookie)
 	refreshRec := httptest.NewRecorder()

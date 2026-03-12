@@ -19,11 +19,25 @@ type loginRequest struct {
 }
 
 const refreshCookieName = "refresh_token"
+const accessCookieName = "access_token"
 
 func setRefreshCookie(w http.ResponseWriter, refreshToken string, ttl time.Duration) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     refreshCookieName,
 		Value:    refreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().UTC().Add(ttl),
+		MaxAge:   int(ttl.Seconds()),
+	})
+}
+
+func setAccessCookie(w http.ResponseWriter, accessToken string, ttl time.Duration) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     accessCookieName,
+		Value:    accessToken,
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   false,
@@ -46,6 +60,19 @@ func clearRefreshCookie(w http.ResponseWriter) {
 	})
 }
 
+func clearAccessCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     accessCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+	})
+}
+
 func readRefreshCookie(r *http.Request) string {
 	cookie, err := r.Cookie(refreshCookieName)
 	if err != nil {
@@ -54,132 +81,136 @@ func readRefreshCookie(r *http.Request) string {
 	return strings.TrimSpace(cookie.Value)
 }
 
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
+func readAccessCookie(r *http.Request) string {
+	cookie, err := r.Cookie(accessCookieName)
+	if err != nil {
+		return ""
 	}
+	return strings.TrimSpace(cookie.Value)
+}
 
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("ok"))
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodGet {
+			return errMethodNotAllowed
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+		return nil
+	}).ServeHTTP(w, r)
 }
 
 func registerHandler(store *userStore, auth *authService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		var req registerRequest
 		decoder := json.NewDecoder(r.Body)
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&req); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
-			return
+			return errInvalidJSON
 		}
 
 		email, password, username, err := validateRegisterInput(req)
 		if err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-			return
+			return newHTTPError(http.StatusBadRequest, err.Error())
 		}
 
 		u, err := createUser(email, password, username)
 		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
-			return
+			return errInternal
 		}
 
 		if err := store.create(u); err != nil {
-			writeJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
-			return
+			return err
 		}
 
 		resp, err := auth.issueTokenPair(u)
 		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to issue tokens"})
-			return
+			return errIssueTokens
 		}
 
 		setRefreshCookie(w, resp.RefreshToken, auth.refreshTTL)
-		writeJSON(w, http.StatusCreated, resp)
-	}
+		setAccessCookie(w, resp.AccessToken, auth.accessTTL)
+		writeJSON(w, http.StatusCreated, map[string]string{"message": "registration successful"})
+		return nil
+	})
 }
 
 func loginHandler(store *userStore, auth *authService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		var req loginRequest
 		decoder := json.NewDecoder(r.Body)
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&req); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
-			return
+			return errInvalidJSON
 		}
 
 		email, password, err := validateLoginInput(req)
 		if err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-			return
+			return newHTTPError(http.StatusBadRequest, err.Error())
 		}
 
 		u, ok := store.getByEmail(email)
 		if !ok || !verifyPassword(password, u.PasswordHash) {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
-			return
+			return errInvalidCredentials
 		}
 
 		resp, err := auth.issueTokenPair(u)
 		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to issue tokens"})
-			return
+			return errIssueTokens
 		}
 
 		setRefreshCookie(w, resp.RefreshToken, auth.refreshTTL)
-		writeJSON(w, http.StatusOK, resp)
-	}
+		setAccessCookie(w, resp.AccessToken, auth.accessTTL)
+		writeJSON(w, http.StatusOK, map[string]string{"message": "login successful"})
+		return nil
+	})
 }
 
 func refreshHandler(store *userStore, auth *authService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		refreshToken := readRefreshCookie(r)
 		if refreshToken == "" {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing refresh token"})
-			return
+			return errMissingRefresh
 		}
 
 		resp, err := auth.rotateRefresh(refreshToken, store)
 		if err != nil {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid refresh token"})
-			return
+			return errInvalidRefresh
 		}
 
 		setRefreshCookie(w, resp.RefreshToken, auth.refreshTTL)
+		setAccessCookie(w, resp.AccessToken, auth.accessTTL)
 		writeJSON(w, http.StatusOK, map[string]string{"access_token": resp.AccessToken})
-	}
+		return nil
+	})
 }
 
 func logoutHandler(auth *authService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		refreshToken := readRefreshCookie(r)
 		if refreshToken == "" {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing refresh token"})
-			return
+			return errMissingRefresh
 		}
 
 		auth.revokeRefresh(refreshToken)
 		clearRefreshCookie(w)
+		clearAccessCookie(w)
 		writeJSON(w, http.StatusOK, map[string]string{"message": "logout successful"})
-	}
+		return nil
+	})
 }
 
 func meHandler(store *userStore) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		userID, ok := r.Context().Value(userIDContextKey).(string)
 		if !ok || userID == "" {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
-			return
+			return errUnauthorized
 		}
 
 		u, ok := store.getByID(userID)
 		if !ok {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "user not found"})
-			return
+			return errUserNotFound
 		}
 
 		writeJSON(w, http.StatusOK, map[string]string{
@@ -187,5 +218,6 @@ func meHandler(store *userStore) http.Handler {
 			"email":    u.Email,
 			"username": u.Username,
 		})
+		return nil
 	})
 }

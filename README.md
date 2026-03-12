@@ -24,7 +24,7 @@ ok
 
 ### `POST /auth/register`
 
-Регистрация пользователя и выдача пары токенов.
+Регистрация пользователя с установкой access/refresh cookie.
 
 - Тело запроса:
 
@@ -40,10 +40,7 @@ ok
 
 ```json
 {
-  "access_token": "<jwt>",
-  "refresh_token": "<opaque_token>",
-  "token_type": "Bearer",
-  "expires_in": 900
+  "message": "registration successful"
 }
 ```
 
@@ -54,7 +51,7 @@ ok
 
 ### `POST /auth/login`
 
-Логин пользователя и выдача пары токенов.
+Логин пользователя с установкой access/refresh cookie.
 
 - Тело запроса:
 
@@ -69,10 +66,7 @@ ok
 
 ```json
 {
-  "access_token": "<jwt>",
-  "refresh_token": "<opaque_token>",
-  "token_type": "Bearer",
-  "expires_in": 900
+  "message": "login successful"
 }
 ```
 
@@ -121,10 +115,10 @@ ok
 Возвращает текущего пользователя.
 
 - Тело запроса: нет
-- Заголовок:
+- Требование: cookie `access_token`.
 
 ```text
-Authorization: Bearer <access_token>
+Cookie: access_token=<jwt>
 ```
 
 - Успешный ответ `200`:
@@ -137,7 +131,7 @@ Authorization: Bearer <access_token>
 ```
 
 - Возможные ошибки:
-  - `401`: `{"error":"missing bearer token"}`
+  - `401`: `{"error":"missing access token"}`
   - `401`: `{"error":"invalid access token"}`
   - `401`: `{"error":"unauthorized"}`
   - `401`: `{"error":"user not found"}`
@@ -258,9 +252,9 @@ Authorization: Bearer <access_token>
 
 ## JWT
 
-- `access_token`: JWT (HS256), в `sub` кладется `user_id`.
-- `refresh_token`: opaque-токен, хранится на сервере (in-memory) в хешированном виде и связан с `user_id`, возвращается в `register/login` и дополнительно ставится в `HttpOnly` cookie.
-- `POST /auth/refresh` читает refresh из cookie, выполняет ротацию и возвращает новый `access_token` (новый refresh снова кладется в cookie).
+- `access_token`: JWT (HS256), в `sub` кладется `user_id`, передается через `HttpOnly` cookie `access_token`.
+- `refresh_token`: opaque-токен, хранится на сервере (in-memory) в хешированном виде и связан с `user_id`, передается через `HttpOnly` cookie `refresh_token`.
+- `POST /auth/refresh` читает refresh из cookie, выполняет ротацию и возвращает новый `access_token` (новые access/refresh снова кладутся в cookie).
 - `POST /auth/logout` читает refresh из cookie и отзывает сессию.
 
 ## Переменные окружения

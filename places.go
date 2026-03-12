@@ -154,81 +154,76 @@ func homeHandler(store *placeStore) http.HandlerFunc {
 		},
 	}
 
-	return func(w http.ResponseWriter, r *http.Request) {
+	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
-			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
-			return
+			return errMethodNotAllowed
 		}
 
 		writeJSON(w, http.StatusOK, payload)
-	}
+		return nil
+	})
 }
 
 func placesListHandler(store *placeStore) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
-			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
-			return
+			return errMethodNotAllowed
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{"items": store.listCards()})
-	}
+		return nil
+	})
 }
 
 func placeDetailsHandler(store *placeStore) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
-			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
-			return
+			return errMethodNotAllowed
 		}
 		id := strings.TrimPrefix(r.URL.Path, "/places/")
 		if id == "" || strings.Contains(id, "/") {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "place not found"})
-			return
+			return errPlaceNotFound
 		}
 
 		p, ok := store.getByID(id)
 		if !ok {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "place not found"})
-			return
+			return errPlaceNotFound
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"item": p})
-	}
+		return nil
+	})
 }
 
 func placesByCategoryListHandler(store *placeStore) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
-			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
-			return
+			return errMethodNotAllowed
 		}
 		category := strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/places/category/"))
 		if category == "" || strings.Contains(category, "/") {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "category not found"})
-			return
+			return errCategoryNotFound
 		}
 
 		p, ok := store.listCardsByCategory(category)
 		if !ok {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "category not found"})
-			return
+			return errCategoryNotFound
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{"items": p})
-	}
+		return nil
+	})
 }
 
 func placesBestHandler(store *placeStore) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
-			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
-			return
+			return errMethodNotAllowed
 		}
 
 		cards := store.listCards()
 		if len(cards) == 0 {
 			writeJSON(w, http.StatusOK, map[string]any{"items": []placeCard{}})
-			return
+			return nil
 		}
 
 		sort.Slice(cards, func(i, j int) bool {
@@ -241,5 +236,6 @@ func placesBestHandler(store *placeStore) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{"items": cards[:limit]})
-	}
+		return nil
+	})
 }

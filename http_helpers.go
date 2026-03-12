@@ -11,14 +11,6 @@ type contextKey string
 
 const userIDContextKey contextKey = "userID"
 
-func extractBearerToken(header string) string {
-	parts := strings.SplitN(strings.TrimSpace(header), " ", 2)
-	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-		return ""
-	}
-	return strings.TrimSpace(parts[1])
-}
-
 func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -26,24 +18,22 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 }
 
 func authMiddleware(auth *authService, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := extractBearerToken(r.Header.Get("Authorization"))
+	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		token := readAccessCookie(r)
 		if token == "" {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing bearer token"})
-			return
+			return errMissingAccess
 		}
 
 		c, err := auth.parseToken(token)
 		if err != nil || c.Type != "access" {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid access token"})
-			return
+			return errInvalidAccess
 		}
 		if strings.TrimSpace(c.Subject) == "" {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid access token"})
-			return
+			return errInvalidAccess
 		}
 
 		ctx := context.WithValue(r.Context(), userIDContextKey, c.Subject)
 		next.ServeHTTP(w, r.WithContext(ctx))
+		return nil
 	})
 }
