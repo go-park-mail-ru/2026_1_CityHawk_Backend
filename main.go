@@ -54,7 +54,7 @@ func main() {
 
 	server := http.Server{
 		Addr:         ":" + port,
-		Handler:      corsMiddleware(mux),
+		Handler:      corsMiddleware(recoveryMiddleware(mux)),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
