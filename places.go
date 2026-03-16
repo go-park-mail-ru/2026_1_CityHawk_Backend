@@ -156,7 +156,7 @@ func homeHandler(store *placeStore) http.HandlerFunc {
 
 	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
-			return errMethodNotAllowed
+			return ErrMethodNotAllowed
 		}
 
 		writeJSON(w, http.StatusOK, payload)
@@ -167,7 +167,7 @@ func homeHandler(store *placeStore) http.HandlerFunc {
 func placesListHandler(store *placeStore) http.HandlerFunc {
 	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
-			return errMethodNotAllowed
+			return ErrMethodNotAllowed
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{"items": store.listCards()})
@@ -178,16 +178,16 @@ func placesListHandler(store *placeStore) http.HandlerFunc {
 func placeDetailsHandler(store *placeStore) http.HandlerFunc {
 	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
-			return errMethodNotAllowed
+			return ErrMethodNotAllowed
 		}
 		id := strings.TrimPrefix(r.URL.Path, "/places/")
 		if id == "" || strings.Contains(id, "/") {
-			return errPlaceNotFound
+			return ErrPlaceNotFound
 		}
 
 		p, ok := store.getByID(id)
 		if !ok {
-			return errPlaceNotFound
+			return ErrPlaceNotFound
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"item": p})
 		return nil
@@ -197,16 +197,16 @@ func placeDetailsHandler(store *placeStore) http.HandlerFunc {
 func placesByCategoryListHandler(store *placeStore) http.HandlerFunc {
 	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
-			return errMethodNotAllowed
+			return ErrMethodNotAllowed
 		}
 		category := strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/places/category/"))
 		if category == "" || strings.Contains(category, "/") {
-			return errCategoryNotFound
+			return ErrCategoryNotFound
 		}
 
 		p, ok := store.listCardsByCategory(category)
 		if !ok {
-			return errCategoryNotFound
+			return ErrCategoryNotFound
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{"items": p})
@@ -217,7 +217,7 @@ func placesByCategoryListHandler(store *placeStore) http.HandlerFunc {
 func placesBestHandler(store *placeStore) http.HandlerFunc {
 	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
-			return errMethodNotAllowed
+			return ErrMethodNotAllowed
 		}
 
 		cards := store.listCards()

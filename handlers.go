@@ -92,7 +92,7 @@ func readAccessCookie(r *http.Request) string {
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
-			return errMethodNotAllowed
+			return ErrMethodNotAllowed
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -107,7 +107,7 @@ func registerHandler(store *userStore, auth *authService) http.HandlerFunc {
 		decoder := json.NewDecoder(r.Body)
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&req); err != nil {
-			return errInvalidJSON
+			return ErrInvalidJSON
 		}
 
 		email, password, username, err := validateRegisterInput(req)
@@ -117,7 +117,7 @@ func registerHandler(store *userStore, auth *authService) http.HandlerFunc {
 
 		u, err := createUser(email, password, username)
 		if err != nil {
-			return errInternal
+			return ErrInternal
 		}
 
 		if err := store.create(u); err != nil {
@@ -126,7 +126,7 @@ func registerHandler(store *userStore, auth *authService) http.HandlerFunc {
 
 		resp, err := auth.issueTokenPair(u)
 		if err != nil {
-			return errIssueTokens
+			return ErrIssueTokens
 		}
 
 		setRefreshCookie(w, resp.RefreshToken, auth.refreshTTL)
@@ -142,7 +142,7 @@ func loginHandler(store *userStore, auth *authService) http.HandlerFunc {
 		decoder := json.NewDecoder(r.Body)
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&req); err != nil {
-			return errInvalidJSON
+			return ErrInvalidJSON
 		}
 
 		email, password, err := validateLoginInput(req)
@@ -152,12 +152,12 @@ func loginHandler(store *userStore, auth *authService) http.HandlerFunc {
 
 		u, ok := store.getByEmail(email)
 		if !ok || !verifyPassword(password, u.PasswordHash) {
-			return errInvalidCredentials
+			return ErrInvalidCredentials
 		}
 
 		resp, err := auth.issueTokenPair(u)
 		if err != nil {
-			return errIssueTokens
+			return ErrIssueTokens
 		}
 
 		setRefreshCookie(w, resp.RefreshToken, auth.refreshTTL)
@@ -171,12 +171,12 @@ func refreshHandler(store *userStore, auth *authService) http.HandlerFunc {
 	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		refreshToken := readRefreshCookie(r)
 		if refreshToken == "" {
-			return errMissingRefresh
+			return ErrMissingRefresh
 		}
 
 		resp, err := auth.rotateRefresh(refreshToken, store)
 		if err != nil {
-			return errInvalidRefresh
+			return ErrInvalidRefresh
 		}
 
 		setRefreshCookie(w, resp.RefreshToken, auth.refreshTTL)
@@ -190,7 +190,7 @@ func logoutHandler(auth *authService) http.HandlerFunc {
 	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		refreshToken := readRefreshCookie(r)
 		if refreshToken == "" {
-			return errMissingRefresh
+			return ErrMissingRefresh
 		}
 
 		auth.revokeRefresh(refreshToken)
@@ -205,12 +205,12 @@ func meHandler(store *userStore) http.Handler {
 	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		userID, ok := r.Context().Value(userIDContextKey).(string)
 		if !ok || userID == "" {
-			return errUnauthorized
+			return ErrUnauthorized
 		}
 
 		u, ok := store.getByID(userID)
 		if !ok {
-			return errUserNotFound
+			return ErrUserNotFound
 		}
 
 		writeJSON(w, http.StatusOK, map[string]string{

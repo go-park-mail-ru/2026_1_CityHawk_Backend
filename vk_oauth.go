@@ -109,12 +109,12 @@ func readVKOAuthStateCookie(r *http.Request) string {
 func vkLoginHandler(cfg *oauth2.Config) http.HandlerFunc {
 	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
-			return errMethodNotAllowed
+			return ErrMethodNotAllowed
 		}
 
 		state, err := newOAuthState()
 		if err != nil {
-			return errInternal
+			return ErrInternal
 		}
 
 		setVKOAuthStateCookie(w, state)
@@ -126,7 +126,7 @@ func vkLoginHandler(cfg *oauth2.Config) http.HandlerFunc {
 func vkCallbackHandler(cfg *oauth2.Config, store *userStore, auth *authService) http.HandlerFunc {
 	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
-			return errMethodNotAllowed
+			return ErrMethodNotAllowed
 		}
 
 		receivedState := strings.TrimSpace(r.URL.Query().Get("state"))
@@ -156,12 +156,12 @@ func vkCallbackHandler(cfg *oauth2.Config, store *userStore, auth *authService) 
 
 		u, err := findOrCreateUserFromVKToken(store, token)
 		if err != nil {
-			return errInternal
+			return ErrInternal
 		}
 
 		resp, err := auth.issueTokenPair(u)
 		if err != nil {
-			return errIssueTokens
+			return ErrIssueTokens
 		}
 
 		setRefreshCookie(w, resp.RefreshToken, auth.refreshTTL)
@@ -198,7 +198,7 @@ func findOrCreateUserFromVKToken(store *userStore, token *oauth2.Token) (user, e
 	}
 
 	if err := store.create(u); err != nil {
-		if errors.Is(err, errEmailExists) {
+		if errors.Is(err, ErrEmailExists) {
 			if existing, ok := store.getByEmail(email); ok {
 				return existing, nil
 			}
