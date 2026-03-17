@@ -11,7 +11,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
+	"unicode"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/vk"
@@ -30,13 +30,13 @@ func newVKOAuthConfigFromEnv() (*oauth2.Config, error) {
 	redirectURL := strings.TrimSpace(os.Getenv(vkRedirectURLEnv))
 
 	if clientID == "" {
-		return nil, errors.New("VK_OAUTH_CLIENT_ID is required")
+		return nil, fmt.Errorf("%s %s", vkClientIDEnv, required)
 	}
 	if clientSecret == "" {
-		return nil, errors.New("VK_OAUTH_CLIENT_SECRET is required")
+		return nil, fmt.Errorf("%s %s", vkClientSecretEnv, required)
 	}
 	if redirectURL == "" {
-		return nil, errors.New("VK_OAUTH_REDIRECT_URL is required")
+		return nil, fmt.Errorf("%s %s", vkRedirectURLEnv, required)
 	}
 
 	return &oauth2.Config{
@@ -72,40 +72,6 @@ func vkTokenSource(ctx context.Context, cfg *oauth2.Config, token *oauth2.Token)
 	return cfg.TokenSource(ctx, token)
 }
 
-func setVKOAuthStateCookie(w http.ResponseWriter, state string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     vkStateCookieName,
-		Value:    state,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().UTC().Add(10 * time.Minute),
-		MaxAge:   600,
-	})
-}
-
-func clearVKOAuthStateCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     vkStateCookieName,
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Unix(0, 0),
-		MaxAge:   -1,
-	})
-}
-
-func readVKOAuthStateCookie(r *http.Request) string {
-	c, err := r.Cookie(vkStateCookieName)
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(c.Value)
-}
-
 func vkLoginHandler(cfg *oauth2.Config) http.HandlerFunc {
 	return errorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
@@ -117,7 +83,7 @@ func vkLoginHandler(cfg *oauth2.Config) http.HandlerFunc {
 			return ErrInternal
 		}
 
-		setVKOAuthStateCookie(w, state)
+		setOAuthStateCookie(w, state, vkStateCookieName)
 		http.Redirect(w, r, vkAuthCodeURL(cfg, state), http.StatusFound)
 		return nil
 	})
@@ -134,11 +100,11 @@ func vkCallbackHandler(cfg *oauth2.Config, store *userStore, auth *authService) 
 			return newHTTPError(http.StatusUnauthorized, "missing oauth state")
 		}
 
-		savedState := readVKOAuthStateCookie(r)
+		savedState := readOAuthStateCookie(r, vkStateCookieName)
 		if savedState == "" || savedState != receivedState {
 			return newHTTPError(http.StatusUnauthorized, "invalid oauth state")
 		}
-		clearVKOAuthStateCookie(w)
+		clearOAuthStateCookie(w, vkStateCookieName)
 
 		if strings.TrimSpace(r.URL.Query().Get("error")) != "" {
 			return newHTTPError(http.StatusUnauthorized, "vk oauth denied")
@@ -199,9 +165,8 @@ func findOrCreateUserFromVKToken(store *userStore, token *oauth2.Token) (user, e
 
 	if err := store.create(u); err != nil {
 		if errors.Is(err, ErrEmailExists) {
-			if existing, ok := store.getByEmail(email); ok {
-				return existing, nil
-			}
+			existing, _ := store.getByEmail(email)
+			return existing, nil
 		}
 		return user{}, err
 	}
@@ -272,7 +237,7 @@ func sanitizePart(s string) string {
 	var b strings.Builder
 	b.Grow(len(s))
 	for _, r := range s {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || unicode.IsDigit(r) || r == '_' {
 			b.WriteRune(r)
 		}
 	}

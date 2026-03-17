@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"golang.org/x/oauth2"
 )
@@ -19,11 +19,14 @@ const (
 	yandexClientSecretEnv = "YANDEX_OAUTH_CLIENT_SECRET"
 	yandexRedirectURLEnv  = "YANDEX_OAUTH_REDIRECT_URL"
 	yandexStateCookieName = "yandex_oauth_state"
+	yandexAuthURL         = "https://oauth.yandex.ru/authorize"
+	yandexTokenURL        = "https://oauth.yandex.ru/token"
+	yandexUserInfoURL     = "https://login.yandex.ru/info"
 )
 
 var yandexEndpoint = oauth2.Endpoint{
-	AuthURL:  "https://oauth.yandex.ru/authorize",
-	TokenURL: "https://oauth.yandex.ru/token",
+	AuthURL:  yandexAuthURL,
+	TokenURL: yandexTokenURL,
 }
 
 func newYandexOAuthConfigFromEnv() (*oauth2.Config, error) {
@@ -32,13 +35,13 @@ func newYandexOAuthConfigFromEnv() (*oauth2.Config, error) {
 	redirectURL := strings.TrimSpace(os.Getenv(yandexRedirectURLEnv))
 
 	if clientID == "" {
-		return nil, errors.New("YANDEX_OAUTH_CLIENT_ID is required")
+		return nil, fmt.Errorf("%s %s", yandexClientIDEnv, required)
 	}
 	if clientSecret == "" {
-		return nil, errors.New("YANDEX_OAUTH_CLIENT_SECRET is required")
+		return nil, fmt.Errorf("%s %s", yandexClientSecretEnv, required)
 	}
 	if redirectURL == "" {
-		return nil, errors.New("YANDEX_OAUTH_REDIRECT_URL is required")
+		return nil, fmt.Errorf("%s %s", yandexRedirectURLEnv, required)
 	}
 
 	return &oauth2.Config{
@@ -48,40 +51,6 @@ func newYandexOAuthConfigFromEnv() (*oauth2.Config, error) {
 		Endpoint:     yandexEndpoint,
 		Scopes:       []string{"login:email", "login:info"},
 	}, nil
-}
-
-func setYandexOAuthStateCookie(w http.ResponseWriter, state string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     yandexStateCookieName,
-		Value:    state,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().UTC().Add(10 * time.Minute),
-		MaxAge:   600,
-	})
-}
-
-func clearYandexOAuthStateCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     yandexStateCookieName,
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Unix(0, 0),
-		MaxAge:   -1,
-	})
-}
-
-func readYandexOAuthStateCookie(r *http.Request) string {
-	c, err := r.Cookie(yandexStateCookieName)
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(c.Value)
 }
 
 func yandexLoginHandler(cfg *oauth2.Config) http.HandlerFunc {
@@ -95,7 +64,7 @@ func yandexLoginHandler(cfg *oauth2.Config) http.HandlerFunc {
 			return ErrInternal
 		}
 
-		setYandexOAuthStateCookie(w, state)
+		setOAuthStateCookie(w, state, yandexStateCookieName)
 		http.Redirect(w, r, cfg.AuthCodeURL(state, oauth2.AccessTypeOnline), http.StatusFound)
 		return nil
 	})
@@ -112,11 +81,11 @@ func yandexCallbackHandler(cfg *oauth2.Config, store *userStore, auth *authServi
 			return newHTTPError(http.StatusUnauthorized, "missing oauth state")
 		}
 
-		savedState := readYandexOAuthStateCookie(r)
+		savedState := readOAuthStateCookie(r, yandexStateCookieName)
 		if savedState == "" || savedState != receivedState {
 			return newHTTPError(http.StatusUnauthorized, "invalid oauth state")
 		}
-		clearYandexOAuthStateCookie(w)
+		clearOAuthStateCookie(w, yandexStateCookieName)
 
 		code := strings.TrimSpace(r.URL.Query().Get("code"))
 		if code == "" {
@@ -161,7 +130,7 @@ func fetchYandexProfile(ctx context.Context, accessToken string) (yandexProfile,
 		return yandexProfile{}, errors.New("empty access token")
 	}
 
-	u, err := url.Parse("https://login.yandex.ru/info")
+	u, err := url.Parse(yandexUserInfoURL)
 	if err != nil {
 		return yandexProfile{}, err
 	}
@@ -234,9 +203,8 @@ func findOrCreateUserFromYandexProfile(store *userStore, profile yandexProfile) 
 
 	if err := store.create(u); err != nil {
 		if errors.Is(err, ErrEmailExists) {
-			if existing, ok := store.getByEmail(email); ok {
-				return existing, nil
-			}
+			existing, _ := store.getByEmail(email)
+			return existing, nil
 		}
 		return user{}, err
 	}

@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -19,6 +19,8 @@ const (
 	googleClientSecretEnv = "GOOGLE_OAUTH_CLIENT_SECRET"
 	googleRedirectURLEnv  = "GOOGLE_OAUTH_REDIRECT_URL"
 	googleStateCookieName = "google_oauth_state"
+	googleUserInfoURL     = "https://www.googleapis.com/oauth2/v2/userinfo"
+	required              = "is required"
 )
 
 func newGoogleOAuthConfigFromEnv() (*oauth2.Config, error) {
@@ -27,13 +29,13 @@ func newGoogleOAuthConfigFromEnv() (*oauth2.Config, error) {
 	redirectURL := strings.TrimSpace(os.Getenv(googleRedirectURLEnv))
 
 	if clientID == "" {
-		return nil, errors.New("GOOGLE_OAUTH_CLIENT_ID is required")
+		return nil, fmt.Errorf("%s %s", googleClientIDEnv, required)
 	}
 	if clientSecret == "" {
-		return nil, errors.New("GOOGLE_OAUTH_CLIENT_SECRET is required")
+		return nil, fmt.Errorf("%s %s", googleClientSecretEnv, required)
 	}
 	if redirectURL == "" {
-		return nil, errors.New("GOOGLE_OAUTH_REDIRECT_URL is required")
+		return nil, fmt.Errorf("%s %s", googleRedirectURLEnv, required)
 	}
 
 	return &oauth2.Config{
@@ -43,40 +45,6 @@ func newGoogleOAuthConfigFromEnv() (*oauth2.Config, error) {
 		Endpoint:     google.Endpoint,
 		Scopes:       []string{"openid", "email", "profile"},
 	}, nil
-}
-
-func setGoogleOAuthStateCookie(w http.ResponseWriter, state string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     googleStateCookieName,
-		Value:    state,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().UTC().Add(10 * time.Minute),
-		MaxAge:   600,
-	})
-}
-
-func clearGoogleOAuthStateCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     googleStateCookieName,
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Unix(0, 0),
-		MaxAge:   -1,
-	})
-}
-
-func readGoogleOAuthStateCookie(r *http.Request) string {
-	c, err := r.Cookie(googleStateCookieName)
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(c.Value)
 }
 
 func googleLoginHandler(cfg *oauth2.Config) http.HandlerFunc {
@@ -90,7 +58,7 @@ func googleLoginHandler(cfg *oauth2.Config) http.HandlerFunc {
 			return ErrInternal
 		}
 
-		setGoogleOAuthStateCookie(w, state)
+		setOAuthStateCookie(w, state, googleStateCookieName)
 		http.Redirect(w, r, cfg.AuthCodeURL(state, oauth2.AccessTypeOnline), http.StatusFound)
 		return nil
 	})
@@ -107,11 +75,11 @@ func googleCallbackHandler(cfg *oauth2.Config, store *userStore, auth *authServi
 			return newHTTPError(http.StatusUnauthorized, "missing oauth state")
 		}
 
-		savedState := readGoogleOAuthStateCookie(r)
+		savedState := readOAuthStateCookie(r, googleStateCookieName)
 		if savedState == "" || savedState != receivedState {
 			return newHTTPError(http.StatusUnauthorized, "invalid oauth state")
 		}
-		clearGoogleOAuthStateCookie(w)
+		clearOAuthStateCookie(w, googleStateCookieName)
 
 		code := strings.TrimSpace(r.URL.Query().Get("code"))
 		if code == "" {
@@ -159,7 +127,7 @@ func fetchGoogleProfile(ctx context.Context, accessToken string) (googleProfile,
 		return googleProfile{}, errors.New("empty access token")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://www.googleapis.com/oauth2/v2/userinfo", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, googleUserInfoURL, nil)
 	if err != nil {
 		return googleProfile{}, err
 	}
@@ -229,9 +197,8 @@ func findOrCreateUserFromGoogleProfile(store *userStore, profile googleProfile) 
 
 	if err := store.create(u); err != nil {
 		if errors.Is(err, ErrEmailExists) {
-			if existing, ok := store.getByEmail(email); ok {
-				return existing, nil
-			}
+			existing, _ := store.getByEmail(email)
+			return existing, nil
 		}
 		return user{}, err
 	}
