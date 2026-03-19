@@ -6,6 +6,22 @@ import (
 	"os"
 	"time"
 
+	authdelivery "cityhawk/backend/internal/auth/delivery/http"
+	authdeliveryvalidation "cityhawk/backend/internal/auth/delivery/http/validation"
+	oauthgoogle "cityhawk/backend/internal/auth/oauth/google"
+	oauthvk "cityhawk/backend/internal/auth/oauth/vk"
+	oauthyandex "cityhawk/backend/internal/auth/oauth/yandex"
+	authrepo "cityhawk/backend/internal/auth/repository"
+	authusecase "cityhawk/backend/internal/auth/usecase"
+	placedelivery "cityhawk/backend/internal/place/delivery/http"
+	placerepo "cityhawk/backend/internal/place/repository"
+	placeusecase "cityhawk/backend/internal/place/usecase"
+	"cityhawk/backend/internal/platform/httpx"
+	platformid "cityhawk/backend/internal/platform/id"
+	platformmiddleware "cityhawk/backend/internal/platform/middleware"
+	platformsecurity "cityhawk/backend/internal/platform/security"
+	userdelivery "cityhawk/backend/internal/user/delivery/http"
+	userrepo "cityhawk/backend/internal/user/repository"
 	"github.com/joho/godotenv"
 )
 
@@ -28,57 +44,95 @@ func main() {
 	accessTTL := parseDurationEnv("ACCESS_TOKEN_TTL", 15*time.Minute)
 	refreshTTL := parseDurationEnv("REFRESH_TOKEN_TTL", 7*24*time.Hour)
 
-	store := &userStore{byEmail: make(map[string]user)}
-	places := newPlaceStore()
-	auth := &authService{
-		secret:     []byte(secret),
-		accessTTL:  accessTTL,
-		refreshTTL: refreshTTL,
-		refreshSessions: &refreshStore{
-			session: make(map[string]refreshSession),
-		},
-	}
-	vkOAuthCfg, err := newVKOAuthConfigFromEnv()
+	store := userrepo.NewInMemoryUserRepository()
+	placeRepo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
+	placeUC := placeusecase.NewService(placeRepo)
+	refreshRepo := authrepo.NewInMemoryRefreshRepository()
+	tokenService := platformsecurity.NewJWTTokenService([]byte(secret))
+	authUC := authusecase.NewService(accessTTL, refreshTTL, store, refreshRepo, tokenService)
+	authFlowUC := authusecase.NewAuthFlowService(
+		store,
+		authUC,
+		authdeliveryvalidation.NewInputValidator(),
+		platformsecurity.NewBcryptPasswordService(),
+		platformid.NewTimeUserIDProvider(platformid.TimeUserIDLayout),
+	)
+	oauthUsers := authusecase.NewOAuthUserService(
+		store,
+		platformsecurity.NewBcryptPasswordService(),
+		platformid.NewTimeUserIDProvider(platformid.TimeUserIDLayout),
+	)
+	placeHandler := placedelivery.NewHandler(placeUC)
+	authFlowHandler := authdelivery.NewAuthHandler(authFlowUC, accessTTL, refreshTTL)
+	authRefreshHandler := authdelivery.NewRefreshHandler(authUC, accessTTL, refreshTTL)
+	meHandler := userdelivery.NewMeHandler(store)
+	vkOAuthCfg, err := oauthvk.NewConfigFromEnv()
 	if err != nil {
 		log.Printf("VK OAuth disabled: %v", err)
 	}
-	yandexOAuthCfg, err := newYandexOAuthConfigFromEnv()
+	yandexOAuthCfg, err := oauthyandex.NewConfigFromEnv()
 	if err != nil {
 		log.Printf("Yandex OAuth disabled: %v", err)
 	}
-	googleOAuthCfg, err := newGoogleOAuthConfigFromEnv()
+	googleOAuthCfg, err := oauthgoogle.NewConfigFromEnv()
 	if err != nil {
 		log.Printf("Google OAuth disabled: %v", err)
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", healthHandler)
-	mux.HandleFunc("/auth/register", registerHandler(store, auth))
-	mux.HandleFunc("/auth/login", loginHandler(store, auth))
+	mux.HandleFunc("/openapi.yaml", httpx.OpenAPIYAMLHandler)
+	mux.HandleFunc("/swagger", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/swagger/", http.StatusMovedPermanently)
+	})
+	mux.HandleFunc("/swagger/", httpx.SwaggerUIHandler("/openapi.yaml"))
+	mux.HandleFunc("/health", platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodGet {
+			return platformmiddleware.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+		return nil
+	}))
+	mux.HandleFunc("/auth/register", authFlowHandler.Register)
+	mux.HandleFunc("/auth/login", authFlowHandler.Login)
 	if vkOAuthCfg != nil {
-		mux.HandleFunc("/auth/vk/login", vkLoginHandler(vkOAuthCfg))
-		mux.HandleFunc("/auth/vk/callback", vkCallbackHandler(vkOAuthCfg, store, auth))
+		mux.HandleFunc("/auth/vk/login", authdelivery.VKLoginHandler(vkOAuthCfg))
+		mux.HandleFunc("/auth/vk/callback", authdelivery.VKCallbackHandler(vkOAuthCfg, oauthUsers, authUC, accessTTL, refreshTTL))
 	}
 	if yandexOAuthCfg != nil {
-		mux.HandleFunc("/auth/yandex/login", yandexLoginHandler(yandexOAuthCfg))
-		mux.HandleFunc("/auth/yandex/callback", yandexCallbackHandler(yandexOAuthCfg, store, auth))
+		mux.HandleFunc("/auth/yandex/login", authdelivery.YandexLoginHandler(yandexOAuthCfg))
+		mux.HandleFunc("/auth/yandex/callback", authdelivery.YandexCallbackHandler(yandexOAuthCfg, oauthUsers, authUC, accessTTL, refreshTTL))
 	}
 	if googleOAuthCfg != nil {
-		mux.HandleFunc("/auth/google/login", googleLoginHandler(googleOAuthCfg))
-		mux.HandleFunc("/auth/google/callback", googleCallbackHandler(googleOAuthCfg, store, auth))
+		mux.HandleFunc("/auth/google/login", authdelivery.GoogleLoginHandler(googleOAuthCfg))
+		mux.HandleFunc("/auth/google/callback", authdelivery.GoogleCallbackHandler(googleOAuthCfg, oauthUsers, authUC, accessTTL, refreshTTL))
 	}
-	mux.HandleFunc("/auth/refresh", refreshHandler(store, auth))
-	mux.HandleFunc("/auth/logout", logoutHandler(auth))
-	mux.Handle("/me", authMiddleware(auth, meHandler(store)))
-	mux.HandleFunc("/places", placesListHandler(places))
-	mux.HandleFunc("/api/home", homeHandler(places))
-	mux.HandleFunc("/places/", placeDetailsHandler(places))
-	mux.HandleFunc("/places/best", placesBestHandler(places))
-	mux.HandleFunc("/places/category/", placesByCategoryListHandler(places))
+	mux.HandleFunc("/auth/refresh", authRefreshHandler.Refresh)
+	mux.HandleFunc("/auth/logout", authRefreshHandler.Logout)
+	mux.Handle(
+		"/me",
+		platformmiddleware.AuthMiddleware(
+			http.HandlerFunc(meHandler.Me),
+			authdelivery.ReadAccessCookie,
+			func(token string) (string, string, error) {
+				claims, err := tokenService.Parse(token)
+				if err != nil {
+					return "", "", err
+				}
+				return claims.Subject, claims.Type, nil
+			},
+			httpx.UserIDContextKey,
+		),
+	)
+	mux.HandleFunc("/places", placeHandler.List)
+	mux.HandleFunc("/api/home", placeHandler.Home)
+	mux.HandleFunc("/places/", placeHandler.Details)
+	mux.HandleFunc("/places/best", placeHandler.Best)
+	mux.HandleFunc("/places/category/", placeHandler.ByCategory)
 
 	server := http.Server{
 		Addr:         ":" + port,
-		Handler:      corsMiddleware(recoveryMiddleware(mux)),
+		Handler:      platformmiddleware.CorsMiddleware(platformmiddleware.RecoveryMiddleware(mux)),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

@@ -5,55 +5,21 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
-
-	authdelivery "cityhawk/backend/internal/auth/delivery/http"
-	authdeliveryvalidation "cityhawk/backend/internal/auth/delivery/http/validation"
-	authrepo "cityhawk/backend/internal/auth/repository"
-	authusecase "cityhawk/backend/internal/auth/usecase"
-	"cityhawk/backend/internal/platform/httpx"
-	platformid "cityhawk/backend/internal/platform/id"
-	platformmiddleware "cityhawk/backend/internal/platform/middleware"
-	platformsecurity "cityhawk/backend/internal/platform/security"
-	userdelivery "cityhawk/backend/internal/user/delivery/http"
-	userrepo "cityhawk/backend/internal/user/repository"
 )
 
-type testAuthDeps struct {
-	store        *userrepo.InMemoryUserRepository
-	accessTTL    time.Duration
-	refreshTTL   time.Duration
-	authUsecase  authusecase.AuthUsecase
-	authFlowUC   authusecase.AuthFlowUsecase
-	tokenService *platformsecurity.JWTTokenService
-}
-
-func newTestAuthDeps(t *testing.T) *testAuthDeps {
+func newTestAuthDeps(t *testing.T) (*userStore, *authService) {
 	t.Helper()
-	store := userrepo.NewInMemoryUserRepository()
-	accessTTL := time.Minute
-	refreshTTL := 2 * time.Minute
-
-	refreshRepo := authrepo.NewInMemoryRefreshRepository()
-	tokenService := platformsecurity.NewJWTTokenService([]byte("test-secret"))
-	authUC := authusecase.NewService(accessTTL, refreshTTL, store, refreshRepo, tokenService)
-	authFlowUC := authusecase.NewAuthFlowService(
-		store,
-		authUC,
-		authdeliveryvalidation.NewInputValidator(),
-		platformsecurity.NewBcryptPasswordService(),
-		platformid.NewTimeUserIDProvider(platformid.TimeUserIDLayout),
-	)
-
-	return &testAuthDeps{
-		store:        store,
-		accessTTL:    accessTTL,
-		refreshTTL:   refreshTTL,
-		authUsecase:  authUC,
-		authFlowUC:   authFlowUC,
-		tokenService: tokenService,
+	return &userStore{byEmail: make(map[string]user)}, &authService{
+		secret:     []byte("test-secret"),
+		accessTTL:  time.Minute,
+		refreshTTL: 2 * time.Minute,
+		refreshSessions: &refreshStore{
+			session: make(map[string]refreshSession),
+		},
 	}
 }
 
@@ -85,10 +51,7 @@ func findCookieByName(cookies []*http.Cookie, name string) *http.Cookie {
 }
 
 func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
-	deps := newTestAuthDeps(t)
-	authFlowHandler := authdelivery.NewAuthHandler(deps.authFlowUC, deps.accessTTL, deps.refreshTTL)
-	authRefreshHandler := authdelivery.NewRefreshHandler(deps.authUsecase, deps.accessTTL, deps.refreshTTL)
-	meHandler := userdelivery.NewMeHandler(deps.store)
+	store, auth := newTestAuthDeps(t)
 
 	registerReq := httptest.NewRequest(http.MethodPost, "/auth/register", mustJSONBody(t, map[string]any{
 		"email":    "Tester@example.com ",
@@ -96,7 +59,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 		"username": "тест_user-1",
 	}))
 	registerRec := httptest.NewRecorder()
-	http.HandlerFunc(authFlowHandler.Register).ServeHTTP(registerRec, registerReq)
+	registerHandler(store, auth).ServeHTTP(registerRec, registerReq)
 	if registerRec.Code != http.StatusCreated {
 		t.Fatalf("register status = %d, want %d, body=%s", registerRec.Code, http.StatusCreated, registerRec.Body.String())
 	}
@@ -106,13 +69,13 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 		t.Fatalf("unexpected register response: %+v", registerPayload)
 	}
 
-	if _, ok := deps.store.GetByEmail("tester@example.com"); !ok {
+	if _, ok := store.getByEmail("tester@example.com"); !ok {
 		t.Fatal("registered user not found in store")
 	}
 
 	registerCookies := registerRec.Result().Cookies()
-	accessCookie := findCookieByName(registerCookies, authdelivery.AccessCookieName)
-	refreshCookie := findCookieByName(registerCookies, authdelivery.RefreshCookieName)
+	accessCookie := findCookieByName(registerCookies, accessCookieName)
+	refreshCookie := findCookieByName(registerCookies, refreshCookieName)
 	if accessCookie == nil || accessCookie.Value == "" {
 		t.Fatalf("access cookie not set: %+v", registerCookies)
 	}
@@ -123,18 +86,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	meReq := httptest.NewRequest(http.MethodGet, "/me", nil)
 	meReq.AddCookie(accessCookie)
 	meRec := httptest.NewRecorder()
-	platformmiddleware.AuthMiddleware(
-		http.HandlerFunc(meHandler.Me),
-		authdelivery.ReadAccessCookie,
-		func(token string) (string, string, error) {
-			claims, err := deps.tokenService.Parse(token)
-			if err != nil {
-				return "", "", err
-			}
-			return claims.Subject, claims.Type, nil
-		},
-		httpx.UserIDContextKey,
-	).ServeHTTP(meRec, meReq)
+	authMiddleware(auth, meHandler(store)).ServeHTTP(meRec, meReq)
 	if meRec.Code != http.StatusOK {
 		t.Fatalf("me status = %d, want %d, body=%s", meRec.Code, http.StatusOK, meRec.Body.String())
 	}
@@ -148,7 +100,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	refreshReq := httptest.NewRequest(http.MethodPost, "/auth/refresh", nil)
 	refreshReq.AddCookie(refreshCookie)
 	refreshRec := httptest.NewRecorder()
-	http.HandlerFunc(authRefreshHandler.Refresh).ServeHTTP(refreshRec, refreshReq)
+	refreshHandler(store, auth).ServeHTTP(refreshRec, refreshReq)
 	if refreshRec.Code != http.StatusOK {
 		t.Fatalf("refresh status = %d, want %d, body=%s", refreshRec.Code, http.StatusOK, refreshRec.Body.String())
 	}
@@ -157,7 +109,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	logoutReq := httptest.NewRequest(http.MethodPost, "/auth/logout", nil)
 	logoutReq.AddCookie(logoutCookie)
 	logoutRec := httptest.NewRecorder()
-	http.HandlerFunc(authRefreshHandler.Logout).ServeHTTP(logoutRec, logoutReq)
+	logoutHandler(auth).ServeHTTP(logoutRec, logoutReq)
 	if logoutRec.Code != http.StatusOK {
 		t.Fatalf("logout status = %d, want %d, body=%s", logoutRec.Code, http.StatusOK, logoutRec.Body.String())
 	}
@@ -165,17 +117,16 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	refreshAfterLogoutReq := httptest.NewRequest(http.MethodPost, "/auth/refresh", nil)
 	refreshAfterLogoutReq.AddCookie(logoutCookie)
 	refreshAfterLogoutRec := httptest.NewRecorder()
-	http.HandlerFunc(authRefreshHandler.Refresh).ServeHTTP(refreshAfterLogoutRec, refreshAfterLogoutReq)
+	refreshHandler(store, auth).ServeHTTP(refreshAfterLogoutRec, refreshAfterLogoutReq)
 	if refreshAfterLogoutRec.Code != http.StatusUnauthorized {
 		t.Fatalf("refresh-after-logout status = %d, want %d", refreshAfterLogoutRec.Code, http.StatusUnauthorized)
 	}
 }
 
 func TestRegisterAndLoginValidation(t *testing.T) {
-	deps := newTestAuthDeps(t)
-	authFlowHandler := authdelivery.NewAuthHandler(deps.authFlowUC, deps.accessTTL, deps.refreshTTL)
-	register := http.HandlerFunc(authFlowHandler.Register)
-	login := http.HandlerFunc(authFlowHandler.Login)
+	store, auth := newTestAuthDeps(t)
+	register := registerHandler(store, auth)
+	login := loginHandler(store, auth)
 
 	tests := []struct {
 		name   string
@@ -241,24 +192,26 @@ func TestRegisterAndLoginValidation(t *testing.T) {
 }
 
 func TestValidationHelpersAndSecurity(t *testing.T) {
-	validator := authdeliveryvalidation.NewInputValidator()
-	email, pass, username, err := validator.ValidateRegister(" USER@Example.com ", "12345678", "Юзер_1")
+	email, pass, username, err := validateRegisterInput(registerRequest{
+		Email:    " USER@Example.com ",
+		Password: "12345678",
+		Username: "Юзер_1",
+	})
 	if err != nil {
-		t.Fatalf("ValidateRegister: %v", err)
+		t.Fatalf("validateRegisterInput: %v", err)
 	}
-	if email != "user@example.com" || pass != "12345678" || username != "Юзер_1" {
+	if !reflect.DeepEqual([]string{email, pass, username}, []string{"user@example.com", "12345678", "Юзер_1"}) {
 		t.Fatalf("unexpected normalized values: %q %q %q", email, pass, username)
 	}
 
-	passwordService := platformsecurity.NewBcryptPasswordService()
-	hashed, err := passwordService.Hash(pass)
+	hashed, err := hashPassword(pass)
 	if err != nil {
-		t.Fatalf("hash password: %v", err)
+		t.Fatalf("hashPassword: %v", err)
 	}
-	if !passwordService.Verify(pass, hashed) {
-		t.Fatal("verify password returned false for valid password")
+	if !verifyPassword(pass, hashed) {
+		t.Fatal("verifyPassword returned false for valid password")
 	}
-	if passwordService.Verify("wrong-pass", hashed) {
-		t.Fatal("verify password returned true for invalid password")
+	if verifyPassword("wrong-pass", hashed) {
+		t.Fatal("verifyPassword returned true for invalid password")
 	}
 }

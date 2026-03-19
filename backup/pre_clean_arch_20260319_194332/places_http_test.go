@@ -3,19 +3,15 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
-
-	placedelivery "cityhawk/backend/internal/place/delivery/http"
-	placerepo "cityhawk/backend/internal/place/repository"
-	placeusecase "cityhawk/backend/internal/place/usecase"
 )
 
 func TestPlacesHandlers(t *testing.T) {
-	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
-	handler := placedelivery.NewHandler(placeusecase.NewService(repo))
+	store := newPlaceStore()
 
 	t.Run("list ok and method not allowed", func(t *testing.T) {
-		list := http.HandlerFunc(handler.List)
+		list := placesListHandler(store)
 
 		req := httptest.NewRequest(http.MethodGet, "/places", nil)
 		rec := httptest.NewRecorder()
@@ -42,7 +38,7 @@ func TestPlacesHandlers(t *testing.T) {
 	})
 
 	t.Run("details/category/best", func(t *testing.T) {
-		details := http.HandlerFunc(handler.Details)
+		details := placeDetailsHandler(store)
 		req := httptest.NewRequest(http.MethodGet, "/places/futurione", nil)
 		rec := httptest.NewRecorder()
 		details.ServeHTTP(rec, req)
@@ -66,7 +62,7 @@ func TestPlacesHandlers(t *testing.T) {
 			t.Fatalf("unexpected details error: %+v", missingPayload)
 		}
 
-		cat := http.HandlerFunc(handler.ByCategory)
+		cat := placesByCategoryListHandler(store)
 		catReq := httptest.NewRequest(http.MethodGet, "/places/category/park", nil)
 		catRec := httptest.NewRecorder()
 		cat.ServeHTTP(catRec, catReq)
@@ -90,7 +86,7 @@ func TestPlacesHandlers(t *testing.T) {
 			t.Fatalf("unexpected category error: %+v", catMissPayload)
 		}
 
-		best := http.HandlerFunc(handler.Best)
+		best := placesBestHandler(store)
 		bestReq := httptest.NewRequest(http.MethodGet, "/places/best", nil)
 		bestRec := httptest.NewRecorder()
 		best.ServeHTTP(bestRec, bestReq)
@@ -110,9 +106,8 @@ func TestPlacesHandlers(t *testing.T) {
 }
 
 func TestHomeHandlerReturnsHomePayload(t *testing.T) {
-	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
-	handler := placedelivery.NewHandler(placeusecase.NewService(repo))
-	h := http.HandlerFunc(handler.Home)
+	store := newPlaceStore()
+	h := homeHandler(store)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/home", nil)
 	rec := httptest.NewRecorder()
@@ -144,30 +139,33 @@ func TestHomeHandlerReturnsHomePayload(t *testing.T) {
 }
 
 func TestPlaceStoreAndHelpers(t *testing.T) {
-	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
+	store := newPlaceStore()
 
-	cards := repo.ListCards()
+	cards := store.listCards()
 	if len(cards) == 0 {
 		t.Fatal("listCards returned empty result")
 	}
 
-	p, ok := repo.GetByID("futurione")
+	p, ok := store.getByID("futurione")
 	if !ok || p.ID != "futurione" {
 		t.Fatalf("getByID(futurione) failed: ok=%v, place=%+v", ok, p)
 	}
 
-	parkCards, ok := repo.ListCardsByCategory("park")
+	parkCards, ok := store.listCardsByCategory("park")
 	if !ok || len(parkCards) == 0 {
 		t.Fatalf("listCardsByCategory(park) failed: ok=%v len=%d", ok, len(parkCards))
 	}
 
-	if placerepo.ContainsCategory([]string{"park", "museum"}, "walk") {
+	if containsCategory([]string{"park", "museum"}, "walk") {
 		t.Fatal("containsCategory returned true for missing category")
 	}
-	if !placerepo.ContainsCategory([]string{"park", "museum"}, "museum") {
+	if !containsCategory([]string{"park", "museum"}, "museum") {
 		t.Fatal("containsCategory returned false for existing category")
 	}
-	if cards[0].ID == "" || parkCards[0].ID == "" {
-		t.Fatalf("unexpected empty ids: cards[0]=%q parkCards[0]=%q", cards[0].ID, parkCards[0].ID)
+
+	got := []string{cards[0].ID, parkCards[0].ID}
+
+	if reflect.DeepEqual(got[0], "") || reflect.DeepEqual(got[1], "") {
+		t.Fatalf("unexpected empty ids: %#v", got)
 	}
 }
