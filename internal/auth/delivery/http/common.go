@@ -7,7 +7,6 @@ import (
 	"time"
 
 	authmodel "cityhawk/backend/internal/auth/model"
-	authusecase "cityhawk/backend/internal/auth/usecase"
 )
 
 const RefreshCookieName = "refresh_token"
@@ -18,8 +17,13 @@ type RefreshUsecase interface {
 	RevokeRefresh(token string)
 }
 
+type AuthFlowUsecase interface {
+	Register(email, password, username string) (authmodel.TokenPair, error)
+	Login(email, password string) (authmodel.TokenPair, error)
+}
+
 type AuthHandler struct {
-	authUC     authusecase.AuthFlowUsecase
+	authUC     AuthFlowUsecase
 	accessTTL  time.Duration
 	refreshTTL time.Duration
 }
@@ -38,7 +42,7 @@ func NewRefreshHandler(refreshUC RefreshUsecase, accessTTL, refreshTTL time.Dura
 	}
 }
 
-func NewAuthHandler(authUC authusecase.AuthFlowUsecase, accessTTL, refreshTTL time.Duration) *AuthHandler {
+func NewAuthHandler(authUC AuthFlowUsecase, accessTTL, refreshTTL time.Duration) *AuthHandler {
 	return &AuthHandler{
 		authUC:     authUC,
 		accessTTL:  accessTTL,

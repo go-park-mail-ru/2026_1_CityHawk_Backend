@@ -3,14 +3,10 @@ package repository
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"sync"
 	"time"
-)
 
-var (
-	ErrRefreshTokenRevoked = errors.New("token revoked")
-	ErrRefreshTokenExpired = errors.New("token expired")
+	platformerrors "cityhawk/backend/internal/platform/errors"
 )
 
 type refreshSession struct {
@@ -46,12 +42,12 @@ func (r *InMemoryRefreshRepository) Consume(refreshToken string) (string, error)
 	hash := tokenHash(refreshToken)
 	s, ok := r.sessions[hash]
 	if !ok {
-		return "", ErrRefreshTokenRevoked
+		return "", platformerrors.ErrTokenRevoked
 	}
 
 	if time.Now().UTC().After(s.ExpiresAt) {
 		delete(r.sessions, hash)
-		return "", ErrRefreshTokenExpired
+		return "", platformerrors.ErrTokenExpired
 	}
 
 	delete(r.sessions, hash)
@@ -68,4 +64,3 @@ func tokenHash(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
 }
-

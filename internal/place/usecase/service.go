@@ -19,8 +19,6 @@ type Service struct {
 	repo Repository
 }
 
-var _ PlaceUsecase = (*Service)(nil)
-
 func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }

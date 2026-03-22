@@ -49,4 +49,3 @@ func ReadStateCookie(r *http.Request, name string) string {
 	}
 	return strings.TrimSpace(c.Value)
 }
-

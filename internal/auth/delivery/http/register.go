@@ -5,40 +5,34 @@ import (
 	"errors"
 	"net/http"
 
-	authusecase "cityhawk/backend/internal/auth/usecase"
+	platformerrors "cityhawk/backend/internal/platform/errors"
 )
-
-type registerRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Username string `json:"username"`
-}
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req registerRequest
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
+		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid json"})
 		return
 	}
 
 	resp, err := h.authUC.Register(req.Email, req.Password, req.Username)
 	if err != nil {
 		switch {
-		case errors.Is(err, authusecase.ErrEmailExists):
-			writeJSON(w, http.StatusConflict, map[string]string{"error": "email already exists"})
-		case errors.Is(err, authusecase.ErrIssueTokens):
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to issue tokens"})
-		case errors.Is(err, authusecase.ErrInternal):
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+		case errors.Is(err, platformerrors.ErrEmailExists):
+			writeJSON(w, http.StatusConflict, errorResponse{Error: "email already exists"})
+		case errors.Is(err, platformerrors.ErrIssueTokens):
+			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to issue tokens"})
+		case errors.Is(err, platformerrors.ErrInternal):
+			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
 		default:
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			writeJSON(w, http.StatusBadRequest, errorResponse{Error: err.Error()})
 		}
 		return
 	}
 
 	SetRefreshCookie(w, resp.RefreshToken, h.refreshTTL)
 	SetAccessCookie(w, resp.AccessToken, h.accessTTL)
-	writeJSON(w, http.StatusCreated, map[string]string{"message": "registration successful"})
+	writeJSON(w, http.StatusCreated, messageResponse{Message: "registration successful"})
 }

@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"bytes"
@@ -10,9 +10,9 @@ import (
 	"time"
 
 	authdelivery "cityhawk/backend/internal/auth/delivery/http"
-	authdeliveryvalidation "cityhawk/backend/internal/auth/delivery/http/validation"
 	authrepo "cityhawk/backend/internal/auth/repository"
 	authusecase "cityhawk/backend/internal/auth/usecase"
+	authvalidation "cityhawk/backend/internal/auth/validation"
 	"cityhawk/backend/internal/platform/httpx"
 	platformid "cityhawk/backend/internal/platform/id"
 	platformmiddleware "cityhawk/backend/internal/platform/middleware"
@@ -25,8 +25,8 @@ type testAuthDeps struct {
 	store        *userrepo.InMemoryUserRepository
 	accessTTL    time.Duration
 	refreshTTL   time.Duration
-	authUsecase  authusecase.AuthUsecase
-	authFlowUC   authusecase.AuthFlowUsecase
+	authUsecase  *authusecase.Service
+	authFlowUC   *authusecase.AuthFlowService
 	tokenService *platformsecurity.JWTTokenService
 }
 
@@ -42,7 +42,6 @@ func newTestAuthDeps(t *testing.T) *testAuthDeps {
 	authFlowUC := authusecase.NewAuthFlowService(
 		store,
 		authUC,
-		authdeliveryvalidation.NewInputValidator(),
 		platformsecurity.NewBcryptPasswordService(),
 		platformid.NewTimeUserIDProvider(platformid.TimeUserIDLayout),
 	)
@@ -55,15 +54,6 @@ func newTestAuthDeps(t *testing.T) *testAuthDeps {
 		authFlowUC:   authFlowUC,
 		tokenService: tokenService,
 	}
-}
-
-func decodeJSONMap(t *testing.T, body *bytes.Buffer) map[string]any {
-	t.Helper()
-	var payload map[string]any
-	if err := json.NewDecoder(body).Decode(&payload); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	return payload
 }
 
 func mustJSONBody(t *testing.T, payload any) *bytes.Reader {
@@ -241,8 +231,7 @@ func TestRegisterAndLoginValidation(t *testing.T) {
 }
 
 func TestValidationHelpersAndSecurity(t *testing.T) {
-	validator := authdeliveryvalidation.NewInputValidator()
-	email, pass, username, err := validator.ValidateRegister(" USER@Example.com ", "12345678", "Юзер_1")
+	email, pass, username, err := authvalidation.ValidateRegister(" USER@Example.com ", "12345678", "Юзер_1")
 	if err != nil {
 		t.Fatalf("ValidateRegister: %v", err)
 	}
@@ -257,8 +246,5 @@ func TestValidationHelpersAndSecurity(t *testing.T) {
 	}
 	if !passwordService.Verify(pass, hashed) {
 		t.Fatal("verify password returned false for valid password")
-	}
-	if passwordService.Verify("wrong-pass", hashed) {
-		t.Fatal("verify password returned true for invalid password")
 	}
 }

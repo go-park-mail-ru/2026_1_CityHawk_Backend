@@ -6,7 +6,6 @@ import (
 	"errors"
 	"time"
 
-	authusecase "cityhawk/backend/internal/auth/usecase"
 	usermodel "cityhawk/backend/internal/user/model"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -24,8 +23,6 @@ type JWTTokenService struct {
 func NewJWTTokenService(secret []byte) *JWTTokenService {
 	return &JWTTokenService{secret: secret}
 }
-
-var _ authusecase.TokenService = (*JWTTokenService)(nil)
 
 func (s *JWTTokenService) SignAccessToken(u usermodel.User, ttl time.Duration) (string, error) {
 	now := time.Now().UTC()
@@ -80,4 +77,3 @@ func randomHex(n int) (string, error) {
 	}
 	return hex.EncodeToString(b), nil
 }
-

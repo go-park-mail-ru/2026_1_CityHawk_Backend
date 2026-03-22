@@ -3,6 +3,7 @@ package repository
 import (
 	"sync"
 
+	platformerrors "cityhawk/backend/internal/platform/errors"
 	usermodel "cityhawk/backend/internal/user/model"
 )
 
@@ -24,7 +25,7 @@ func (r *InMemoryUserRepository) Create(u usermodel.User) error {
 	defer r.mu.Unlock()
 
 	if _, exists := r.byEmail[u.Email]; exists {
-		return usermodel.ErrEmailExists
+		return platformerrors.ErrEmailExists
 	}
 
 	r.byEmail[u.Email] = u

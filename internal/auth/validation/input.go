@@ -6,8 +6,6 @@ import (
 	"regexp"
 	"strings"
 	"unicode/utf8"
-
-	authusecase "cityhawk/backend/internal/auth/usecase"
 )
 
 const (
@@ -20,15 +18,7 @@ const (
 
 var usernamePattern = regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ0-9_.-]+$`)
 
-type InputValidator struct{}
-
-var _ authusecase.CredentialsValidator = (*InputValidator)(nil)
-
-func NewInputValidator() *InputValidator {
-	return &InputValidator{}
-}
-
-func (InputValidator) ValidateRegister(email, password, username string) (string, string, string, error) {
+func ValidateRegister(email, password, username string) (string, string, string, error) {
 	normalizedEmail, err := normalizeAndValidateEmail(email)
 	if err != nil {
 		return "", "", "", err
@@ -47,7 +37,7 @@ func (InputValidator) ValidateRegister(email, password, username string) (string
 	return normalizedEmail, normalizedPassword, normalizedUsername, nil
 }
 
-func (InputValidator) ValidateLogin(email, password string) (string, string, error) {
+func ValidateLogin(email, password string) (string, string, error) {
 	normalizedEmail, err := normalizeAndValidateEmail(email)
 	if err != nil {
 		return "", "", err
@@ -103,4 +93,3 @@ func normalizeAndValidateUsername(raw string) (string, error) {
 	}
 	return username, nil
 }
-

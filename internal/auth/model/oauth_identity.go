@@ -1,4 +1,4 @@
-package usecase
+package model
 
 type OAuthIdentity struct {
 	Provider  string
@@ -6,4 +6,3 @@ type OAuthIdentity struct {
 	Email     string
 	Username  string
 }
-

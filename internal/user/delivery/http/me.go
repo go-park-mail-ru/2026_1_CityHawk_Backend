@@ -24,18 +24,18 @@ func (h *MeHandler) Me(w http.ResponseWriter, r *http.Request) {
 	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		userID, ok := r.Context().Value(httpx.UserIDContextKey).(string)
 		if !ok || userID == "" {
-			return platformmiddleware.NewHTTPError(http.StatusUnauthorized, "unauthorized")
+			return httpx.NewHTTPError(http.StatusUnauthorized, "unauthorized")
 		}
 
 		u, ok := h.users.GetByID(userID)
 		if !ok {
-			return platformmiddleware.NewHTTPError(http.StatusUnauthorized, "user not found")
+			return httpx.NewHTTPError(http.StatusUnauthorized, "user not found")
 		}
 
-		httpx.WriteJSON(w, http.StatusOK, map[string]string{
-			"id":       u.ID,
-			"email":    u.Email,
-			"username": u.Username,
+		httpx.WriteJSON(w, http.StatusOK, meResponse{
+			ID:       u.ID,
+			Email:    u.Email,
+			Username: u.Username,
 		})
 		return nil
 	}).ServeHTTP(w, r)

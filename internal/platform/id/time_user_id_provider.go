@@ -2,8 +2,6 @@ package id
 
 import (
 	"time"
-
-	authusecase "cityhawk/backend/internal/auth/usecase"
 )
 
 const TimeUserIDLayout = "20060102150405.000000000"
@@ -11,8 +9,6 @@ const TimeUserIDLayout = "20060102150405.000000000"
 type TimeUserIDProvider struct {
 	layout string
 }
-
-var _ authusecase.UserIDProvider = (*TimeUserIDProvider)(nil)
 
 func NewTimeUserIDProvider(layout string) *TimeUserIDProvider {
 	if layout == "" {

@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -13,19 +12,6 @@ import (
 )
 
 type AppHandler func(http.ResponseWriter, *http.Request) error
-
-type HTTPError struct {
-	status  int
-	message string
-}
-
-func (e HTTPError) Error() string {
-	return e.message
-}
-
-func NewHTTPError(status int, message string) error {
-	return HTTPError{status: status, message: message}
-}
 
 func CorsMiddleware(next http.Handler) http.Handler {
 	allowedOrigins := parseAllowedOrigins(os.Getenv("FRONTEND_ORIGIN"))
@@ -103,18 +89,9 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 func ErrorMiddleware(next AppHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := next(w, r); err != nil {
-			WriteMappedError(w, err)
+			httpx.WriteMappedError(w, err)
 		}
 	}
-}
-
-func WriteMappedError(w http.ResponseWriter, err error) {
-	var he HTTPError
-	if errors.As(err, &he) {
-		httpx.WriteJSON(w, he.status, map[string]string{"error": he.message})
-		return
-	}
-	httpx.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 }
 
 func AuthMiddleware(
@@ -126,15 +103,15 @@ func AuthMiddleware(
 	return ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		token := readAccessToken(r)
 		if token == "" {
-			return NewHTTPError(http.StatusUnauthorized, "missing access token")
+			return httpx.NewHTTPError(http.StatusUnauthorized, "missing access token")
 		}
 
 		subject, tokenType, err := parseAccessToken(token)
 		if err != nil || tokenType != "access" {
-			return NewHTTPError(http.StatusUnauthorized, "invalid access token")
+			return httpx.NewHTTPError(http.StatusUnauthorized, "invalid access token")
 		}
 		if strings.TrimSpace(subject) == "" {
-			return NewHTTPError(http.StatusUnauthorized, "invalid access token")
+			return httpx.NewHTTPError(http.StatusUnauthorized, "invalid access token")
 		}
 
 		ctx := context.WithValue(r.Context(), userIDContextKey, subject)

@@ -1,26 +1,35 @@
 package usecase
 
 import (
-	"errors"
 	"time"
 
 	authmodel "cityhawk/backend/internal/auth/model"
+	platformerrors "cityhawk/backend/internal/platform/errors"
 	usermodel "cityhawk/backend/internal/user/model"
 )
 
-var (
-	ErrTokenRevoked = errors.New("token revoked")
-	ErrUserNotFound = errors.New("user not found")
-)
+type UserReader interface {
+	GetByID(id string) (usermodel.User, bool)
+}
+
+type RefreshSessionRepository interface {
+	Store(refreshToken, userID string, expiresAt time.Time)
+	Consume(refreshToken string) (string, error)
+	Revoke(refreshToken string)
+}
+
+type TokenService interface {
+	SignAccessToken(u usermodel.User, ttl time.Duration) (string, error)
+	GenerateOpaqueToken(size int) (string, error)
+}
 
 type Service struct {
 	accessTTL  time.Duration
 	refreshTTL time.Duration
 
-	users    UserReader
-	refresh  RefreshSessionRepository
-	tokens   TokenService
-	nowUTCFn func() time.Time
+	users   UserReader
+	refresh RefreshSessionRepository
+	tokens  TokenService
 }
 
 func NewService(
@@ -36,9 +45,6 @@ func NewService(
 		users:      users,
 		refresh:    refresh,
 		tokens:     tokens,
-		nowUTCFn: func() time.Time {
-			return time.Now().UTC()
-		},
 	}
 }
 
@@ -53,7 +59,7 @@ func (s *Service) IssueTokenPair(u usermodel.User) (authmodel.TokenPair, error) 
 		return authmodel.TokenPair{}, err
 	}
 
-	s.refresh.Store(refreshToken, u.ID, s.nowUTCFn().Add(s.refreshTTL))
+	s.refresh.Store(refreshToken, u.ID, time.Now().UTC().Add(s.refreshTTL))
 
 	return authmodel.TokenPair{
 		AccessToken:  accessToken,
@@ -66,7 +72,7 @@ func (s *Service) IssueTokenPair(u usermodel.User) (authmodel.TokenPair, error) 
 func (s *Service) IssueTokenPairForUserID(userID string) (authmodel.TokenPair, error) {
 	u, ok := s.users.GetByID(userID)
 	if !ok {
-		return authmodel.TokenPair{}, ErrUserNotFound
+		return authmodel.TokenPair{}, platformerrors.ErrUserNotFound
 	}
 
 	return s.IssueTokenPair(u)
@@ -75,7 +81,7 @@ func (s *Service) IssueTokenPairForUserID(userID string) (authmodel.TokenPair, e
 func (s *Service) RotateRefresh(oldRefreshToken string) (authmodel.TokenPair, error) {
 	userID, err := s.refresh.Consume(oldRefreshToken)
 	if err != nil {
-		return authmodel.TokenPair{}, ErrTokenRevoked
+		return authmodel.TokenPair{}, platformerrors.ErrTokenRevoked
 	}
 
 	return s.IssueTokenPairForUserID(userID)
@@ -84,4 +90,3 @@ func (s *Service) RotateRefresh(oldRefreshToken string) (authmodel.TokenPair, er
 func (s *Service) RevokeRefresh(token string) {
 	s.refresh.Revoke(token)
 }
-

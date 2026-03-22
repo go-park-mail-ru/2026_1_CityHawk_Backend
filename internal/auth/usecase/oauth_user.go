@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strings"
 
+	authmodel "cityhawk/backend/internal/auth/model"
+	platformerrors "cityhawk/backend/internal/platform/errors"
 	usermodel "cityhawk/backend/internal/user/model"
 )
 
@@ -23,7 +25,7 @@ func NewOAuthUserService(users AuthUserRepository, passwords PasswordService, id
 	}
 }
 
-func (s *OAuthUserService) FindOrCreateFromOAuth(identity OAuthIdentity) (usermodel.User, error) {
+func (s *OAuthUserService) FindOrCreateFromOAuth(identity authmodel.OAuthIdentity) (usermodel.User, error) {
 	provider := strings.ToLower(strings.TrimSpace(identity.Provider))
 	if provider == "" {
 		return usermodel.User{}, errors.New("oauth provider is empty")
@@ -80,7 +82,7 @@ func (s *OAuthUserService) createOAuthUser(email, username string) (usermodel.Us
 	}
 
 	if err := s.users.Create(u); err != nil {
-		if errors.Is(err, ErrEmailExists) {
+		if errors.Is(err, platformerrors.ErrEmailExists) {
 			if existing, ok := s.users.GetByEmail(email); ok {
 				return existing, nil
 			}

@@ -1,13 +1,10 @@
 package security
 
 import (
-	authusecase "cityhawk/backend/internal/auth/usecase"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type BcryptPasswordService struct{}
-
-var _ authusecase.PasswordService = (*BcryptPasswordService)(nil)
 
 func NewBcryptPasswordService() *BcryptPasswordService {
 	return &BcryptPasswordService{}

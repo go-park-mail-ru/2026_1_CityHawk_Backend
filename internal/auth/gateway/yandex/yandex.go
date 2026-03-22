@@ -7,43 +7,36 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
+	authmodel "cityhawk/backend/internal/auth/model"
+	appconfig "cityhawk/backend/internal/config"
+	platformerrors "cityhawk/backend/internal/platform/errors"
 	"golang.org/x/oauth2"
 )
 
-const (
-	ClientIDEnv     = "YANDEX_OAUTH_CLIENT_ID"
-	ClientSecretEnv = "YANDEX_OAUTH_CLIENT_SECRET"
-	RedirectURLEnv  = "YANDEX_OAUTH_REDIRECT_URL"
-	StateCookieName = "yandex_oauth_state"
-)
+const StateCookieName = "yandex_oauth_state"
 
 var Endpoint = oauth2.Endpoint{
 	AuthURL:  "https://oauth.yandex.ru/authorize",
 	TokenURL: "https://oauth.yandex.ru/token",
 }
 
-func NewConfigFromEnv() (*oauth2.Config, error) {
-	clientID := strings.TrimSpace(os.Getenv(ClientIDEnv))
-	clientSecret := strings.TrimSpace(os.Getenv(ClientSecretEnv))
-	redirectURL := strings.TrimSpace(os.Getenv(RedirectURLEnv))
-
-	if clientID == "" {
+func NewOAuthConfig(cfg appconfig.OAuthProviderConfig) (*oauth2.Config, error) {
+	if cfg.ClientID == "" {
 		return nil, errors.New("YANDEX_OAUTH_CLIENT_ID is required")
 	}
-	if clientSecret == "" {
+	if cfg.ClientSecret == "" {
 		return nil, errors.New("YANDEX_OAUTH_CLIENT_SECRET is required")
 	}
-	if redirectURL == "" {
+	if cfg.RedirectURL == "" {
 		return nil, errors.New("YANDEX_OAUTH_REDIRECT_URL is required")
 	}
 
 	return &oauth2.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		RedirectURL:  redirectURL,
+		ClientID:     cfg.ClientID,
+		ClientSecret: cfg.ClientSecret,
+		RedirectURL:  cfg.RedirectURL,
 		Endpoint:     Endpoint,
 		Scopes:       []string{"login:email", "login:info"},
 	}, nil
@@ -53,6 +46,38 @@ type Profile struct {
 	ID           string `json:"id"`
 	Login        string `json:"login"`
 	DefaultEmail string `json:"default_email"`
+}
+
+type Gateway struct {
+	cfg *oauth2.Config
+}
+
+func NewGateway(cfg *oauth2.Config) *Gateway {
+	return &Gateway{cfg: cfg}
+}
+
+func (g *Gateway) FetchIdentity(ctx context.Context, code string) (authmodel.OAuthIdentity, error) {
+	code = strings.TrimSpace(code)
+	if code == "" {
+		return authmodel.OAuthIdentity{}, platformerrors.ErrInvalidOAuthCode
+	}
+
+	token, err := g.cfg.Exchange(ctx, code)
+	if err != nil {
+		return authmodel.OAuthIdentity{}, platformerrors.ErrInvalidOAuthCode
+	}
+
+	profile, err := FetchProfile(ctx, token.AccessToken)
+	if err != nil {
+		return authmodel.OAuthIdentity{}, platformerrors.ErrOAuthProfileFetch
+	}
+
+	return authmodel.OAuthIdentity{
+		Provider:  "yandex",
+		SubjectID: strings.TrimSpace(profile.ID),
+		Email:     strings.TrimSpace(profile.DefaultEmail),
+		Username:  strings.TrimSpace(profile.Login),
+	}, nil
 }
 
 func FetchProfile(ctx context.Context, accessToken string) (Profile, error) {
@@ -99,4 +124,3 @@ func FetchProfile(ctx context.Context, accessToken string) (Profile, error) {
 
 	return profile, nil
 }
-
