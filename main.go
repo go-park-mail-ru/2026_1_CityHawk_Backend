@@ -38,11 +38,35 @@ func main() {
 			session: make(map[string]refreshSession),
 		},
 	}
+	vkOAuthCfg, err := newVKOAuthConfigFromEnv()
+	if err != nil {
+		log.Printf("VK OAuth disabled: %v", err)
+	}
+	yandexOAuthCfg, err := newYandexOAuthConfigFromEnv()
+	if err != nil {
+		log.Printf("Yandex OAuth disabled: %v", err)
+	}
+	googleOAuthCfg, err := newGoogleOAuthConfigFromEnv()
+	if err != nil {
+		log.Printf("Google OAuth disabled: %v", err)
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", healthHandler)
 	mux.HandleFunc("/auth/register", registerHandler(store, auth))
 	mux.HandleFunc("/auth/login", loginHandler(store, auth))
+	if vkOAuthCfg != nil {
+		mux.HandleFunc("/auth/vk/login", vkLoginHandler(vkOAuthCfg))
+		mux.HandleFunc("/auth/vk/callback", vkCallbackHandler(vkOAuthCfg, store, auth))
+	}
+	if yandexOAuthCfg != nil {
+		mux.HandleFunc("/auth/yandex/login", yandexLoginHandler(yandexOAuthCfg))
+		mux.HandleFunc("/auth/yandex/callback", yandexCallbackHandler(yandexOAuthCfg, store, auth))
+	}
+	if googleOAuthCfg != nil {
+		mux.HandleFunc("/auth/google/login", googleLoginHandler(googleOAuthCfg))
+		mux.HandleFunc("/auth/google/callback", googleCallbackHandler(googleOAuthCfg, store, auth))
+	}
 	mux.HandleFunc("/auth/refresh", refreshHandler(store, auth))
 	mux.HandleFunc("/auth/logout", logoutHandler(auth))
 	mux.Handle("/me", authMiddleware(auth, meHandler(store)))

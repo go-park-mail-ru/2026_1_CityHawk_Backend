@@ -32,7 +32,7 @@ func (s *userStore) create(u user) error {
 	defer s.mu.Unlock()
 
 	if _, exists := s.byEmail[u.Email]; exists {
-		return errEmailExists
+		return ErrEmailExists
 	}
 	s.byEmail[u.Email] = u
 	return nil
