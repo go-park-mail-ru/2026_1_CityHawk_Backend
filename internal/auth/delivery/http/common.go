@@ -14,7 +14,7 @@ const AccessCookieName = "access_token"
 
 type RefreshUsecase interface {
 	RotateRefresh(oldRefreshToken string) (authmodel.TokenPair, error)
-	RevokeRefresh(token string)
+	RevokeRefresh(token string) error
 }
 
 type AuthFlowUsecase interface {

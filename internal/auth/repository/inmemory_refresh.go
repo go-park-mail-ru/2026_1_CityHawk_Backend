@@ -25,7 +25,7 @@ func NewInMemoryRefreshRepository() *InMemoryRefreshRepository {
 	}
 }
 
-func (r *InMemoryRefreshRepository) Store(refreshToken, userID string, expiresAt time.Time) {
+func (r *InMemoryRefreshRepository) Store(refreshToken, userID string, expiresAt time.Time) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -33,6 +33,7 @@ func (r *InMemoryRefreshRepository) Store(refreshToken, userID string, expiresAt
 		UserID:    userID,
 		ExpiresAt: expiresAt,
 	}
+	return nil
 }
 
 func (r *InMemoryRefreshRepository) Consume(refreshToken string) (string, error) {
@@ -54,10 +55,11 @@ func (r *InMemoryRefreshRepository) Consume(refreshToken string) (string, error)
 	return s.UserID, nil
 }
 
-func (r *InMemoryRefreshRepository) Revoke(refreshToken string) {
+func (r *InMemoryRefreshRepository) Revoke(refreshToken string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.sessions, tokenHash(refreshToken))
+	return nil
 }
 
 func tokenHash(token string) string {

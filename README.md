@@ -9,6 +9,51 @@ go run .
 
 Сервер по умолчанию запускается на `:8080`.
 
+## База данных
+
+Документация по структуре БД лежит в:
+- `db/normalized/relations.md`
+- `db/normalized/er_diagram.md`
+- `db/normalized/schema.sql`
+- `db/normalized/seed.sql`
+
+Runnable migrations лежат в:
+- `db/migrations/0001_init.up.sql`
+- `db/migrations/0001_init.down.sql`
+- `db/migrations/0002_seed.up.sql`
+- `db/migrations/0002_seed.down.sql`
+
+Требования к окружению для локального запуска:
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=cityhawk
+DB_PASSWORD=cityhawk
+DB_NAME=cityhawk
+DB_SSLMODE=disable
+```
+
+Применить схему и сиды можно так:
+
+```bash
+make db-schema
+make db-seed
+```
+
+Или напрямую через `psql`:
+
+```bash
+psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0001_init.up.sql
+psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0002_seed.up.sql
+```
+
+Для полного сброса:
+
+```bash
+make db-reset
+```
+
 ## API
 
 ### `GET /health`

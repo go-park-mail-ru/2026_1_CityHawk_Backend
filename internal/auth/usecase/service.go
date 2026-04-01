@@ -13,9 +13,9 @@ type UserReader interface {
 }
 
 type RefreshSessionRepository interface {
-	Store(refreshToken, userID string, expiresAt time.Time)
+	Store(refreshToken, userID string, expiresAt time.Time) error
 	Consume(refreshToken string) (string, error)
-	Revoke(refreshToken string)
+	Revoke(refreshToken string) error
 }
 
 type TokenService interface {
@@ -59,7 +59,9 @@ func (s *Service) IssueTokenPair(u usermodel.User) (authmodel.TokenPair, error) 
 		return authmodel.TokenPair{}, err
 	}
 
-	s.refresh.Store(refreshToken, u.ID, time.Now().UTC().Add(s.refreshTTL))
+	if err := s.refresh.Store(refreshToken, u.ID, time.Now().UTC().Add(s.refreshTTL)); err != nil {
+		return authmodel.TokenPair{}, platformerrors.ErrInternal
+	}
 
 	return authmodel.TokenPair{
 		AccessToken:  accessToken,
@@ -87,6 +89,6 @@ func (s *Service) RotateRefresh(oldRefreshToken string) (authmodel.TokenPair, er
 	return s.IssueTokenPairForUserID(userID)
 }
 
-func (s *Service) RevokeRefresh(token string) {
-	s.refresh.Revoke(token)
+func (s *Service) RevokeRefresh(token string) error {
+	return s.refresh.Revoke(token)
 }

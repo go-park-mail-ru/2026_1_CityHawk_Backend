@@ -14,6 +14,13 @@ erDiagram
         datetime updated_at
     }
 
+    REFRESH_SESSION {
+        text token_hash PK
+        uuid user_id FK
+        datetime expires_at
+        datetime created_at
+    }
+
     CITY {
         uuid id PK
         text name
@@ -207,6 +214,7 @@ erDiagram
     }
 
     USER_ACCOUNT }o--|| CITY : "city_id FK"
+    REFRESH_SESSION }o--|| USER_ACCOUNT : "user_id FK"
     PLACE }o--|| CITY : "city_id FK"
 
     EVENT }o--|| USER_ACCOUNT : "author_user_id FK"

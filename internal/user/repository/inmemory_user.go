@@ -20,17 +20,17 @@ func NewInMemoryUserRepository() *InMemoryUserRepository {
 	}
 }
 
-func (r *InMemoryUserRepository) Create(u usermodel.User) error {
+func (r *InMemoryUserRepository) Create(u usermodel.User) (usermodel.User, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if _, exists := r.byEmail[u.Email]; exists {
-		return platformerrors.ErrEmailExists
+		return usermodel.User{}, platformerrors.ErrEmailExists
 	}
 
 	r.byEmail[u.Email] = u
 	r.byID[u.ID] = u
-	return nil
+	return u, nil
 }
 
 func (r *InMemoryUserRepository) GetByEmail(email string) (usermodel.User, bool) {

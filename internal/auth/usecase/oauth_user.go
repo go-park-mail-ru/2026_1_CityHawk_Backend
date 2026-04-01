@@ -81,7 +81,8 @@ func (s *OAuthUserService) createOAuthUser(email, username string) (usermodel.Us
 		PasswordHash: passwordHash,
 	}
 
-	if err := s.users.Create(u); err != nil {
+	persistedUser, err := s.users.Create(u)
+	if err != nil {
 		if errors.Is(err, platformerrors.ErrEmailExists) {
 			if existing, ok := s.users.GetByEmail(email); ok {
 				return existing, nil
@@ -90,7 +91,7 @@ func (s *OAuthUserService) createOAuthUser(email, username string) (usermodel.Us
 		return usermodel.User{}, err
 	}
 
-	return u, nil
+	return persistedUser, nil
 }
 
 func sanitizePart(s string) string {

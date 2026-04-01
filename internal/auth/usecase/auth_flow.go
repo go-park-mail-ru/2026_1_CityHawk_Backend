@@ -10,7 +10,7 @@ import (
 )
 
 type AuthUserRepository interface {
-	Create(u usermodel.User) error
+	Create(u usermodel.User) (usermodel.User, error)
 	GetByEmail(email string) (usermodel.User, bool)
 }
 
@@ -66,14 +66,15 @@ func (s *AuthFlowService) Register(email, password, username string) (authmodel.
 		PasswordHash: passwordHash,
 	}
 
-	if err := s.users.Create(u); err != nil {
+	persistedUser, err := s.users.Create(u)
+	if err != nil {
 		if errors.Is(err, platformerrors.ErrEmailExists) {
 			return authmodel.TokenPair{}, platformerrors.ErrEmailExists
 		}
 		return authmodel.TokenPair{}, err
 	}
 
-	resp, err := s.issuer.IssueTokenPair(u)
+	resp, err := s.issuer.IssueTokenPair(persistedUser)
 	if err != nil {
 		return authmodel.TokenPair{}, platformerrors.ErrIssueTokens
 	}

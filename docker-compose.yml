@@ -1,13 +1,36 @@
 services:
+  postgres:
+    image: postgres:16
+    container_name: cityhawk-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-cityhawk}
+      POSTGRES_USER: ${DB_USER:-cityhawk}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-cityhawk}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cityhawk} -d ${DB_NAME:-cityhawk}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   cityhawk-backend:                      # any name you prefer
     build: .
     ports:
       - "8080:8080"                      # map host→container
     env_file:
       - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       # defaults mirror the code's fallbacks
       - PORT=8080
+      - DB_HOST=postgres
+      - DB_PORT=5432
       #  - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost}  # only for local development
     restart: unless-stopped
     healthcheck:
@@ -15,3 +38,6 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+volumes:
+  postgres_data:
