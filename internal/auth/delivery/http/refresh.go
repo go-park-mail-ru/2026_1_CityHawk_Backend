@@ -9,7 +9,7 @@ func (h *RefreshHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.refreshUC.RotateRefresh(refreshToken)
+	resp, err := h.refreshUC.RotateRefresh(r.Context(), refreshToken)
 	if err != nil {
 		writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "invalid refresh token"})
 		return

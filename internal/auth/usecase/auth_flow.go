@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"errors"
 
 	authmodel "cityhawk/backend/internal/auth/model"
@@ -10,8 +11,8 @@ import (
 )
 
 type AuthUserRepository interface {
-	Create(u usermodel.User) (usermodel.User, error)
-	GetByEmail(email string) (usermodel.User, bool)
+	Create(ctx context.Context, u usermodel.User) (usermodel.User, error)
+	GetByEmail(ctx context.Context, email string) (usermodel.User, bool)
 }
 
 type PasswordService interface {
@@ -24,7 +25,7 @@ type UserIDProvider interface {
 }
 
 type tokenPairIssuer interface {
-	IssueTokenPair(u usermodel.User) (authmodel.TokenPair, error)
+	IssueTokenPair(ctx context.Context, u usermodel.User) (authmodel.TokenPair, error)
 }
 
 type AuthFlowService struct {
@@ -48,7 +49,7 @@ func NewAuthFlowService(
 	}
 }
 
-func (s *AuthFlowService) Register(email, password, username string) (authmodel.TokenPair, error) {
+func (s *AuthFlowService) Register(ctx context.Context, email, password, username string) (authmodel.TokenPair, error) {
 	normalizedEmail, normalizedPassword, normalizedUsername, err := authvalidation.ValidateRegister(email, password, username)
 	if err != nil {
 		return authmodel.TokenPair{}, err
@@ -66,7 +67,7 @@ func (s *AuthFlowService) Register(email, password, username string) (authmodel.
 		PasswordHash: passwordHash,
 	}
 
-	persistedUser, err := s.users.Create(u)
+	persistedUser, err := s.users.Create(ctx, u)
 	if err != nil {
 		if errors.Is(err, platformerrors.ErrEmailExists) {
 			return authmodel.TokenPair{}, platformerrors.ErrEmailExists
@@ -74,25 +75,25 @@ func (s *AuthFlowService) Register(email, password, username string) (authmodel.
 		return authmodel.TokenPair{}, err
 	}
 
-	resp, err := s.issuer.IssueTokenPair(persistedUser)
+	resp, err := s.issuer.IssueTokenPair(ctx, persistedUser)
 	if err != nil {
 		return authmodel.TokenPair{}, platformerrors.ErrIssueTokens
 	}
 	return resp, nil
 }
 
-func (s *AuthFlowService) Login(email, password string) (authmodel.TokenPair, error) {
+func (s *AuthFlowService) Login(ctx context.Context, email, password string) (authmodel.TokenPair, error) {
 	normalizedEmail, normalizedPassword, err := authvalidation.ValidateLogin(email, password)
 	if err != nil {
 		return authmodel.TokenPair{}, err
 	}
 
-	u, ok := s.users.GetByEmail(normalizedEmail)
+	u, ok := s.users.GetByEmail(ctx, normalizedEmail)
 	if !ok || !s.passwords.Verify(normalizedPassword, u.PasswordHash) {
 		return authmodel.TokenPair{}, platformerrors.ErrInvalidCredentials
 	}
 
-	resp, err := s.issuer.IssueTokenPair(u)
+	resp, err := s.issuer.IssueTokenPair(ctx, u)
 	if err != nil {
 		return authmodel.TokenPair{}, platformerrors.ErrIssueTokens
 	}

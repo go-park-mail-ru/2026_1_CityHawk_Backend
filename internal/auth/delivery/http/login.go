@@ -17,7 +17,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.authUC.Login(req.Email, req.Password)
+	resp, err := h.authUC.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		switch {
 		case errors.Is(err, platformerrors.ErrInvalidCredentials):

@@ -17,7 +17,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.authUC.Register(req.Email, req.Password, req.Username)
+	resp, err := h.authUC.Register(r.Context(), req.Email, req.Password, req.Username)
 	if err != nil {
 		switch {
 		case errors.Is(err, platformerrors.ErrEmailExists):

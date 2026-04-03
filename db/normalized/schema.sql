@@ -18,12 +18,9 @@ CREATE TABLE city (
     timezone text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT city_name_not_blank CHECK (btrim(name) <> ''),
-    CONSTRAINT city_name_length CHECK (char_length(name) <= 100),
-    CONSTRAINT city_country_name_not_blank CHECK (btrim(country_name) <> ''),
-    CONSTRAINT city_country_name_length CHECK (char_length(country_name) <= 100),
-    CONSTRAINT city_timezone_not_blank CHECK (btrim(timezone) <> ''),
-    CONSTRAINT city_timezone_length CHECK (char_length(timezone) <= 64),
+    CONSTRAINT city_name_valid CHECK (char_length(btrim(name)) BETWEEN 1 AND 100),
+    CONSTRAINT city_country_name_valid CHECK (char_length(btrim(country_name)) BETWEEN 1 AND 100),
+    CONSTRAINT city_timezone_valid CHECK (char_length(btrim(timezone)) BETWEEN 1 AND 64),
     CONSTRAINT city_country_name_name_key UNIQUE (country_name, name)
 );
 
@@ -42,14 +39,10 @@ CREATE TABLE user_account (
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT user_account_email_key UNIQUE (email),
     CONSTRAINT user_account_email_format CHECK (position('@' in email) > 1 AND position(' ' in email) = 0),
-    CONSTRAINT user_account_email_not_blank CHECK (btrim(email) <> ''),
-    CONSTRAINT user_account_email_length CHECK (char_length(email) <= 254),
-    CONSTRAINT user_account_username_not_blank CHECK (btrim(username) <> ''),
-    CONSTRAINT user_account_username_length CHECK (char_length(username) BETWEEN 3 AND 64),
-    CONSTRAINT user_account_user_surname_not_blank CHECK (btrim(user_surname) <> ''),
-    CONSTRAINT user_account_user_surname_length CHECK (char_length(user_surname) BETWEEN 1 AND 64),
-    CONSTRAINT user_account_password_hash_not_blank CHECK (btrim(password_hash) <> ''),
-    CONSTRAINT user_account_password_hash_length CHECK (char_length(password_hash) <= 255),
+    CONSTRAINT user_account_email_valid CHECK (char_length(btrim(email)) BETWEEN 1 AND 254),
+    CONSTRAINT user_account_username_valid CHECK (char_length(btrim(username)) BETWEEN 3 AND 64),
+    CONSTRAINT user_account_user_surname_valid CHECK (char_length(btrim(user_surname)) BETWEEN 1 AND 64),
+    CONSTRAINT user_account_password_hash_valid CHECK (char_length(btrim(password_hash)) BETWEEN 1 AND 255),
     CONSTRAINT user_account_avatar_url_format CHECK (avatar_url IS NULL OR avatar_url ~ '^https?://'),
     CONSTRAINT user_account_avatar_url_length CHECK (avatar_url IS NULL OR char_length(avatar_url) <= 2048),
     CONSTRAINT user_account_city_id_fkey
@@ -66,8 +59,7 @@ CREATE TABLE refresh_session (
     user_id uuid NOT NULL,
     expires_at timestamptz NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT refresh_session_token_hash_not_blank CHECK (btrim(token_hash) <> ''),
-    CONSTRAINT refresh_session_token_hash_length CHECK (char_length(token_hash) = 64),
+    CONSTRAINT refresh_session_token_hash_valid CHECK (char_length(btrim(token_hash)) = 64),
     CONSTRAINT refresh_session_user_id_fkey
         FOREIGN KEY (user_id)
         REFERENCES user_account(id)
@@ -90,10 +82,8 @@ CREATE TABLE place (
     description text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT place_name_not_blank CHECK (btrim(name) <> ''),
-    CONSTRAINT place_name_length CHECK (char_length(name) <= 200),
-    CONSTRAINT place_address_line_not_blank CHECK (btrim(address_line) <> ''),
-    CONSTRAINT place_address_line_length CHECK (char_length(address_line) <= 300),
+    CONSTRAINT place_name_valid CHECK (char_length(btrim(name)) BETWEEN 1 AND 200),
+    CONSTRAINT place_address_line_valid CHECK (char_length(btrim(address_line)) BETWEEN 1 AND 300),
     CONSTRAINT place_description_length CHECK (description IS NULL OR char_length(description) <= 5000),
     CONSTRAINT place_latitude_range CHECK (latitude BETWEEN -90 AND 90),
     CONSTRAINT place_longitude_range CHECK (longitude BETWEEN -180 AND 180),
@@ -112,8 +102,7 @@ CREATE TABLE category (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT category_name_key UNIQUE (name),
-    CONSTRAINT category_name_not_blank CHECK (btrim(name) <> ''),
-    CONSTRAINT category_name_length CHECK (char_length(name) BETWEEN 1 AND 64)
+    CONSTRAINT category_name_valid CHECK (char_length(btrim(name)) BETWEEN 1 AND 64)
 );
 
 COMMENT ON TABLE category IS 'Справочник категорий событий. Имя категории должно быть уникальным; иных business-default значений нет.';
@@ -124,8 +113,7 @@ CREATE TABLE tag (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT tag_name_key UNIQUE (name),
-    CONSTRAINT tag_name_not_blank CHECK (btrim(name) <> ''),
-    CONSTRAINT tag_name_length CHECK (char_length(name) BETWEEN 1 AND 64)
+    CONSTRAINT tag_name_valid CHECK (char_length(btrim(name)) BETWEEN 1 AND 64)
 );
 
 COMMENT ON TABLE tag IS 'Справочник тегов событий. Имя тега задается явно и не получает значение по умолчанию.';
@@ -140,10 +128,8 @@ CREATE TABLE event (
     source_url text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT event_title_not_blank CHECK (btrim(title) <> ''),
-    CONSTRAINT event_title_length CHECK (char_length(title) <= 200),
-    CONSTRAINT event_short_description_not_blank CHECK (btrim(short_description) <> ''),
-    CONSTRAINT event_short_description_length CHECK (char_length(short_description) <= 500),
+    CONSTRAINT event_title_valid CHECK (char_length(btrim(title)) BETWEEN 1 AND 200),
+    CONSTRAINT event_short_description_valid CHECK (char_length(btrim(short_description)) BETWEEN 1 AND 500),
     CONSTRAINT event_full_description_length CHECK (full_description IS NULL OR char_length(full_description) <= 5000),
     CONSTRAINT event_age_limit_range CHECK (age_limit BETWEEN 0 AND 21),
     CONSTRAINT event_source_url_format CHECK (source_url IS NULL OR source_url ~ '^https?://'),
@@ -253,8 +239,7 @@ CREATE TABLE collection (
     is_public boolean NOT NULL DEFAULT false,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT collection_title_not_blank CHECK (btrim(title) <> ''),
-    CONSTRAINT collection_title_length CHECK (char_length(title) <= 200),
+    CONSTRAINT collection_title_valid CHECK (char_length(btrim(title)) BETWEEN 1 AND 200),
     CONSTRAINT collection_description_length CHECK (description IS NULL OR char_length(description) <= 5000),
     CONSTRAINT collection_author_user_id_fkey
         FOREIGN KEY (author_user_id)
@@ -412,8 +397,7 @@ CREATE TABLE share_link (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT share_link_share_token_key UNIQUE (share_token),
-    CONSTRAINT share_link_share_token_not_blank CHECK (btrim(share_token) <> ''),
-    CONSTRAINT share_link_share_token_length CHECK (char_length(share_token) BETWEEN 16 AND 128),
+    CONSTRAINT share_link_share_token_valid CHECK (char_length(btrim(share_token)) BETWEEN 16 AND 128),
     CONSTRAINT share_link_creator_user_id_fkey
         FOREIGN KEY (creator_user_id)
         REFERENCES user_account(id)
@@ -469,8 +453,7 @@ CREATE TABLE notification (
     read_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT notification_type_not_blank CHECK (btrim(notification_type) <> ''),
-    CONSTRAINT notification_type_length CHECK (char_length(notification_type) <= 64),
+    CONSTRAINT notification_type_valid CHECK (char_length(btrim(notification_type)) BETWEEN 1 AND 64),
     CONSTRAINT notification_read_state CHECK (
         (is_read = false AND read_at IS NULL) OR
         (is_read = true AND read_at IS NOT NULL)

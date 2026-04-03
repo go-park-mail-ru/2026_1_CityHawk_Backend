@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -146,17 +147,17 @@ func TestHomeHandlerReturnsHomePayload(t *testing.T) {
 func TestPlaceStoreAndHelpers(t *testing.T) {
 	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
 
-	cards := repo.ListCards()
+	cards := repo.ListCards(context.Background())
 	if len(cards) == 0 {
 		t.Fatal("listCards returned empty result")
 	}
 
-	p, ok := repo.GetByID("futurione")
+	p, ok := repo.GetByID(context.Background(), "futurione")
 	if !ok || p.ID != "futurione" {
 		t.Fatalf("getByID(futurione) failed: ok=%v, place=%+v", ok, p)
 	}
 
-	parkCards, ok := repo.ListCardsByCategory("park")
+	parkCards, ok := repo.ListCardsByCategory(context.Background(), "park")
 	if !ok || len(parkCards) == 0 {
 		t.Fatalf("listCardsByCategory(park) failed: ok=%v len=%d", ok, len(parkCards))
 	}

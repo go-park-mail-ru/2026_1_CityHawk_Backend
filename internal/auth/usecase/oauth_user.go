@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -25,7 +26,7 @@ func NewOAuthUserService(users AuthUserRepository, passwords PasswordService, id
 	}
 }
 
-func (s *OAuthUserService) FindOrCreateFromOAuth(identity authmodel.OAuthIdentity) (usermodel.User, error) {
+func (s *OAuthUserService) FindOrCreateFromOAuth(ctx context.Context, identity authmodel.OAuthIdentity) (usermodel.User, error) {
 	provider := strings.ToLower(strings.TrimSpace(identity.Provider))
 	if provider == "" {
 		return usermodel.User{}, errors.New("oauth provider is empty")
@@ -40,7 +41,7 @@ func (s *OAuthUserService) FindOrCreateFromOAuth(identity authmodel.OAuthIdentit
 		email = provider + "_" + subjectID + "@" + provider + ".local"
 	}
 
-	if u, ok := s.users.GetByEmail(email); ok {
+	if u, ok := s.users.GetByEmail(ctx, email); ok {
 		return u, nil
 	}
 
@@ -60,10 +61,10 @@ func (s *OAuthUserService) FindOrCreateFromOAuth(identity authmodel.OAuthIdentit
 		username = username[:32]
 	}
 
-	return s.createOAuthUser(email, username)
+	return s.createOAuthUser(ctx, email, username)
 }
 
-func (s *OAuthUserService) createOAuthUser(email, username string) (usermodel.User, error) {
+func (s *OAuthUserService) createOAuthUser(ctx context.Context, email, username string) (usermodel.User, error) {
 	password, err := randomHex(16)
 	if err != nil {
 		return usermodel.User{}, err
@@ -81,10 +82,10 @@ func (s *OAuthUserService) createOAuthUser(email, username string) (usermodel.Us
 		PasswordHash: passwordHash,
 	}
 
-	persistedUser, err := s.users.Create(u)
+	persistedUser, err := s.users.Create(ctx, u)
 	if err != nil {
 		if errors.Is(err, platformerrors.ErrEmailExists) {
-			if existing, ok := s.users.GetByEmail(email); ok {
+			if existing, ok := s.users.GetByEmail(ctx, email); ok {
 				return existing, nil
 			}
 		}

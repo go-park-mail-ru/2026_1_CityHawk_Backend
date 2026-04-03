@@ -13,11 +13,11 @@ type OAuthGateway interface {
 }
 
 type OAuthUserFinder interface {
-	FindOrCreateFromOAuth(identity authmodel.OAuthIdentity) (usermodel.User, error)
+	FindOrCreateFromOAuth(ctx context.Context, identity authmodel.OAuthIdentity) (usermodel.User, error)
 }
 
 type OAuthTokenIssuer interface {
-	IssueTokenPair(u usermodel.User) (authmodel.TokenPair, error)
+	IssueTokenPair(ctx context.Context, u usermodel.User) (authmodel.TokenPair, error)
 }
 
 type OAuthLoginService struct {
@@ -66,12 +66,12 @@ func (s *OAuthLoginService) loginWithIdentity(ctx context.Context, code string, 
 		return authmodel.TokenPair{}, err
 	}
 
-	u, err := s.users.FindOrCreateFromOAuth(identity)
+	u, err := s.users.FindOrCreateFromOAuth(ctx, identity)
 	if err != nil {
 		return authmodel.TokenPair{}, platformerrors.ErrInternal
 	}
 
-	resp, err := s.issuer.IssueTokenPair(u)
+	resp, err := s.issuer.IssueTokenPair(ctx, u)
 	if err != nil {
 		return authmodel.TokenPair{}, platformerrors.ErrIssueTokens
 	}

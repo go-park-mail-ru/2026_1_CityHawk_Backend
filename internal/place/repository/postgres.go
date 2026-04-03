@@ -91,8 +91,8 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
-func (r *PostgresRepository) ListCards() []placemodel.PlaceCard {
-	rows, err := r.pool.Query(context.Background(), listEventsBaseQuery(listQueryOptions{}))
+func (r *PostgresRepository) ListCards(ctx context.Context) []placemodel.PlaceCard {
+	rows, err := r.pool.Query(ctx, listEventsBaseQuery(listQueryOptions{}))
 	if err != nil {
 		return []placemodel.PlaceCard{}
 	}
@@ -113,8 +113,8 @@ func (r *PostgresRepository) ListCards() []placemodel.PlaceCard {
 	return items
 }
 
-func (r *PostgresRepository) ListHomeCards() []placemodel.HomePlaceCard {
-	rows, err := r.pool.Query(context.Background(), listEventsBaseQuery(listQueryOptions{
+func (r *PostgresRepository) ListHomeCards(ctx context.Context) []placemodel.HomePlaceCard {
+	rows, err := r.pool.Query(ctx, listEventsBaseQuery(listQueryOptions{
 		OrderBy: "COALESCE(fav.like_count, 0) DESC, e.created_at DESC, e.id ASC",
 		Limit:   8,
 	}))
@@ -143,9 +143,9 @@ func (r *PostgresRepository) ListHomeCards() []placemodel.HomePlaceCard {
 	return items
 }
 
-func (r *PostgresRepository) GetByID(id string) (placemodel.Place, bool) {
+func (r *PostgresRepository) GetByID(ctx context.Context, id string) (placemodel.Place, bool) {
 	row := r.pool.QueryRow(
-		context.Background(),
+		ctx,
 		listEventsBaseQuery(listQueryOptions{
 			Where:   "e.id = $1",
 			OrderBy: "e.id ASC",
@@ -165,9 +165,9 @@ func (r *PostgresRepository) GetByID(id string) (placemodel.Place, bool) {
 	return toPlace(item), true
 }
 
-func (r *PostgresRepository) ListCardsByCategory(category string) ([]placemodel.PlaceCard, bool) {
+func (r *PostgresRepository) ListCardsByCategory(ctx context.Context, category string) ([]placemodel.PlaceCard, bool) {
 	rows, err := r.pool.Query(
-		context.Background(),
+		ctx,
 		listEventsBaseQuery(listQueryOptions{
 			Where: `
 				EXISTS (

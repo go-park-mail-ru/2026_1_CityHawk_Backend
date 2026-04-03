@@ -37,9 +37,9 @@ func NewPostgresUserRepository(pool *pgxpool.Pool) *PostgresUserRepository {
 	return &PostgresUserRepository{pool: pool}
 }
 
-func (r *PostgresUserRepository) Create(u usermodel.User) (usermodel.User, error) {
+func (r *PostgresUserRepository) Create(ctx context.Context, u usermodel.User) (usermodel.User, error) {
 	row := r.pool.QueryRow(
-		context.Background(),
+		ctx,
 		insertUserQuery,
 		u.Email,
 		u.Username,
@@ -59,9 +59,9 @@ func (r *PostgresUserRepository) Create(u usermodel.User) (usermodel.User, error
 	return persisted, nil
 }
 
-func (r *PostgresUserRepository) GetByEmail(email string) (usermodel.User, bool) {
+func (r *PostgresUserRepository) GetByEmail(ctx context.Context, email string) (usermodel.User, bool) {
 	row := r.pool.QueryRow(
-		context.Background(),
+		ctx,
 		getUserByEmailQuery,
 		email,
 	)
@@ -78,9 +78,9 @@ func (r *PostgresUserRepository) GetByEmail(email string) (usermodel.User, bool)
 	return u, true
 }
 
-func (r *PostgresUserRepository) GetByID(id string) (usermodel.User, bool) {
+func (r *PostgresUserRepository) GetByID(ctx context.Context, id string) (usermodel.User, bool) {
 	row := r.pool.QueryRow(
-		context.Background(),
+		ctx,
 		getUserByIDQuery,
 		id,
 	)

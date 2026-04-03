@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -11,11 +12,11 @@ import (
 )
 
 type PlaceUsecase interface {
-	HomePayload() placemodel.HomePayload
-	ListCards() []placemodel.PlaceCard
-	GetByID(id string) (placemodel.Place, bool)
-	ListByCategory(category string) ([]placemodel.PlaceCard, bool)
-	Best(limit int) []placemodel.PlaceCard
+	HomePayload(ctx context.Context) placemodel.HomePayload
+	ListCards(ctx context.Context) []placemodel.PlaceCard
+	GetByID(ctx context.Context, id string) (placemodel.Place, bool)
+	ListByCategory(ctx context.Context, category string) ([]placemodel.PlaceCard, bool)
+	Best(ctx context.Context, limit int) []placemodel.PlaceCard
 }
 
 type Handler struct {
@@ -31,7 +32,7 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
 		}
-		httpx.WriteJSON(w, http.StatusOK, toHomePayloadResponse(h.places.HomePayload()))
+		httpx.WriteJSON(w, http.StatusOK, toHomePayloadResponse(h.places.HomePayload(r.Context())))
 		return nil
 	}).ServeHTTP(w, r)
 }
@@ -41,7 +42,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
 		}
-		httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": toPlaceCardResponses(h.places.ListCards())})
+		httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": toPlaceCardResponses(h.places.ListCards(r.Context()))})
 		return nil
 	}).ServeHTTP(w, r)
 }
@@ -55,7 +56,7 @@ func (h *Handler) Details(w http.ResponseWriter, r *http.Request) {
 		if id == "" || strings.Contains(id, "/") {
 			return httpx.NewHTTPError(http.StatusNotFound, "place not found")
 		}
-		p, ok := h.places.GetByID(id)
+		p, ok := h.places.GetByID(r.Context(), id)
 		if !ok {
 			return httpx.NewHTTPError(http.StatusNotFound, "place not found")
 		}
@@ -73,7 +74,7 @@ func (h *Handler) ByCategory(w http.ResponseWriter, r *http.Request) {
 		if category == "" || strings.Contains(category, "/") {
 			return httpx.NewHTTPError(http.StatusNotFound, "category not found")
 		}
-		items, ok := h.places.ListByCategory(category)
+		items, ok := h.places.ListByCategory(r.Context(), category)
 		if !ok {
 			return httpx.NewHTTPError(http.StatusNotFound, "category not found")
 		}
@@ -87,7 +88,7 @@ func (h *Handler) Best(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
 		}
-		httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": toPlaceCardResponses(h.places.Best(placeusecase.DefaultBestPlacesLimit))})
+		httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": toPlaceCardResponses(h.places.Best(r.Context(), placeusecase.DefaultBestPlacesLimit))})
 		return nil
 	}).ServeHTTP(w, r)
 }

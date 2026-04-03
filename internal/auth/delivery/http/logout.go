@@ -9,7 +9,7 @@ func (h *RefreshHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.refreshUC.RevokeRefresh(refreshToken); err != nil {
+	if err := h.refreshUC.RevokeRefresh(r.Context(), refreshToken); err != nil {
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
 		return
 	}

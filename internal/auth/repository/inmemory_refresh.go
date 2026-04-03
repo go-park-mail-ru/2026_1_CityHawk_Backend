@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"sync"
@@ -25,7 +26,7 @@ func NewInMemoryRefreshRepository() *InMemoryRefreshRepository {
 	}
 }
 
-func (r *InMemoryRefreshRepository) Store(refreshToken, userID string, expiresAt time.Time) error {
+func (r *InMemoryRefreshRepository) Store(_ context.Context, refreshToken, userID string, expiresAt time.Time) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -36,7 +37,7 @@ func (r *InMemoryRefreshRepository) Store(refreshToken, userID string, expiresAt
 	return nil
 }
 
-func (r *InMemoryRefreshRepository) Consume(refreshToken string) (string, error) {
+func (r *InMemoryRefreshRepository) Consume(_ context.Context, refreshToken string) (string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -55,7 +56,7 @@ func (r *InMemoryRefreshRepository) Consume(refreshToken string) (string, error)
 	return s.UserID, nil
 }
 
-func (r *InMemoryRefreshRepository) Revoke(refreshToken string) error {
+func (r *InMemoryRefreshRepository) Revoke(_ context.Context, refreshToken string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.sessions, tokenHash(refreshToken))

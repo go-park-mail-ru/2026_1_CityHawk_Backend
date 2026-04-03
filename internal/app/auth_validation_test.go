@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -96,7 +97,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 		t.Fatalf("unexpected register response: %+v", registerPayload)
 	}
 
-	if _, ok := deps.store.GetByEmail("tester@example.com"); !ok {
+	if _, ok := deps.store.GetByEmail(context.Background(), "tester@example.com"); !ok {
 		t.Fatal("registered user not found in store")
 	}
 

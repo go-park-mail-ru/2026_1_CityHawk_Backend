@@ -39,9 +39,9 @@ func NewPostgresRefreshRepository(pool *pgxpool.Pool) *PostgresRefreshRepository
 	return &PostgresRefreshRepository{pool: pool}
 }
 
-func (r *PostgresRefreshRepository) Store(refreshToken, userID string, expiresAt time.Time) error {
+func (r *PostgresRefreshRepository) Store(ctx context.Context, refreshToken, userID string, expiresAt time.Time) error {
 	_, err := r.pool.Exec(
-		context.Background(),
+		ctx,
 		storeRefreshSessionQuery,
 		postgresTokenHash(refreshToken),
 		userID,
@@ -50,11 +50,11 @@ func (r *PostgresRefreshRepository) Store(refreshToken, userID string, expiresAt
 	return err
 }
 
-func (r *PostgresRefreshRepository) Consume(refreshToken string) (string, error) {
+func (r *PostgresRefreshRepository) Consume(ctx context.Context, refreshToken string) (string, error) {
 	var userID string
 	var expiresAt time.Time
 	err := r.pool.QueryRow(
-		context.Background(),
+		ctx,
 		consumeRefreshSessionQuery,
 		postgresTokenHash(refreshToken),
 	).Scan(&userID, &expiresAt)
@@ -72,9 +72,9 @@ func (r *PostgresRefreshRepository) Consume(refreshToken string) (string, error)
 	return userID, nil
 }
 
-func (r *PostgresRefreshRepository) Revoke(refreshToken string) error {
+func (r *PostgresRefreshRepository) Revoke(ctx context.Context, refreshToken string) error {
 	_, err := r.pool.Exec(
-		context.Background(),
+		ctx,
 		revokeRefreshSessionQuery,
 		postgresTokenHash(refreshToken),
 	)
