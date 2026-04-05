@@ -17,8 +17,8 @@ type PostgresUserRepository struct {
 
 const (
 	insertUserQuery = `
-		INSERT INTO user_account (email, username, user_surname, password_hash)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO user_account (id, email, username, user_surname, password_hash)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, email, username, password_hash
 	`
 	getUserByEmailQuery = `
@@ -41,6 +41,7 @@ func (r *PostgresUserRepository) Create(ctx context.Context, u usermodel.User) (
 	row := r.pool.QueryRow(
 		ctx,
 		insertUserQuery,
+		u.ID,
 		u.Email,
 		u.Username,
 		u.Username,

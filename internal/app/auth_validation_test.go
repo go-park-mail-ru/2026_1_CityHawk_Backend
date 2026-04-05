@@ -44,7 +44,7 @@ func newTestAuthDeps(t *testing.T) *testAuthDeps {
 		store,
 		authUC,
 		platformsecurity.NewBcryptPasswordService(),
-		platformid.NewTimeUserIDProvider(platformid.TimeUserIDLayout),
+		platformid.NewUUIDUserIDProvider(),
 	)
 
 	return &testAuthDeps{

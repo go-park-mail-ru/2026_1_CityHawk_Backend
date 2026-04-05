@@ -2,11 +2,15 @@ package middleware
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"cityhawk/backend/internal/platform/httpx"
 )
@@ -30,8 +34,9 @@ func CorsMiddleware(next http.Handler) http.Handler {
 		if isAllowedOrigin(origin, allowedOrigins) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, "+httpx.RequestIDHeader)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Expose-Headers", httpx.RequestIDHeader)
 			w.Header().Add("Vary", "Origin")
 		}
 
@@ -72,12 +77,47 @@ func isAllowedOrigin(origin string, allowedOrigins []string) bool {
 	return false
 }
 
+func RequestIDMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestID := strings.TrimSpace(r.Header.Get(httpx.RequestIDHeader))
+		if requestID == "" {
+			requestID = newRequestID()
+		}
+
+		w.Header().Set(httpx.RequestIDHeader, requestID)
+		ctx := context.WithValue(r.Context(), httpx.RequestIDContextKey, requestID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func AccessLogMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		lrw := &loggingResponseWriter{ResponseWriter: w, status: http.StatusOK}
+
+		next.ServeHTTP(lrw, r)
+
+		requestID, _ := r.Context().Value(httpx.RequestIDContextKey).(string)
+		log.Printf(
+			"access request_id=%s method=%s path=%s status=%d bytes=%d duration=%s remote_addr=%s",
+			requestID,
+			r.Method,
+			r.URL.Path,
+			lrw.status,
+			lrw.bytes,
+			time.Since(start).Round(time.Millisecond),
+			requestRemoteAddr(r),
+		)
+	})
+}
+
 func RecoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			rec := recover()
 			if rec != nil {
-				log.Printf("panic recovered: %v, path=%s, method=%s\n%s", rec, r.URL.Path, r.Method, debug.Stack())
+				requestID, _ := r.Context().Value(httpx.RequestIDContextKey).(string)
+				log.Printf("panic recovered: %v, request_id=%s, path=%s, method=%s\n%s", rec, requestID, r.URL.Path, r.Method, debug.Stack())
 				httpx.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 			}
 		}()
@@ -118,4 +158,66 @@ func AuthMiddleware(
 		next.ServeHTTP(w, r.WithContext(ctx))
 		return nil
 	})
+}
+
+func newRequestID() string {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "req-fallback"
+	}
+
+	var dst [32]byte
+	hex.Encode(dst[:], b[:])
+	return "req-" + string(dst[:])
+}
+
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	status      int
+	bytes       int
+	wroteHeader bool
+}
+
+func (w *loggingResponseWriter) WriteHeader(status int) {
+	if w.wroteHeader {
+		w.ResponseWriter.WriteHeader(status)
+		return
+	}
+
+	w.status = status
+	w.wroteHeader = true
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *loggingResponseWriter) Write(b []byte) (int, error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
+
+	n, err := w.ResponseWriter.Write(b)
+	w.bytes += n
+	return n, err
+}
+
+func requestRemoteAddr(r *http.Request) string {
+	if r == nil {
+		return ""
+	}
+
+	if forwardedFor := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); forwardedFor != "" {
+		parts := strings.Split(forwardedFor, ",")
+		if len(parts) > 0 {
+			return strings.TrimSpace(parts[0])
+		}
+	}
+
+	if realIP := strings.TrimSpace(r.Header.Get("X-Real-IP")); realIP != "" {
+		return realIP
+	}
+
+	host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
+	if err == nil && host != "" {
+		return host
+	}
+	return r.RemoteAddr
 }

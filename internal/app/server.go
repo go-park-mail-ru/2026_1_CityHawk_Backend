@@ -45,12 +45,12 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		store,
 		authUC,
 		platformsecurity.NewBcryptPasswordService(),
-		platformid.NewTimeUserIDProvider(platformid.TimeUserIDLayout),
+		platformid.NewUUIDUserIDProvider(),
 	)
 	oauthUsers := authusecase.NewOAuthUserService(
 		store,
 		platformsecurity.NewBcryptPasswordService(),
-		platformid.NewTimeUserIDProvider(platformid.TimeUserIDLayout),
+		platformid.NewUUIDUserIDProvider(),
 	)
 	placeHandler := placedelivery.NewHandler(placeUC)
 	authFlowHandler := authdelivery.NewAuthHandler(authFlowUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL)
@@ -121,7 +121,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 
 	return &http.Server{
 		Addr:         ":" + cfg.Server.Port,
-		Handler:      platformmiddleware.CorsMiddleware(platformmiddleware.RecoveryMiddleware(mux)),
+		Handler:      platformmiddleware.RequestIDMiddleware(platformmiddleware.AccessLogMiddleware(platformmiddleware.CorsMiddleware(platformmiddleware.RecoveryMiddleware(mux)))),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}, cleanup, nil

@@ -2,13 +2,12 @@ package usecase
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"strings"
 
 	authmodel "cityhawk/backend/internal/auth/model"
 	platformerrors "cityhawk/backend/internal/platform/errors"
+	platformsecurity "cityhawk/backend/internal/platform/security"
 	usermodel "cityhawk/backend/internal/user/model"
 )
 
@@ -65,7 +64,7 @@ func (s *OAuthUserService) FindOrCreateFromOAuth(ctx context.Context, identity a
 }
 
 func (s *OAuthUserService) createOAuthUser(ctx context.Context, email, username string) (usermodel.User, error) {
-	password, err := randomHex(16)
+	password, err := platformsecurity.RandomHex(16)
 	if err != nil {
 		return usermodel.User{}, err
 	}
@@ -109,12 +108,4 @@ func sanitizePart(s string) string {
 		}
 	}
 	return b.String()
-}
-
-func randomHex(n int) (string, error) {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
 }

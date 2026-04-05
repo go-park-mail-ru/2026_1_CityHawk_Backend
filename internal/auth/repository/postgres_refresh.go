@@ -2,12 +2,11 @@ package repository
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"time"
 
 	platformerrors "cityhawk/backend/internal/platform/errors"
+	platformsecurity "cityhawk/backend/internal/platform/security"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -43,7 +42,7 @@ func (r *PostgresRefreshRepository) Store(ctx context.Context, refreshToken, use
 	_, err := r.pool.Exec(
 		ctx,
 		storeRefreshSessionQuery,
-		postgresTokenHash(refreshToken),
+		platformsecurity.SHA256Hex(refreshToken),
 		userID,
 		expiresAt,
 	)
@@ -56,7 +55,7 @@ func (r *PostgresRefreshRepository) Consume(ctx context.Context, refreshToken st
 	err := r.pool.QueryRow(
 		ctx,
 		consumeRefreshSessionQuery,
-		postgresTokenHash(refreshToken),
+		platformsecurity.SHA256Hex(refreshToken),
 	).Scan(&userID, &expiresAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -76,12 +75,7 @@ func (r *PostgresRefreshRepository) Revoke(ctx context.Context, refreshToken str
 	_, err := r.pool.Exec(
 		ctx,
 		revokeRefreshSessionQuery,
-		postgresTokenHash(refreshToken),
+		platformsecurity.SHA256Hex(refreshToken),
 	)
 	return err
-}
-
-func postgresTokenHash(token string) string {
-	sum := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(sum[:])
 }

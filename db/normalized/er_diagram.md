@@ -60,7 +60,7 @@ erDiagram
         uuid id PK
         uuid author_user_id FK
         text title
-        text short_description
+        text location_description
         text full_description
         int age_limit
         text source_url

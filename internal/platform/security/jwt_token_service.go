@@ -1,8 +1,6 @@
 package security
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"time"
 
@@ -26,7 +24,7 @@ func NewJWTTokenService(secret []byte) *JWTTokenService {
 
 func (s *JWTTokenService) SignAccessToken(u usermodel.User, ttl time.Duration) (string, error) {
 	now := time.Now().UTC()
-	jti, err := randomHex(16)
+	jti, err := RandomHex(16)
 	if err != nil {
 		return "", err
 	}
@@ -47,7 +45,7 @@ func (s *JWTTokenService) SignAccessToken(u usermodel.User, ttl time.Duration) (
 }
 
 func (s *JWTTokenService) GenerateOpaqueToken(size int) (string, error) {
-	return randomHex(size)
+	return RandomHex(size)
 }
 
 func (s *JWTTokenService) Parse(tokenString string) (Claims, error) {
@@ -68,12 +66,4 @@ func (s *JWTTokenService) Parse(tokenString string) (Claims, error) {
 	}
 
 	return *c, nil
-}
-
-func randomHex(n int) (string, error) {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
 }

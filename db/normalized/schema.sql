@@ -122,7 +122,7 @@ CREATE TABLE event (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     author_user_id uuid NOT NULL,
     title text NOT NULL,
-    short_description text NOT NULL,
+    location_description text NOT NULL,
     full_description text,
     age_limit integer NOT NULL DEFAULT 0,
     source_url text,
