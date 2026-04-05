@@ -120,6 +120,10 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		pool.Close()
 	}
 
+	cleanup := func() {
+		pool.Close()
+	}
+
 	return &http.Server{
 		Addr:         ":" + cfg.Server.Port,
 		Handler:      platformmiddleware.RequestIDMiddleware(platformmiddleware.AccessLogMiddleware(platformmiddleware.CorsMiddleware(platformmiddleware.RecoveryMiddleware(mux)))),

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/url"
@@ -114,6 +115,13 @@ func (c DatabaseConfig) DSN() string {
 	}
 
 	return dsn.String()
+}
+
+func (c DatabaseConfig) DSN() string {
+	return fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		c.User, c.Password, c.Host, c.Port, c.Name, c.SSLMode,
+	)
 }
 
 func parseDurationEnv(key string, fallback time.Duration) time.Duration {
