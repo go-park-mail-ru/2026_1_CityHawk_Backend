@@ -11,7 +11,7 @@ BEGIN
 END;
 $$;
 
-CREATE TABLE city (
+CREATE TABLE IF NOT EXISTS city (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name text NOT NULL,
     country_name text NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE city (
 
 COMMENT ON TABLE city IS 'Справочник городов. Значения по умолчанию заданы только для технических полей id, created_at и updated_at; бизнес-атрибуты должны приходить из пользовательских или импортируемых данных.';
 
-CREATE TABLE user_account (
+CREATE TABLE IF NOT EXISTS user_account (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     email text NOT NULL,
     username text NOT NULL,
@@ -54,7 +54,7 @@ CREATE TABLE user_account (
 
 COMMENT ON TABLE user_account IS 'Учетные записи пользователей. У birthday и avatar_url нет default, потому что это необязательные пользовательские данные; city_id может отсутствовать до выбора города.';
 
-CREATE TABLE refresh_session (
+CREATE TABLE IF NOT EXISTS refresh_session (
     token_hash text PRIMARY KEY,
     user_id uuid NOT NULL,
     expires_at timestamptz NOT NULL,
@@ -72,7 +72,7 @@ CREATE INDEX idx_refresh_session_expires_at ON refresh_session(expires_at);
 
 COMMENT ON TABLE refresh_session IS 'Сессии refresh-токенов. Хранится только хеш токена, связанный с пользователем и временем истечения, что соответствует серверной логике ротации и отзыва токенов.';
 
-CREATE TABLE place (
+CREATE TABLE IF NOT EXISTS place (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     city_id uuid NOT NULL,
     name text NOT NULL,
@@ -96,7 +96,7 @@ CREATE TABLE place (
 
 COMMENT ON TABLE place IS 'Места проведения. У description нет default, потому что описание может быть неизвестно на момент создания записи.';
 
-CREATE TABLE category (
+CREATE TABLE IF NOT EXISTS category (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -107,7 +107,7 @@ CREATE TABLE category (
 
 COMMENT ON TABLE category IS 'Справочник категорий событий. Имя категории должно быть уникальным; иных business-default значений нет.';
 
-CREATE TABLE tag (
+CREATE TABLE IF NOT EXISTS tag (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -118,7 +118,7 @@ CREATE TABLE tag (
 
 COMMENT ON TABLE tag IS 'Справочник тегов событий. Имя тега задается явно и не получает значение по умолчанию.';
 
-CREATE TABLE event (
+CREATE TABLE IF NOT EXISTS event (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     author_user_id uuid NOT NULL,
     title text NOT NULL,
@@ -143,7 +143,7 @@ CREATE TABLE event (
 
 COMMENT ON TABLE event IS 'Карточки событий. age_limit по умолчанию равен 0 как безопасное значение; full_description и source_url остаются без default, так как они необязательны и зависят от редакторского ввода.';
 
-CREATE TABLE event_session (
+CREATE TABLE IF NOT EXISTS event_session (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id uuid NOT NULL,
     place_id uuid NOT NULL,
@@ -174,7 +174,7 @@ CREATE TABLE event_session (
 
 COMMENT ON TABLE event_session IS 'Конкретные сеансы событий. price по умолчанию равен 0 для бесплатных событий; EXCLUDE запрещает пересечение интервалов в одном месте проведения.';
 
-CREATE TABLE event_image (
+CREATE TABLE IF NOT EXISTS event_image (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id uuid NOT NULL,
     image_url text NOT NULL,
@@ -191,7 +191,7 @@ CREATE TABLE event_image (
 
 COMMENT ON TABLE event_image IS 'Изображения событий. URL обязателен и не имеет default, потому что ссылка на файл должна задаваться явно.';
 
-CREATE TABLE event_category (
+CREATE TABLE IF NOT EXISTS event_category (
     event_id uuid NOT NULL,
     category_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -211,7 +211,7 @@ CREATE TABLE event_category (
 
 COMMENT ON TABLE event_category IS 'Связь событий с категориями. created_at и updated_at нужны для аудита назначения категории.';
 
-CREATE TABLE event_tag (
+CREATE TABLE IF NOT EXISTS event_tag (
     event_id uuid NOT NULL,
     tag_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -231,7 +231,7 @@ CREATE TABLE event_tag (
 
 COMMENT ON TABLE event_tag IS 'Связь событий с тегами. Значения по умолчанию нужны только для технических временных полей.';
 
-CREATE TABLE collection (
+CREATE TABLE IF NOT EXISTS collection (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     author_user_id uuid NOT NULL,
     title text NOT NULL,
@@ -250,7 +250,7 @@ CREATE TABLE collection (
 
 COMMENT ON TABLE collection IS 'Пользовательские подборки событий. is_public по умолчанию false, чтобы исключить случайную публикацию.';
 
-CREATE TABLE collection_image (
+CREATE TABLE IF NOT EXISTS collection_image (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     collection_id uuid NOT NULL,
     image_url text NOT NULL,
@@ -267,7 +267,7 @@ CREATE TABLE collection_image (
 
 COMMENT ON TABLE collection_image IS 'Изображения подборок. URL обязателен и задается явно без default.';
 
-CREATE TABLE collection_event (
+CREATE TABLE IF NOT EXISTS collection_event (
     collection_id uuid NOT NULL,
     event_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -287,7 +287,7 @@ CREATE TABLE collection_event (
 
 COMMENT ON TABLE collection_event IS 'Связь подборок с событиями. Составной первичный ключ не допускает дубликатов одной и той же пары.';
 
-CREATE TABLE favorite_event (
+CREATE TABLE IF NOT EXISTS favorite_event (
     user_id uuid NOT NULL,
     event_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -307,7 +307,7 @@ CREATE TABLE favorite_event (
 
 COMMENT ON TABLE favorite_event IS 'Избранные события пользователя. Технические даты позволяют хранить историю добавления в избранное.';
 
-CREATE TABLE user_follow (
+CREATE TABLE IF NOT EXISTS user_follow (
     follower_user_id uuid NOT NULL,
     followed_user_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -328,7 +328,7 @@ CREATE TABLE user_follow (
 
 COMMENT ON TABLE user_follow IS 'Подписки пользователей друг на друга. CHECK запрещает самоподписку.';
 
-CREATE TABLE event_invitation (
+CREATE TABLE IF NOT EXISTS event_invitation (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     sender_user_id uuid NOT NULL,
     recipient_user_id uuid NOT NULL,
@@ -352,7 +352,7 @@ CREATE TABLE event_invitation (
 
 COMMENT ON TABLE event_invitation IS 'Базовая сущность приглашения. У message_text и responded_at нет default, потому что сообщение необязательно, а момент ответа появляется только после реакции получателя.';
 
-CREATE TABLE event_invitation_event (
+CREATE TABLE IF NOT EXISTS event_invitation_event (
     invitation_id uuid PRIMARY KEY,
     event_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -371,7 +371,7 @@ CREATE TABLE event_invitation_event (
 
 COMMENT ON TABLE event_invitation_event IS 'Привязка приглашения ко всему событию.';
 
-CREATE TABLE event_invitation_session (
+CREATE TABLE IF NOT EXISTS event_invitation_session (
     invitation_id uuid PRIMARY KEY,
     event_session_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -390,7 +390,7 @@ CREATE TABLE event_invitation_session (
 
 COMMENT ON TABLE event_invitation_session IS 'Привязка приглашения к конкретному сеансу.';
 
-CREATE TABLE share_link (
+CREATE TABLE IF NOT EXISTS share_link (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     creator_user_id uuid NOT NULL,
     share_token text NOT NULL,
@@ -407,7 +407,7 @@ CREATE TABLE share_link (
 
 COMMENT ON TABLE share_link IS 'Базовая сущность публичной ссылки. Токен уникален и не получает default, потому что должен создаваться приложением или безопасной функцией генерации.';
 
-CREATE TABLE share_link_event (
+CREATE TABLE IF NOT EXISTS share_link_event (
     share_link_id uuid PRIMARY KEY,
     event_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -426,7 +426,7 @@ CREATE TABLE share_link_event (
 
 COMMENT ON TABLE share_link_event IS 'Привязка публичной ссылки к событию.';
 
-CREATE TABLE share_link_collection (
+CREATE TABLE IF NOT EXISTS share_link_collection (
     share_link_id uuid PRIMARY KEY,
     collection_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -445,7 +445,7 @@ CREATE TABLE share_link_collection (
 
 COMMENT ON TABLE share_link_collection IS 'Привязка публичной ссылки к подборке.';
 
-CREATE TABLE notification (
+CREATE TABLE IF NOT EXISTS notification (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     recipient_user_id uuid NOT NULL,
     notification_type text NOT NULL,
@@ -467,7 +467,7 @@ CREATE TABLE notification (
 
 COMMENT ON TABLE notification IS 'Базовая сущность уведомления. is_read по умолчанию false, а read_at появляется только после фактического прочтения.';
 
-CREATE TABLE notification_actor (
+CREATE TABLE IF NOT EXISTS notification_actor (
     notification_id uuid PRIMARY KEY,
     author_user_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -486,7 +486,7 @@ CREATE TABLE notification_actor (
 
 COMMENT ON TABLE notification_actor IS 'Связь уведомления с пользователем-инициатором.';
 
-CREATE TABLE notification_event (
+CREATE TABLE IF NOT EXISTS notification_event (
     notification_id uuid PRIMARY KEY,
     event_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -505,7 +505,7 @@ CREATE TABLE notification_event (
 
 COMMENT ON TABLE notification_event IS 'Связь уведомления с событием.';
 
-CREATE TABLE notification_event_session (
+CREATE TABLE IF NOT EXISTS notification_event_session (
     notification_id uuid PRIMARY KEY,
     event_session_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -524,7 +524,7 @@ CREATE TABLE notification_event_session (
 
 COMMENT ON TABLE notification_event_session IS 'Связь уведомления с конкретным сеансом события.';
 
-CREATE TABLE notification_invitation (
+CREATE TABLE IF NOT EXISTS notification_invitation (
     notification_id uuid PRIMARY KEY,
     invitation_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -543,7 +543,7 @@ CREATE TABLE notification_invitation (
 
 COMMENT ON TABLE notification_invitation IS 'Связь уведомления с приглашением.';
 
-CREATE TABLE notification_collection (
+CREATE TABLE IF NOT EXISTS notification_collection (
     notification_id uuid PRIMARY KEY,
     collection_id uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -8,9 +9,10 @@ import (
 )
 
 type Config struct {
-	Server ServerConfig
-	Auth   AuthConfig
-	OAuth  OAuthConfig
+	Server   ServerConfig
+	Auth     AuthConfig
+	OAuth    OAuthConfig
+	Database DatabaseConfig
 }
 
 type ServerConfig struct {
@@ -35,13 +37,18 @@ type OAuthProviderConfig struct {
 	RedirectURL  string
 }
 
-func LoadFromEnv() Config {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+type DatabaseConfig struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+	Name     string
+	SSLMode  string
+}
 
-	secret := os.Getenv("JWT_SECRET")
+func LoadFromEnv() Config {
+	port := getEnv("PORT", "8080")
+	secret := getEnv("JWT_SECRET", "")
 	if secret == "" {
 		secret = "dev-insecure-secret-change-me"
 		log.Println("JWT_SECRET is empty, using insecure development secret")
@@ -58,22 +65,37 @@ func LoadFromEnv() Config {
 		},
 		OAuth: OAuthConfig{
 			Google: OAuthProviderConfig{
-				ClientID:     strings.TrimSpace(os.Getenv("GOOGLE_OAUTH_CLIENT_ID")),
-				ClientSecret: strings.TrimSpace(os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET")),
-				RedirectURL:  strings.TrimSpace(os.Getenv("GOOGLE_OAUTH_REDIRECT_URL")),
+				ClientID:     getEnv("GOOGLE_OAUTH_CLIENT_ID", ""),
+				ClientSecret: getEnv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
+				RedirectURL:  getEnv("GOOGLE_OAUTH_REDIRECT_URL", ""),
 			},
 			VK: OAuthProviderConfig{
-				ClientID:     strings.TrimSpace(os.Getenv("VK_OAUTH_CLIENT_ID")),
-				ClientSecret: strings.TrimSpace(os.Getenv("VK_OAUTH_CLIENT_SECRET")),
-				RedirectURL:  strings.TrimSpace(os.Getenv("VK_OAUTH_REDIRECT_URL")),
+				ClientID:     getEnv("VK_OAUTH_CLIENT_ID", ""),
+				ClientSecret: getEnv("VK_OAUTH_CLIENT_SECRET", ""),
+				RedirectURL:  getEnv("VK_OAUTH_REDIRECT_URL", ""),
 			},
 			Yandex: OAuthProviderConfig{
-				ClientID:     strings.TrimSpace(os.Getenv("YANDEX_OAUTH_CLIENT_ID")),
-				ClientSecret: strings.TrimSpace(os.Getenv("YANDEX_OAUTH_CLIENT_SECRET")),
-				RedirectURL:  strings.TrimSpace(os.Getenv("YANDEX_OAUTH_REDIRECT_URL")),
+				ClientID:     getEnv("YANDEX_OAUTH_CLIENT_ID", ""),
+				ClientSecret: getEnv("YANDEX_OAUTH_CLIENT_SECRET", ""),
+				RedirectURL:  getEnv("YANDEX_OAUTH_REDIRECT_URL", ""),
 			},
 		},
+		Database: DatabaseConfig{
+			Host:     getEnv("DB_HOST", "localhost"),
+			Port:     getEnv("DB_PORT", "5432"),
+			User:     getEnv("DB_USER", "postgres"),
+			Password: getEnv("DB_PASSWORD", ""),
+			Name:     getEnv("DB_NAME", "postgres"),
+			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		},
 	}
+}
+
+func (c DatabaseConfig) DSN() string {
+	return fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		c.User, c.Password, c.Host, c.Port, c.Name, c.SSLMode,
+	)
 }
 
 func parseDurationEnv(key string, fallback time.Duration) time.Duration {
@@ -89,4 +111,12 @@ func parseDurationEnv(key string, fallback time.Duration) time.Duration {
 	}
 
 	return d
+}
+
+func getEnv(key, fallback string) string {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	return value
 }

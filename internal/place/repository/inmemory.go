@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"sync"
 
 	placemodel "cityhawk/backend/internal/place/model"
@@ -23,7 +24,7 @@ func NewInMemoryRepository(places []placemodel.Place) *InMemoryRepository {
 	return r
 }
 
-func (r *InMemoryRepository) ListCards() []placemodel.PlaceCard {
+func (r *InMemoryRepository) ListCards(_ context.Context) []placemodel.PlaceCard {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -43,7 +44,7 @@ func (r *InMemoryRepository) ListCards() []placemodel.PlaceCard {
 	return cards
 }
 
-func (r *InMemoryRepository) ListHomeCards() []placemodel.HomePlaceCard {
+func (r *InMemoryRepository) ListHomeCards(_ context.Context) []placemodel.HomePlaceCard {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -60,14 +61,14 @@ func (r *InMemoryRepository) ListHomeCards() []placemodel.HomePlaceCard {
 	return cards
 }
 
-func (r *InMemoryRepository) GetByID(id string) (placemodel.Place, bool) {
+func (r *InMemoryRepository) GetByID(_ context.Context, id string) (placemodel.Place, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	p, ok := r.byID[id]
 	return p, ok
 }
 
-func (r *InMemoryRepository) ListCardsByCategory(category string) ([]placemodel.PlaceCard, bool) {
+func (r *InMemoryRepository) ListCardsByCategory(_ context.Context, category string) ([]placemodel.PlaceCard, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -97,4 +98,3 @@ func ContainsCategory(categories []string, category string) bool {
 	}
 	return false
 }
-

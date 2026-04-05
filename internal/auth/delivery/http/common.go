@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -13,13 +14,13 @@ const RefreshCookieName = "refresh_token"
 const AccessCookieName = "access_token"
 
 type RefreshUsecase interface {
-	RotateRefresh(oldRefreshToken string) (authmodel.TokenPair, error)
-	RevokeRefresh(token string)
+	RotateRefresh(ctx context.Context, oldRefreshToken string) (authmodel.TokenPair, error)
+	RevokeRefresh(ctx context.Context, token string) error
 }
 
 type AuthFlowUsecase interface {
-	Register(email, password, username string) (authmodel.TokenPair, error)
-	Login(email, password string) (authmodel.TokenPair, error)
+	Register(ctx context.Context, email, password, username string) (authmodel.TokenPair, error)
+	Login(ctx context.Context, email, password string) (authmodel.TokenPair, error)
 }
 
 type AuthHandler struct {

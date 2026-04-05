@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -17,16 +18,27 @@ import (
 	"cityhawk/backend/internal/platform/httpx"
 	platformid "cityhawk/backend/internal/platform/id"
 	platformmiddleware "cityhawk/backend/internal/platform/middleware"
+	platformpostgres "cityhawk/backend/internal/platform/postgres"
 	platformsecurity "cityhawk/backend/internal/platform/security"
 	userdelivery "cityhawk/backend/internal/user/delivery/http"
 	userrepo "cityhawk/backend/internal/user/repository"
 )
 
-func NewServer(cfg appconfig.Config) *http.Server {
-	store := userrepo.NewInMemoryUserRepository()
-	placeRepo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
+func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
+	ctx := context.Background()
+	pool, err := platformpostgres.NewPool(ctx, cfg.Database.DSN())
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
+		return nil, nil, err
+	}
+
+	store := userrepo.NewPostgresUserRepository(pool)
+	placeRepo := placerepo.NewPostgresRepository(pool)
 	placeUC := placeusecase.NewService(placeRepo)
-	refreshRepo := authrepo.NewInMemoryRefreshRepository()
+	refreshRepo := authrepo.NewPostgresRefreshRepository(pool)
 	tokenService := platformsecurity.NewJWTTokenService([]byte(cfg.Auth.JWTSecret))
 	authUC := authusecase.NewService(cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL, store, refreshRepo, tokenService)
 	authFlowUC := authusecase.NewAuthFlowService(
@@ -103,10 +115,14 @@ func NewServer(cfg appconfig.Config) *http.Server {
 	mux.HandleFunc("/places/best", placeHandler.Best)
 	mux.HandleFunc("/places/category/", placeHandler.ByCategory)
 
+	cleanup := func() {
+		pool.Close()
+	}
+
 	return &http.Server{
 		Addr:         ":" + cfg.Server.Port,
 		Handler:      platformmiddleware.CorsMiddleware(platformmiddleware.RecoveryMiddleware(mux)),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
-	}
+	}, cleanup, nil
 }

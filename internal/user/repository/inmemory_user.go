@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"sync"
 
 	platformerrors "cityhawk/backend/internal/platform/errors"
@@ -20,27 +21,27 @@ func NewInMemoryUserRepository() *InMemoryUserRepository {
 	}
 }
 
-func (r *InMemoryUserRepository) Create(u usermodel.User) error {
+func (r *InMemoryUserRepository) Create(_ context.Context, u usermodel.User) (usermodel.User, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if _, exists := r.byEmail[u.Email]; exists {
-		return platformerrors.ErrEmailExists
+		return usermodel.User{}, platformerrors.ErrEmailExists
 	}
 
 	r.byEmail[u.Email] = u
 	r.byID[u.ID] = u
-	return nil
+	return u, nil
 }
 
-func (r *InMemoryUserRepository) GetByEmail(email string) (usermodel.User, bool) {
+func (r *InMemoryUserRepository) GetByEmail(_ context.Context, email string) (usermodel.User, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	u, ok := r.byEmail[email]
 	return u, ok
 }
 
-func (r *InMemoryUserRepository) GetByID(id string) (usermodel.User, bool) {
+func (r *InMemoryUserRepository) GetByID(_ context.Context, id string) (usermodel.User, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	u, ok := r.byID[id]

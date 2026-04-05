@@ -9,7 +9,10 @@ func (h *RefreshHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.refreshUC.RevokeRefresh(refreshToken)
+	if err := h.refreshUC.RevokeRefresh(r.Context(), refreshToken); err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
+		return
+	}
 	ClearRefreshCookie(w)
 	ClearAccessCookie(w)
 	writeJSON(w, http.StatusOK, messageResponse{Message: "logout successful"})

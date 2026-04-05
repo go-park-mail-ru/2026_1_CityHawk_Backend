@@ -14,7 +14,11 @@ func main() {
 	}
 
 	cfg := appconfig.LoadFromEnv()
-	server := app.NewServer(cfg)
+	server, cleanup, err := app.NewServer(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer cleanup()
 
 	log.Printf("server started on %s", server.Addr)
 	if err := server.ListenAndServe(); err != nil {

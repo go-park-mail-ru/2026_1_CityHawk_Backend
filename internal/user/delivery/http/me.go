@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"net/http"
 
 	"cityhawk/backend/internal/platform/httpx"
@@ -9,7 +10,7 @@ import (
 )
 
 type UserReader interface {
-	GetByID(id string) (usermodel.User, bool)
+	GetByID(ctx context.Context, id string) (usermodel.User, bool)
 }
 
 type MeHandler struct {
@@ -27,7 +28,7 @@ func (h *MeHandler) Me(w http.ResponseWriter, r *http.Request) {
 			return httpx.NewHTTPError(http.StatusUnauthorized, "unauthorized")
 		}
 
-		u, ok := h.users.GetByID(userID)
+		u, ok := h.users.GetByID(r.Context(), userID)
 		if !ok {
 			return httpx.NewHTTPError(http.StatusUnauthorized, "user not found")
 		}
