@@ -18,7 +18,7 @@ func TestPlacesHandlers(t *testing.T) {
 	t.Run("list ok and method not allowed", func(t *testing.T) {
 		list := http.HandlerFunc(handler.List)
 
-		req := httptest.NewRequest(http.MethodGet, "/places", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/places", nil)
 		rec := httptest.NewRecorder()
 		list.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK {
@@ -30,7 +30,7 @@ func TestPlacesHandlers(t *testing.T) {
 			t.Fatalf("list response has no items: %+v", payload)
 		}
 
-		reqBad := httptest.NewRequest(http.MethodPost, "/places", nil)
+		reqBad := httptest.NewRequest(http.MethodPost, "/api/places", nil)
 		recBad := httptest.NewRecorder()
 		list.ServeHTTP(recBad, reqBad)
 		if recBad.Code != http.StatusMethodNotAllowed {
@@ -44,7 +44,7 @@ func TestPlacesHandlers(t *testing.T) {
 
 	t.Run("details/category/best", func(t *testing.T) {
 		details := http.HandlerFunc(handler.Details)
-		req := httptest.NewRequest(http.MethodGet, "/places/futurione", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/places/futurione", nil)
 		rec := httptest.NewRecorder()
 		details.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK {
@@ -56,7 +56,7 @@ func TestPlacesHandlers(t *testing.T) {
 			t.Fatalf("unexpected details response: %+v", detailsPayload)
 		}
 
-		missingReq := httptest.NewRequest(http.MethodGet, "/places/unknown", nil)
+		missingReq := httptest.NewRequest(http.MethodGet, "/api/places/unknown", nil)
 		missingRec := httptest.NewRecorder()
 		details.ServeHTTP(missingRec, missingReq)
 		if missingRec.Code != http.StatusNotFound {
@@ -68,7 +68,7 @@ func TestPlacesHandlers(t *testing.T) {
 		}
 
 		cat := http.HandlerFunc(handler.ByCategory)
-		catReq := httptest.NewRequest(http.MethodGet, "/places/category/park", nil)
+		catReq := httptest.NewRequest(http.MethodGet, "/api/places/category/park", nil)
 		catRec := httptest.NewRecorder()
 		cat.ServeHTTP(catRec, catReq)
 		if catRec.Code != http.StatusOK {
@@ -80,7 +80,7 @@ func TestPlacesHandlers(t *testing.T) {
 			t.Fatalf("unexpected category response: %+v", catPayload)
 		}
 
-		catMissReq := httptest.NewRequest(http.MethodGet, "/places/category/unknown", nil)
+		catMissReq := httptest.NewRequest(http.MethodGet, "/api/places/category/unknown", nil)
 		catMissRec := httptest.NewRecorder()
 		cat.ServeHTTP(catMissRec, catMissReq)
 		if catMissRec.Code != http.StatusNotFound {
@@ -92,7 +92,7 @@ func TestPlacesHandlers(t *testing.T) {
 		}
 
 		best := http.HandlerFunc(handler.Best)
-		bestReq := httptest.NewRequest(http.MethodGet, "/places/best", nil)
+		bestReq := httptest.NewRequest(http.MethodGet, "/api/places/best", nil)
 		bestRec := httptest.NewRecorder()
 		best.ServeHTTP(bestRec, bestReq)
 		if bestRec.Code != http.StatusOK {
@@ -108,6 +108,7 @@ func TestPlacesHandlers(t *testing.T) {
 			t.Fatalf("unexpected first best item: %+v", bestPayload)
 		}
 	})
+
 }
 
 func TestHomeHandlerReturnsHomePayload(t *testing.T) {

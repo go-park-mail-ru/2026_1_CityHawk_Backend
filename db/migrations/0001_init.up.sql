@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS event (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT event_title_valid CHECK (char_length(btrim(title)) BETWEEN 1 AND 200),
-    CONSTRAINT event_short_description_valid CHECK (char_length(btrim(short_description)) BETWEEN 1 AND 500),
+    CONSTRAINT event_location_description_valid CHECK (char_length(btrim(location_description)) BETWEEN 1 AND 500),
     CONSTRAINT event_full_description_length CHECK (full_description IS NULL OR char_length(full_description) <= 5000),
     CONSTRAINT event_age_limit_range CHECK (age_limit BETWEEN 0 AND 21),
     CONSTRAINT event_source_url_format CHECK (source_url IS NULL OR source_url ~ '^https?://'),

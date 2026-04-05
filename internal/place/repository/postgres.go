@@ -71,7 +71,7 @@ const listEventsBaseQueryTemplate = `
 		e.title,
 		COALESCE(cats.categories, '{}'::text[]) AS categories,
 		COALESCE(fav.like_count, 0) AS like_count,
-		e.short_description,
+		e.location_description,
 		COALESCE(e.full_description, '') AS full_description,
 		COALESCE(sess.address_line, '') AS address,
 		COALESCE(img.image_url, '') AS image_url,

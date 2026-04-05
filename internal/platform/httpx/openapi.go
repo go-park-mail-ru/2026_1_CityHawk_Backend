@@ -18,7 +18,7 @@ tags:
   - name: User
   - name: Places
 paths:
-  /health:
+  /api/health:
     get:
       tags: [Health]
       summary: Health check
@@ -30,7 +30,7 @@ paths:
               schema:
                 type: string
                 example: ok
-  /auth/register:
+  /api/auth/register:
     post:
       tags: [Auth]
       summary: Register user
@@ -59,7 +59,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /auth/login:
+  /api/auth/login:
     post:
       tags: [Auth]
       summary: Login user
@@ -88,7 +88,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /auth/google/login:
+  /api/auth/google/login:
     get:
       tags: [Auth]
       summary: Start Google OAuth flow
@@ -101,7 +101,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /auth/google/callback:
+  /api/auth/google/callback:
     get:
       tags: [Auth]
       summary: Google OAuth callback
@@ -141,7 +141,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /auth/yandex/login:
+  /api/auth/yandex/login:
     get:
       tags: [Auth]
       summary: Start Yandex OAuth flow
@@ -154,7 +154,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /auth/yandex/callback:
+  /api/auth/yandex/callback:
     get:
       tags: [Auth]
       summary: Yandex OAuth callback
@@ -194,7 +194,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /auth/vk/login:
+  /api/auth/vk/login:
     get:
       tags: [Auth]
       summary: Start VK OAuth flow
@@ -207,7 +207,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /auth/vk/callback:
+  /api/auth/vk/callback:
     get:
       tags: [Auth]
       summary: VK OAuth callback
@@ -252,7 +252,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /auth/refresh:
+  /api/auth/refresh:
     post:
       tags: [Auth]
       summary: Refresh access token by refresh cookie
@@ -271,7 +271,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /auth/logout:
+  /api/auth/logout:
     post:
       tags: [Auth]
       summary: Logout user
@@ -290,7 +290,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /me:
+  /api/me:
     get:
       tags: [User]
       summary: Get current user
@@ -309,7 +309,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /places:
+  /api/places:
     get:
       tags: [Places]
       summary: List place cards
@@ -326,7 +326,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /places/{id}:
+  /api/places/{id}:
     get:
       tags: [Places]
       summary: Get place details by ID
@@ -355,7 +355,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /places/category/{category}:
+  /api/places/category/{category}:
     get:
       tags: [Places]
       summary: List place cards by category
@@ -384,7 +384,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /places/best:
+  /api/places/best:
     get:
       tags: [Places]
       summary: Get top places by like count
