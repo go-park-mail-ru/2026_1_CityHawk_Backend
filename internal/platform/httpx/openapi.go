@@ -462,6 +462,9 @@ components:
       properties:
         error:
           type: string
+        details:
+          type: object
+          additionalProperties: true
     MeResponse:
       type: object
       properties:

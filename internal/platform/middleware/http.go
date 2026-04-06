@@ -118,7 +118,7 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 			if rec != nil {
 				requestID, _ := r.Context().Value(httpx.RequestIDContextKey).(string)
 				log.Printf("panic recovered: %v, request_id=%s, path=%s, method=%s\n%s", rec, requestID, r.URL.Path, r.Method, debug.Stack())
-				httpx.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+				httpx.WriteJSON(w, http.StatusInternalServerError, httpx.NewErrorResponse("internal server error", nil))
 			}
 		}()
 

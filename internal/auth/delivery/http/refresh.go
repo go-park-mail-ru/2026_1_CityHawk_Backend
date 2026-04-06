@@ -9,13 +9,13 @@ import (
 func (h *RefreshHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	refreshToken := ReadRefreshCookie(r)
 	if refreshToken == "" {
-		httpx.WriteJSON(w, http.StatusUnauthorized, errorResponse{Error: "missing refresh token"})
+		httpx.WriteJSON(w, http.StatusUnauthorized, httpx.NewErrorResponse("missing refresh token", nil))
 		return
 	}
 
 	resp, err := h.refreshUC.RotateRefresh(r.Context(), refreshToken)
 	if err != nil {
-		httpx.WriteJSON(w, http.StatusUnauthorized, errorResponse{Error: "invalid refresh token"})
+		httpx.WriteJSON(w, http.StatusUnauthorized, httpx.NewErrorResponse("invalid refresh token", nil))
 		return
 	}
 

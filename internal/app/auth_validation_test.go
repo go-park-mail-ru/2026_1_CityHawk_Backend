@@ -187,21 +187,21 @@ func TestRegisterAndLoginValidation(t *testing.T) {
 			h:      register,
 			body:   `{"email":"wrong","password":"verysecret","username":"user"}`,
 			status: http.StatusBadRequest,
-			errMsg: "invalid email format",
+			errMsg: "Validation failed",
 		},
 		{
 			name:   "register short password",
 			h:      register,
 			body:   `{"email":"a@b.com","password":"short","username":"user"}`,
 			status: http.StatusBadRequest,
-			errMsg: "password must be at least 8 characters",
+			errMsg: "Validation failed",
 		},
 		{
 			name:   "register bad username",
 			h:      register,
 			body:   `{"email":"a@b.com","password":"verysecret","username":"имя пробел"}`,
 			status: http.StatusBadRequest,
-			errMsg: "username contains invalid characters",
+			errMsg: "Validation failed",
 		},
 		{
 			name:   "login invalid credentials",
@@ -226,6 +226,15 @@ func TestRegisterAndLoginValidation(t *testing.T) {
 			got, _ := payload["error"].(string)
 			if got != tc.errMsg {
 				t.Fatalf("error = %q, want %q", got, tc.errMsg)
+			}
+
+			details, ok := payload["details"].(map[string]any)
+			if !ok {
+				t.Fatalf("error response missing details object: %+v", payload)
+			}
+
+			if tc.errMsg == "Validation failed" && len(details) == 0 {
+				t.Fatalf("validation error missing details: %+v", payload)
 			}
 		})
 	}

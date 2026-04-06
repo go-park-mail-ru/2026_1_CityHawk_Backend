@@ -18,34 +18,54 @@ const (
 
 var usernamePattern = regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ0-9_.-]+$`)
 
+type ValidationError struct {
+	Details map[string]string
+}
+
+func (e ValidationError) Error() string {
+	return "validation failed"
+}
+
 func ValidateRegister(email, password, username string) (string, string, string, error) {
+	details := make(map[string]string)
+
 	normalizedEmail, err := normalizeAndValidateEmail(email)
 	if err != nil {
-		return "", "", "", err
+		details["email"] = err.Error()
 	}
 
 	normalizedPassword, err := normalizeAndValidatePassword(password)
 	if err != nil {
-		return "", "", "", err
+		details["password"] = err.Error()
 	}
 
 	normalizedUsername, err := normalizeAndValidateUsername(username)
 	if err != nil {
-		return "", "", "", err
+		details["username"] = err.Error()
+	}
+
+	if len(details) > 0 {
+		return "", "", "", ValidationError{Details: details}
 	}
 
 	return normalizedEmail, normalizedPassword, normalizedUsername, nil
 }
 
 func ValidateLogin(email, password string) (string, string, error) {
+	details := make(map[string]string)
+
 	normalizedEmail, err := normalizeAndValidateEmail(email)
 	if err != nil {
-		return "", "", err
+		details["email"] = err.Error()
 	}
 
 	normalizedPassword, err := normalizeAndValidatePassword(password)
 	if err != nil {
-		return "", "", err
+		details["password"] = err.Error()
+	}
+
+	if len(details) > 0 {
+		return "", "", ValidationError{Details: details}
 	}
 
 	return normalizedEmail, normalizedPassword, nil
