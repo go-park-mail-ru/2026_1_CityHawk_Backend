@@ -107,11 +107,31 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 			httpx.UserIDContextKey,
 		),
 	)
-	mux.HandleFunc("/api/places", placeHandler.List)
+	mux.Handle("/api/events", platformmiddleware.OptionalAuthMiddleware(
+		http.HandlerFunc(placeHandler.Events),
+		authdelivery.ReadAccessCookie,
+		func(token string) (string, string, error) {
+			claims, err := tokenService.Parse(token)
+			if err != nil {
+				return "", "", err
+			}
+			return claims.Subject, claims.Type, nil
+		},
+		httpx.UserIDContextKey,
+	))
 	mux.HandleFunc("/api/home", placeHandler.Home)
-	mux.HandleFunc("/api/places/", placeHandler.Details)
-	mux.HandleFunc("/api/places/best", placeHandler.Best)
-	mux.HandleFunc("/api/places/category/", placeHandler.ByCategory)
+	mux.Handle("/api/events/", platformmiddleware.OptionalAuthMiddleware(
+		http.HandlerFunc(placeHandler.EventByID),
+		authdelivery.ReadAccessCookie,
+		func(token string) (string, string, error) {
+			claims, err := tokenService.Parse(token)
+			if err != nil {
+				return "", "", err
+			}
+			return claims.Subject, claims.Type, nil
+		},
+		httpx.UserIDContextKey,
+	))
 
 	cleanup := func() {
 		pool.Close()

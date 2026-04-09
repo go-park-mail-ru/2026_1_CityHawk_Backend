@@ -160,6 +160,30 @@ func AuthMiddleware(
 	})
 }
 
+func OptionalAuthMiddleware(
+	next http.Handler,
+	readAccessToken func(*http.Request) string,
+	parseAccessToken func(string) (subject string, tokenType string, err error),
+	userIDContextKey any,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := readAccessToken(r)
+		if token == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		subject, tokenType, err := parseAccessToken(token)
+		if err != nil || tokenType != "access" || strings.TrimSpace(subject) == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), userIDContextKey, subject)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 func newRequestID() string {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {
