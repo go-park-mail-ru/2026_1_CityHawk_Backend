@@ -46,7 +46,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                $ref: '#/components/schemas/RegisterResponse'
         "400":
           description: Validation or JSON error
           content:
@@ -75,7 +75,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                $ref: '#/components/schemas/LoginResponse'
         "400":
           description: Validation or JSON error
           content:
@@ -260,13 +260,13 @@ paths:
         - refreshCookie: []
       responses:
         "200":
-          description: New access token
+          description: Session refreshed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccessTokenResponse'
+                $ref: '#/components/schemas/OKResponse'
         "401":
-          description: Missing or invalid refresh token
+          description: Session expired
           content:
             application/json:
               schema:
@@ -283,9 +283,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                $ref: '#/components/schemas/OKResponse'
         "401":
-          description: Missing refresh token
+          description: Session expired
           content:
             application/json:
               schema:
@@ -293,16 +293,46 @@ paths:
   /api/me:
     get:
       tags: [User]
-      summary: Get current user
+      summary: Get current user profile
       security:
         - accessCookie: []
       responses:
         "200":
-          description: Current user
+          description: Current user profile
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/MeResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [User]
+      summary: Partially update current user profile
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchMeRequest'
+      responses:
+        "200":
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatchMeResponse'
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         "401":
           description: Unauthorized
           content:
@@ -431,14 +461,40 @@ components:
   schemas:
     RegisterRequest:
       type: object
-      required: [email, password, username]
+      required: [email, username, userSurname, password]
       properties:
         email:
           type: string
+        username:
+          type: string
+        userSurname:
+          type: string
         password:
+          type: string
+        birthday:
+          type: string
+          format: date
+          nullable: true
+        cityId:
+          type: string
+          nullable: true
+    RegisterResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
           type: string
         username:
           type: string
+        userSurname:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
     LoginRequest:
       type: object
       required: [email, password]
@@ -457,6 +513,20 @@ components:
       properties:
         access_token:
           type: string
+    OKResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+    LoginResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        username:
+          type: string
     ErrorResponse:
       type: object
       properties:
@@ -474,6 +544,67 @@ components:
           type: string
         username:
           type: string
+        userSurname:
+          type: string
+        birthday:
+          type: string
+          format: date
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        city:
+          $ref: '#/components/schemas/UserCity'
+        createdAt:
+          type: string
+          format: date-time
+    PatchMeRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        userSurname:
+          type: string
+        birthday:
+          type: string
+          format: date
+        cityId:
+          type: string
+        avatarUrl:
+          type: string
+    PatchMeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        username:
+          type: string
+        userSurname:
+          type: string
+        birthday:
+          type: string
+          format: date
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+    UserCity:
+      type: object
+      nullable: true
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        countryName:
+          type: string
+        timezone:
+          type: string
     PlaceCard:
       type: object
       properties:
@@ -487,7 +618,7 @@ components:
             type: string
         like_count:
           type: integer
-        short_description:
+        location_description:
           type: string
         address:
           type: string
@@ -506,7 +637,7 @@ components:
             type: string
         like_count:
           type: integer
-        short_description:
+        location_description:
           type: string
         full_description:
           type: string
@@ -530,50 +661,80 @@ components:
       properties:
         item:
           $ref: '#/components/schemas/Place'
-    HomePlaceCard:
+    HomeTag:
       type: object
       properties:
         id:
           type: string
-        imageUrl:
+        name:
+          type: string
+        slug:
+          type: string
+    HomeNextSessionPlace:
+      type: object
+      properties:
+        name:
+          type: string
+        addressLine:
+          type: string
+    HomeNextSession:
+      type: object
+      properties:
+        startAt:
+          type: string
+          format: date-time
+        place:
+          $ref: '#/components/schemas/HomeNextSessionPlace'
+    HomeFeaturedEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        coverImageUrl:
+          type: string
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomeTag'
+        nextSession:
+          $ref: '#/components/schemas/HomeNextSession'
+    HomeCategory:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+    HomeCollection:
+      type: object
+      properties:
+        id:
           type: string
         title:
           type: string
         description:
           type: string
-    MoodCard:
-      type: object
-      properties:
-        id:
-          type: string
         imageUrl:
-          type: string
-        title:
-          type: string
-        modifier:
-          type: string
-    HomeMoodTall:
-      type: object
-      properties:
-        id:
-          type: string
-        imageUrl:
-          type: string
-        title:
           type: string
     HomePayload:
       type: object
       properties:
-        places:
+        featuredEvents:
           type: array
           items:
-            $ref: '#/components/schemas/HomePlaceCard'
-        moodLeft:
+            $ref: '#/components/schemas/HomeFeaturedEvent'
+        categories:
           type: array
           items:
-            $ref: '#/components/schemas/MoodCard'
-        moodTall:
-          $ref: '#/components/schemas/HomeMoodTall'
+            $ref: '#/components/schemas/HomeCategory'
+        collections:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomeCollection'
 `
 
 func OpenAPIYAMLHandler(w http.ResponseWriter, r *http.Request) {

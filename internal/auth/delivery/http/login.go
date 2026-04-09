@@ -26,7 +26,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		case errors.As(err, &validationErr):
 			httpx.WriteJSON(w, http.StatusBadRequest, httpx.NewErrorResponse("Validation failed", validationErr.Details))
 		case errors.Is(err, platformerrors.ErrInvalidCredentials):
-			httpx.WriteJSON(w, http.StatusUnauthorized, httpx.NewErrorResponse("invalid credentials", nil))
+			httpx.WriteJSON(w, http.StatusUnauthorized, httpx.NewErrorResponse("Invalid credentials", nil))
 		case errors.Is(err, platformerrors.ErrIssueTokens):
 			httpx.WriteJSON(w, http.StatusInternalServerError, httpx.NewErrorResponse("failed to issue tokens", nil))
 		default:
@@ -35,7 +35,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SetRefreshCookie(w, resp.RefreshToken, h.refreshTTL)
-	SetAccessCookie(w, resp.AccessToken, h.accessTTL)
-	httpx.WriteJSON(w, http.StatusOK, messageResponse{Message: "login successful"})
+	SetRefreshCookie(w, resp.Tokens.RefreshToken, h.refreshTTL)
+	SetAccessCookie(w, resp.Tokens.AccessToken, h.accessTTL)
+	httpx.WriteJSON(w, http.StatusOK, loginResponse{
+		ID:       resp.User.ID,
+		Email:    resp.User.Email,
+		Username: resp.User.Username,
+	})
 }

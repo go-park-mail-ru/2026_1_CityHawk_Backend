@@ -13,10 +13,10 @@ import (
 
 type PlaceUsecase interface {
 	HomePayload(ctx context.Context) placemodel.HomePayload
-	ListCards(ctx context.Context) []placemodel.PlaceCard
-	GetByID(ctx context.Context, id string) (placemodel.Place, bool)
-	ListByCategory(ctx context.Context, category string) ([]placemodel.PlaceCard, bool)
-	Best(ctx context.Context, limit int) []placemodel.PlaceCard
+	ListCards(ctx context.Context) []placemodel.EventCardView
+	GetByID(ctx context.Context, id string) (placemodel.EventDetailsView, bool)
+	ListByCategory(ctx context.Context, category string) ([]placemodel.EventCardView, bool)
+	Best(ctx context.Context, limit int) []placemodel.EventCardView
 }
 
 type Handler struct {

@@ -16,7 +16,6 @@ import (
 	placerepo "cityhawk/backend/internal/place/repository"
 	placeusecase "cityhawk/backend/internal/place/usecase"
 	"cityhawk/backend/internal/platform/httpx"
-	platformid "cityhawk/backend/internal/platform/id"
 	platformmiddleware "cityhawk/backend/internal/platform/middleware"
 	platformpostgres "cityhawk/backend/internal/platform/postgres"
 	platformsecurity "cityhawk/backend/internal/platform/security"
@@ -45,12 +44,10 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		store,
 		authUC,
 		platformsecurity.NewBcryptPasswordService(),
-		platformid.NewUUIDUserIDProvider(),
 	)
 	oauthUsers := authusecase.NewOAuthUserService(
 		store,
 		platformsecurity.NewBcryptPasswordService(),
-		platformid.NewUUIDUserIDProvider(),
 	)
 	placeHandler := placedelivery.NewHandler(placeUC)
 	authFlowHandler := authdelivery.NewAuthHandler(authFlowUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL)

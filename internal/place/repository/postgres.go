@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
+	"sort"
 	"strings"
+	"time"
 
 	placemodel "cityhawk/backend/internal/place/model"
 	"github.com/jackc/pgx/v5"
@@ -15,17 +18,40 @@ type PostgresRepository struct {
 	pool *pgxpool.Pool
 }
 
+type homeFeaturedEventRow struct {
+	ID            string
+	Title         string
+	CoverImageURL string
+	TagIDs        []string
+	TagNames      []string
+	StartAt       time.Time
+	PlaceName     string
+	AddressLine   string
+}
+
+type homeCategoryRow struct {
+	ID   string
+	Name string
+}
+
+type homeCollectionRow struct {
+	ID          string
+	Title       string
+	Description string
+	ImageURL    string
+}
+
 type eventProjectionRow struct {
-	ID               string
-	Title            string
-	Categories       []string
-	LikeCount        int
-	ShortDescription string
-	FullDescription  string
-	Address          string
-	ImageURL         string
-	WorkingHours     string
-	PriceLevel       string
+	ID                  string
+	Title               string
+	Categories          []string
+	LikeCount           int
+	LocationDescription string
+	FullDescription     string
+	Address             string
+	ImageURL            string
+	WorkingHours        string
+	PriceLevel          string
 }
 
 const listEventsBaseQueryTemplate = `
@@ -91,59 +117,190 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
-func (r *PostgresRepository) ListCards(ctx context.Context) []placemodel.PlaceCard {
-	rows, err := r.pool.Query(ctx, listEventsBaseQuery(listQueryOptions{}))
+func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int) []placemodel.HomeFeaturedEvent {
+	if limit <= 0 {
+		limit = 8
+	}
+
+	const query = `
+		WITH first_image AS (
+			SELECT DISTINCT ON (ei.event_id)
+				ei.event_id,
+				ei.image_url
+			FROM event_image ei
+			ORDER BY ei.event_id, ei.created_at ASC, ei.id ASC
+		),
+		next_session AS (
+			SELECT DISTINCT ON (es.event_id)
+				es.event_id,
+				es.start_at,
+				p.name AS place_name,
+				p.address_line
+			FROM event_session es
+			JOIN place p ON p.id = es.place_id
+			ORDER BY es.event_id, es.start_at ASC, es.id ASC
+		),
+		tags AS (
+			SELECT
+				et.event_id,
+				ARRAY_AGG(t.id::text ORDER BY t.name) AS tag_ids,
+				ARRAY_AGG(t.name ORDER BY t.name) AS tag_names
+			FROM event_tag et
+			JOIN tag t ON t.id = et.tag_id
+			GROUP BY et.event_id
+		)
+		SELECT
+			e.id::text,
+			e.title,
+			COALESCE(fi.image_url, '') AS cover_image_url,
+			COALESCE(tags.tag_ids, '{}'::text[]) AS tag_ids,
+			COALESCE(tags.tag_names, '{}'::text[]) AS tag_names,
+			ns.start_at,
+			COALESCE(ns.place_name, '') AS place_name,
+			COALESCE(ns.address_line, '') AS address_line
+		FROM event e
+		LEFT JOIN first_image fi ON fi.event_id = e.id
+		LEFT JOIN next_session ns ON ns.event_id = e.id
+		LEFT JOIN tags ON tags.event_id = e.id
+		ORDER BY e.created_at DESC, e.id ASC
+		LIMIT $1
+	`
+
+	rows, err := r.pool.Query(ctx, query, limit)
 	if err != nil {
-		return []placemodel.PlaceCard{}
+		return []placemodel.HomeFeaturedEvent{}
 	}
 	defer rows.Close()
 
-	items := make([]placemodel.PlaceCard, 0)
+	items := make([]placemodel.HomeFeaturedEvent, 0, limit)
+	for rows.Next() {
+		var row homeFeaturedEventRow
+		if err := rows.Scan(
+			&row.ID,
+			&row.Title,
+			&row.CoverImageURL,
+			&row.TagIDs,
+			&row.TagNames,
+			&row.StartAt,
+			&row.PlaceName,
+			&row.AddressLine,
+		); err != nil {
+			return []placemodel.HomeFeaturedEvent{}
+		}
+		items = append(items, toHomeFeaturedEvent(row))
+	}
+	if rows.Err() != nil {
+		return []placemodel.HomeFeaturedEvent{}
+	}
+
+	return items
+}
+
+func (r *PostgresRepository) ListHomeCategories(ctx context.Context, limit int) []placemodel.HomeCategory {
+	if limit <= 0 {
+		limit = 8
+	}
+
+	const query = `
+		SELECT c.id::text, c.name
+		FROM category c
+		ORDER BY c.name ASC, c.id ASC
+		LIMIT $1
+	`
+
+	rows, err := r.pool.Query(ctx, query, limit)
+	if err != nil {
+		return []placemodel.HomeCategory{}
+	}
+	defer rows.Close()
+
+	items := make([]placemodel.HomeCategory, 0, limit)
+	for rows.Next() {
+		var row homeCategoryRow
+		if err := rows.Scan(&row.ID, &row.Name); err != nil {
+			return []placemodel.HomeCategory{}
+		}
+		items = append(items, placemodel.HomeCategory{
+			ID:   row.ID,
+			Name: row.Name,
+			Slug: slugify(row.Name),
+		})
+	}
+	if rows.Err() != nil {
+		return []placemodel.HomeCategory{}
+	}
+
+	return items
+}
+
+func (r *PostgresRepository) ListHomeCollections(ctx context.Context, limit int) []placemodel.HomeCollection {
+	if limit <= 0 {
+		limit = 8
+	}
+
+	const query = `
+		WITH first_image AS (
+			SELECT DISTINCT ON (ci.collection_id)
+				ci.collection_id,
+				ci.image_url
+			FROM collection_image ci
+			ORDER BY ci.collection_id, ci.created_at ASC, ci.id ASC
+		)
+		SELECT
+			c.id::text,
+			c.title,
+			COALESCE(c.description, '') AS description,
+			COALESCE(fi.image_url, '') AS image_url
+		FROM collection c
+		LEFT JOIN first_image fi ON fi.collection_id = c.id
+		ORDER BY c.created_at DESC, c.id ASC
+		LIMIT $1
+	`
+
+	rows, err := r.pool.Query(ctx, query, limit)
+	if err != nil {
+		return []placemodel.HomeCollection{}
+	}
+	defer rows.Close()
+
+	items := make([]placemodel.HomeCollection, 0, limit)
+	for rows.Next() {
+		var row homeCollectionRow
+		if err := rows.Scan(&row.ID, &row.Title, &row.Description, &row.ImageURL); err != nil {
+			return []placemodel.HomeCollection{}
+		}
+		items = append(items, placemodel.HomeCollection(row))
+	}
+	if rows.Err() != nil {
+		return []placemodel.HomeCollection{}
+	}
+
+	return items
+}
+
+func (r *PostgresRepository) ListCards(ctx context.Context) []placemodel.EventCardView {
+	rows, err := r.pool.Query(ctx, listEventsBaseQuery(listQueryOptions{}))
+	if err != nil {
+		return []placemodel.EventCardView{}
+	}
+	defer rows.Close()
+
+	items := make([]placemodel.EventCardView, 0)
 	for rows.Next() {
 		item, err := scanEventProjectionRow(rows)
 		if err != nil {
-			return []placemodel.PlaceCard{}
+			return []placemodel.EventCardView{}
 		}
 		items = append(items, toPlaceCard(item))
 	}
 	if rows.Err() != nil {
-		return []placemodel.PlaceCard{}
+		return []placemodel.EventCardView{}
 	}
 
 	return items
 }
 
-func (r *PostgresRepository) ListHomeCards(ctx context.Context) []placemodel.HomePlaceCard {
-	rows, err := r.pool.Query(ctx, listEventsBaseQuery(listQueryOptions{
-		OrderBy: "COALESCE(fav.like_count, 0) DESC, e.created_at DESC, e.id ASC",
-		Limit:   8,
-	}))
-	if err != nil {
-		return []placemodel.HomePlaceCard{}
-	}
-	defer rows.Close()
-
-	items := make([]placemodel.HomePlaceCard, 0)
-	for rows.Next() {
-		item, err := scanEventProjectionRow(rows)
-		if err != nil {
-			return []placemodel.HomePlaceCard{}
-		}
-		items = append(items, placemodel.HomePlaceCard{
-			ID:          item.ID,
-			ImageURL:    item.ImageURL,
-			Title:       item.Title,
-			Description: item.ShortDescription,
-		})
-	}
-	if rows.Err() != nil {
-		return []placemodel.HomePlaceCard{}
-	}
-
-	return items
-}
-
-func (r *PostgresRepository) GetByID(ctx context.Context, id string) (placemodel.Place, bool) {
+func (r *PostgresRepository) GetByID(ctx context.Context, id string) (placemodel.EventDetailsView, bool) {
 	row := r.pool.QueryRow(
 		ctx,
 		listEventsBaseQuery(listQueryOptions{
@@ -157,15 +314,15 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (placemodel
 	item, err := scanEventProjectionRow(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return placemodel.Place{}, false
+			return placemodel.EventDetailsView{}, false
 		}
-		return placemodel.Place{}, false
+		return placemodel.EventDetailsView{}, false
 	}
 
 	return toPlace(item), true
 }
 
-func (r *PostgresRepository) ListCardsByCategory(ctx context.Context, category string) ([]placemodel.PlaceCard, bool) {
+func (r *PostgresRepository) ListCardsByCategory(ctx context.Context, category string) ([]placemodel.EventCardView, bool) {
 	rows, err := r.pool.Query(
 		ctx,
 		listEventsBaseQuery(listQueryOptions{
@@ -181,20 +338,20 @@ func (r *PostgresRepository) ListCardsByCategory(ctx context.Context, category s
 		category,
 	)
 	if err != nil {
-		return []placemodel.PlaceCard{}, false
+		return []placemodel.EventCardView{}, false
 	}
 	defer rows.Close()
 
-	items := make([]placemodel.PlaceCard, 0)
+	items := make([]placemodel.EventCardView, 0)
 	for rows.Next() {
 		item, err := scanEventProjectionRow(rows)
 		if err != nil {
-			return []placemodel.PlaceCard{}, false
+			return []placemodel.EventCardView{}, false
 		}
 		items = append(items, toPlaceCard(item))
 	}
 	if rows.Err() != nil {
-		return []placemodel.PlaceCard{}, false
+		return []placemodel.EventCardView{}, false
 	}
 
 	return items, len(items) > 0
@@ -236,7 +393,7 @@ func scanEventProjectionRow(scanner rowScanner) (eventProjectionRow, error) {
 		&item.Title,
 		&item.Categories,
 		&item.LikeCount,
-		&item.ShortDescription,
+		&item.LocationDescription,
 		&item.FullDescription,
 		&item.Address,
 		&item.ImageURL,
@@ -246,29 +403,100 @@ func scanEventProjectionRow(scanner rowScanner) (eventProjectionRow, error) {
 	return item, err
 }
 
-func toPlace(item eventProjectionRow) placemodel.Place {
-	return placemodel.Place{
-		ID:               item.ID,
-		Title:            item.Title,
-		Categories:       item.Categories,
-		LikeCount:        item.LikeCount,
-		ShortDescription: item.ShortDescription,
-		FullDescription:  item.FullDescription,
-		Address:          item.Address,
-		ImageURL:         item.ImageURL,
-		WorkingHours:     item.WorkingHours,
-		PriceLevel:       item.PriceLevel,
+func toPlace(item eventProjectionRow) placemodel.EventDetailsView {
+	return placemodel.EventDetailsView{
+		ID:                  item.ID,
+		Title:               item.Title,
+		Categories:          item.Categories,
+		LikeCount:           item.LikeCount,
+		LocationDescription: item.LocationDescription,
+		FullDescription:     item.FullDescription,
+		AddressLine:         item.Address,
+		ImageURL:            item.ImageURL,
+		SessionLabel:        item.WorkingHours,
+		PriceLevel:          item.PriceLevel,
 	}
 }
 
-func toPlaceCard(item eventProjectionRow) placemodel.PlaceCard {
-	return placemodel.PlaceCard{
-		ID:               item.ID,
-		Title:            item.Title,
-		Categories:       item.Categories,
-		LikeCount:        item.LikeCount,
-		ShortDescription: item.ShortDescription,
-		Address:          item.Address,
-		ImageURL:         item.ImageURL,
+func toPlaceCard(item eventProjectionRow) placemodel.EventCardView {
+	return placemodel.EventCardView{
+		ID:                  item.ID,
+		Title:               item.Title,
+		Categories:          item.Categories,
+		LikeCount:           item.LikeCount,
+		LocationDescription: item.LocationDescription,
+		AddressLine:         item.Address,
+		ImageURL:            item.ImageURL,
 	}
+}
+
+func toHomeFeaturedEvent(row homeFeaturedEventRow) placemodel.HomeFeaturedEvent {
+	tags := make([]placemodel.HomeTag, 0, len(row.TagNames))
+	for i, name := range row.TagNames {
+		id := ""
+		if i < len(row.TagIDs) {
+			id = row.TagIDs[i]
+		}
+		tags = append(tags, placemodel.HomeTag{
+			ID:   id,
+			Name: name,
+			Slug: slugify(name),
+		})
+	}
+
+	return placemodel.HomeFeaturedEvent{
+		ID:            row.ID,
+		Title:         row.Title,
+		CoverImageURL: row.CoverImageURL,
+		Tags:          tags,
+		NextSession: placemodel.HomeNextSession{
+			StartAt: row.StartAt,
+			Place: placemodel.HomeNextSessionPlace{
+				Name:        row.PlaceName,
+				AddressLine: row.AddressLine,
+			},
+		},
+	}
+}
+
+var slugifyRe = regexp.MustCompile(`[^a-z0-9]+`)
+
+func slugify(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = strings.ReplaceAll(s, "_", "-")
+	s = slugifyRe.ReplaceAllString(s, "-")
+	s = strings.Trim(s, "-")
+	if s == "" {
+		return "item"
+	}
+	return s
+}
+
+func uniqueSortedCategories(items []placemodel.EventDetailsView, limit int) []placemodel.HomeCategory {
+	set := make(map[string]struct{})
+	for _, item := range items {
+		for _, category := range item.Categories {
+			set[category] = struct{}{}
+		}
+	}
+
+	names := make([]string, 0, len(set))
+	for name := range set {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	if limit > 0 && len(names) > limit {
+		names = names[:limit]
+	}
+
+	out := make([]placemodel.HomeCategory, 0, len(names))
+	for _, name := range names {
+		out = append(out, placemodel.HomeCategory{
+			ID:   slugify(name),
+			Name: name,
+			Slug: slugify(name),
+		})
+	}
+	return out
 }

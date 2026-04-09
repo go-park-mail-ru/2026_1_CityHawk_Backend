@@ -10,10 +10,12 @@ import (
 const DefaultBestPlacesLimit = 8
 
 type Repository interface {
-	ListCards(ctx context.Context) []placemodel.PlaceCard
-	ListHomeCards(ctx context.Context) []placemodel.HomePlaceCard
-	GetByID(ctx context.Context, id string) (placemodel.Place, bool)
-	ListCardsByCategory(ctx context.Context, category string) ([]placemodel.PlaceCard, bool)
+	ListCards(ctx context.Context) []placemodel.EventCardView
+	ListFeaturedEvents(ctx context.Context, limit int) []placemodel.HomeFeaturedEvent
+	ListHomeCategories(ctx context.Context, limit int) []placemodel.HomeCategory
+	ListHomeCollections(ctx context.Context, limit int) []placemodel.HomeCollection
+	GetByID(ctx context.Context, id string) (placemodel.EventDetailsView, bool)
+	ListCardsByCategory(ctx context.Context, category string) ([]placemodel.EventCardView, bool)
 }
 
 type Service struct {
@@ -26,36 +28,28 @@ func NewService(repo Repository) *Service {
 
 func (s *Service) HomePayload(ctx context.Context) placemodel.HomePayload {
 	return placemodel.HomePayload{
-		Places: s.repo.ListHomeCards(ctx),
-		MoodLeft: []placemodel.MoodCard{
-			{ID: "mood-night", ImageURL: "/public/static/img/club.jpeg", Title: "Ночная жизнь", Modifier: "mood-card--wide"},
-			{ID: "mood-eat", ImageURL: "/public/static/img/eat.jpg", Title: "Гастро-места"},
-			{ID: "mood-love", ImageURL: "/public/static/img/love.jpg", Title: "Романтический вечер"},
-		},
-		MoodTall: placemodel.HomeMoodTall{
-			ID:       "mood-photo",
-			ImageURL: "/public/static/img/photo.jpeg",
-			Title:    "Места для фото",
-		},
+		FeaturedEvents: s.repo.ListFeaturedEvents(ctx, DefaultBestPlacesLimit),
+		Categories:     s.repo.ListHomeCategories(ctx, DefaultBestPlacesLimit),
+		Collections:    s.repo.ListHomeCollections(ctx, DefaultBestPlacesLimit),
 	}
 }
 
-func (s *Service) ListCards(ctx context.Context) []placemodel.PlaceCard {
+func (s *Service) ListCards(ctx context.Context) []placemodel.EventCardView {
 	return s.repo.ListCards(ctx)
 }
 
-func (s *Service) GetByID(ctx context.Context, id string) (placemodel.Place, bool) {
+func (s *Service) GetByID(ctx context.Context, id string) (placemodel.EventDetailsView, bool) {
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *Service) ListByCategory(ctx context.Context, category string) ([]placemodel.PlaceCard, bool) {
+func (s *Service) ListByCategory(ctx context.Context, category string) ([]placemodel.EventCardView, bool) {
 	return s.repo.ListCardsByCategory(ctx, category)
 }
 
-func (s *Service) Best(ctx context.Context, limit int) []placemodel.PlaceCard {
+func (s *Service) Best(ctx context.Context, limit int) []placemodel.EventCardView {
 	cards := s.repo.ListCards(ctx)
 	if len(cards) == 0 {
-		return []placemodel.PlaceCard{}
+		return []placemodel.EventCardView{}
 	}
 
 	sort.Slice(cards, func(i, j int) bool {

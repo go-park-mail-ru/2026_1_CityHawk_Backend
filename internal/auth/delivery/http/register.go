@@ -19,14 +19,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.authUC.Register(r.Context(), req.Email, req.Password, req.Username)
+	resp, err := h.authUC.Register(r.Context(), req.Email, req.Username, req.UserSurname, req.Password, req.Birthday, req.CityID)
 	if err != nil {
 		var validationErr authvalidation.ValidationError
 		switch {
 		case errors.As(err, &validationErr):
 			httpx.WriteJSON(w, http.StatusBadRequest, httpx.NewErrorResponse("Validation failed", validationErr.Details))
 		case errors.Is(err, platformerrors.ErrEmailExists):
-			httpx.WriteJSON(w, http.StatusConflict, httpx.NewErrorResponse("email already exists", nil))
+			httpx.WriteJSON(w, http.StatusConflict, httpx.NewErrorResponse("User already exists", nil))
 		case errors.Is(err, platformerrors.ErrIssueTokens):
 			httpx.WriteJSON(w, http.StatusInternalServerError, httpx.NewErrorResponse("failed to issue tokens", nil))
 		case errors.Is(err, platformerrors.ErrInternal):
@@ -37,7 +37,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SetRefreshCookie(w, resp.RefreshToken, h.refreshTTL)
-	SetAccessCookie(w, resp.AccessToken, h.accessTTL)
-	httpx.WriteJSON(w, http.StatusCreated, messageResponse{Message: "registration successful"})
+	SetRefreshCookie(w, resp.Tokens.RefreshToken, h.refreshTTL)
+	SetAccessCookie(w, resp.Tokens.AccessToken, h.accessTTL)
+	httpx.WriteJSON(w, http.StatusCreated, registerResponse{
+		ID:          resp.User.ID,
+		Email:       resp.User.Email,
+		Username:    resp.User.Username,
+		UserSurname: resp.User.UserSurname,
+		AvatarURL:   resp.User.AvatarURL,
+		CreatedAt:   resp.User.CreatedAt.UTC(),
+	})
 }

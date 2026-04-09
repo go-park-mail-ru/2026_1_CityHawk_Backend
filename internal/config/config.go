@@ -104,18 +104,14 @@ func (c DatabaseConfig) DSN() string {
 		RawQuery: query.Encode(),
 	}
 
-	switch {
-	case c.User != "" && c.Password != "":
+	if c.Password != "" {
 		dsn.User = url.UserPassword(c.User, c.Password)
-	case c.User != "":
+	} else if c.User != "" {
 		dsn.User = url.User(c.User)
-	case c.Password != "":
-		dsn.User = url.UserPassword("", c.Password)
 	}
 
 	return dsn.String()
 }
-
 
 func parseDurationEnv(key string, fallback time.Duration) time.Duration {
 	raw := strings.TrimSpace(os.Getenv(key))

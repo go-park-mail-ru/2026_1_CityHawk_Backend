@@ -124,17 +124,26 @@ func TestHomeHandlerReturnsHomePayload(t *testing.T) {
 	}
 
 	payload := decodeJSONMap(t, rec.Body)
-	places, ok := payload["places"].([]any)
-	if !ok || len(places) == 0 {
-		t.Fatalf("home payload missing places: %+v", payload)
+	featuredEvents, ok := payload["featuredEvents"].([]any)
+	if !ok || len(featuredEvents) == 0 {
+		t.Fatalf("home payload missing featuredEvents: %+v", payload)
 	}
-	moodLeft, ok := payload["moodLeft"].([]any)
-	if !ok || len(moodLeft) == 0 {
-		t.Fatalf("home payload missing moodLeft: %+v", payload)
+	categories, ok := payload["categories"].([]any)
+	if !ok || len(categories) == 0 {
+		t.Fatalf("home payload missing categories: %+v", payload)
 	}
-	moodTall, ok := payload["moodTall"].(map[string]any)
-	if !ok || moodTall["title"] == "" {
-		t.Fatalf("home payload missing moodTall: %+v", payload)
+	collections, ok := payload["collections"].([]any)
+	if !ok || len(collections) == 0 {
+		t.Fatalf("home payload missing collections: %+v", payload)
+	}
+
+	firstEvent, ok := featuredEvents[0].(map[string]any)
+	if !ok || firstEvent["coverImageUrl"] == "" {
+		t.Fatalf("home payload missing featured event fields: %+v", payload)
+	}
+	nextSession, ok := firstEvent["nextSession"].(map[string]any)
+	if !ok || nextSession["startAt"] == "" {
+		t.Fatalf("home payload missing nextSession: %+v", payload)
 	}
 
 	badReq := httptest.NewRequest(http.MethodPost, "/api/home", nil)

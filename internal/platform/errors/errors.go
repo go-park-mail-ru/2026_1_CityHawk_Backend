@@ -21,4 +21,5 @@ var (
 	ErrPlaceNotFound      = errors.New("place not found")
 	ErrCategoryNotFound   = errors.New("category not found")
 	ErrEmailExists        = errors.New("email already exists")
+	ErrInvalidCity        = errors.New("invalid city")
 )
