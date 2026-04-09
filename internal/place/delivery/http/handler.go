@@ -52,7 +52,7 @@ func (h *Handler) Details(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
 		}
-		id := strings.TrimPrefix(r.URL.Path, "/places/")
+		id := strings.TrimPrefix(r.URL.Path, "/api/places/")
 		if id == "" || strings.Contains(id, "/") {
 			return httpx.NewHTTPError(http.StatusNotFound, "place not found")
 		}
@@ -70,7 +70,7 @@ func (h *Handler) ByCategory(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
 		}
-		category := strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/places/category/"))
+		category := strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/api/places/category/"))
 		if category == "" || strings.Contains(category, "/") {
 			return httpx.NewHTTPError(http.StatusNotFound, "category not found")
 		}

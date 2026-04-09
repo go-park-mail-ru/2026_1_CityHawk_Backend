@@ -31,11 +31,14 @@ services:
       - PORT=8080
       - DB_HOST=postgres
       - DB_PORT=5432
+      - DB_USER=${DB_USER:-cityhawk}
+      - DB_NAME=${DB_NAME:-cityhawk}
+      - DB_PASSWORD=${DB_PASSWORD:-cityhawk}
       #  - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost}  # only for local development
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:8080/health"]
-      interval: 30s
+      interval: 1m
       timeout: 5s
       retries: 3
 

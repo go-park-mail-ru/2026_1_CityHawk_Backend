@@ -56,7 +56,7 @@ make db-reset
 
 ## API
 
-### `GET /health`
+### `GET /api/health`
 
 Проверка, что сервис жив.
 
@@ -67,7 +67,7 @@ make db-reset
 ok
 ```
 
-### `POST /auth/register`
+### `POST /api/auth/register`
 
 Регистрация пользователя с установкой access/refresh cookie.
 
@@ -94,7 +94,7 @@ ok
   - `409`: `{"error":"email already exists"}`
   - `500`: `{"error":"failed to issue tokens"}` или `{"error":"internal error"}`
 
-### `POST /auth/login`
+### `POST /api/auth/login`
 
 Логин пользователя с установкой access/refresh cookie.
 
@@ -120,7 +120,7 @@ ok
   - `401`: `{"error":"invalid credentials"}`
   - `500`: `{"error":"failed to issue tokens"}`
 
-### `POST /auth/refresh`
+### `POST /api/auth/refresh`
 
 Обновление access токена по refresh cookie (с ротацией refresh).
 
@@ -138,7 +138,7 @@ ok
   - `401`: `{"error":"missing refresh token"}`
   - `401`: `{"error":"invalid refresh token"}`
 
-### `POST /auth/logout`
+### `POST /api/auth/logout`
 
 Выход пользователя: отзыв refresh сессии и очистка refresh cookie.
 
@@ -155,7 +155,7 @@ ok
 - Возможные ошибки:
   - `401`: `{"error":"missing refresh token"}`
 
-### `GET /me`
+### `GET /api/me`
 
 Возвращает текущего пользователя.
 
@@ -181,7 +181,7 @@ Cookie: access_token=<jwt>
   - `401`: `{"error":"unauthorized"}`
   - `401`: `{"error":"user not found"}`
 
-### `GET /places`
+### `GET /api/places`
 
 Список всех карточек мест (краткий формат).
 
@@ -206,7 +206,7 @@ Cookie: access_token=<jwt>
 - Возможные ошибки:
   - `405`: `{"error":"method not allowed"}`
 
-### `GET /places/{id}`
+### `GET /api/places/{id}`
 
 Полная информация о выбранной карточке места.
 

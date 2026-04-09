@@ -45,12 +45,12 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		store,
 		authUC,
 		platformsecurity.NewBcryptPasswordService(),
-		platformid.NewTimeUserIDProvider(platformid.TimeUserIDLayout),
+		platformid.NewUUIDUserIDProvider(),
 	)
 	oauthUsers := authusecase.NewOAuthUserService(
 		store,
 		platformsecurity.NewBcryptPasswordService(),
-		platformid.NewTimeUserIDProvider(platformid.TimeUserIDLayout),
+		platformid.NewUUIDUserIDProvider(),
 	)
 	placeHandler := placedelivery.NewHandler(placeUC)
 	authFlowHandler := authdelivery.NewAuthHandler(authFlowUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL)
@@ -70,32 +70,33 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		http.Redirect(w, r, "/swagger/", http.StatusMovedPermanently)
 	})
 	mux.HandleFunc("/swagger/", httpx.SwaggerUIHandler("/openapi.yaml"))
-	mux.HandleFunc("/health", platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+	healthHandler := platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {
 			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
 		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 		return nil
-	}))
-	mux.HandleFunc("/auth/register", authFlowHandler.Register)
-	mux.HandleFunc("/auth/login", authFlowHandler.Login)
+	})
+	mux.HandleFunc("/api/health", healthHandler)
+	mux.HandleFunc("/api/auth/register", authFlowHandler.Register)
+	mux.HandleFunc("/api/auth/login", authFlowHandler.Login)
 	if vkOAuthCfg != nil {
-		mux.HandleFunc("/auth/vk/login", authdelivery.VKLoginHandler(vkOAuthCfg))
-		mux.HandleFunc("/auth/vk/callback", authdelivery.VKCallbackHandler(oauthLoginUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL))
+		mux.HandleFunc("/api/auth/vk/login", authdelivery.VKLoginHandler(vkOAuthCfg))
+		mux.HandleFunc("/api/auth/vk/callback", authdelivery.VKCallbackHandler(oauthLoginUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL))
 	}
 	if yandexOAuthCfg != nil {
-		mux.HandleFunc("/auth/yandex/login", authdelivery.YandexLoginHandler(yandexOAuthCfg))
-		mux.HandleFunc("/auth/yandex/callback", authdelivery.YandexCallbackHandler(oauthLoginUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL))
+		mux.HandleFunc("/api/auth/yandex/login", authdelivery.YandexLoginHandler(yandexOAuthCfg))
+		mux.HandleFunc("/api/auth/yandex/callback", authdelivery.YandexCallbackHandler(oauthLoginUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL))
 	}
 	if googleOAuthCfg != nil {
-		mux.HandleFunc("/auth/google/login", authdelivery.GoogleLoginHandler(googleOAuthCfg))
-		mux.HandleFunc("/auth/google/callback", authdelivery.GoogleCallbackHandler(oauthLoginUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL))
+		mux.HandleFunc("/api/auth/google/login", authdelivery.GoogleLoginHandler(googleOAuthCfg))
+		mux.HandleFunc("/api/auth/google/callback", authdelivery.GoogleCallbackHandler(oauthLoginUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL))
 	}
-	mux.HandleFunc("/auth/refresh", authRefreshHandler.Refresh)
-	mux.HandleFunc("/auth/logout", authRefreshHandler.Logout)
+	mux.HandleFunc("/api/auth/refresh", authRefreshHandler.Refresh)
+	mux.HandleFunc("/api/auth/logout", authRefreshHandler.Logout)
 	mux.Handle(
-		"/me",
+		"/api/me",
 		platformmiddleware.AuthMiddleware(
 			http.HandlerFunc(meHandler.Me),
 			authdelivery.ReadAccessCookie,
@@ -109,11 +110,11 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 			httpx.UserIDContextKey,
 		),
 	)
-	mux.HandleFunc("/places", placeHandler.List)
+	mux.HandleFunc("/api/places", placeHandler.List)
 	mux.HandleFunc("/api/home", placeHandler.Home)
-	mux.HandleFunc("/places/", placeHandler.Details)
-	mux.HandleFunc("/places/best", placeHandler.Best)
-	mux.HandleFunc("/places/category/", placeHandler.ByCategory)
+	mux.HandleFunc("/api/places/", placeHandler.Details)
+	mux.HandleFunc("/api/places/best", placeHandler.Best)
+	mux.HandleFunc("/api/places/category/", placeHandler.ByCategory)
 
 	cleanup := func() {
 		pool.Close()
@@ -121,7 +122,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 
 	return &http.Server{
 		Addr:         ":" + cfg.Server.Port,
-		Handler:      platformmiddleware.CorsMiddleware(platformmiddleware.RecoveryMiddleware(mux)),
+		Handler:      platformmiddleware.RequestIDMiddleware(platformmiddleware.AccessLogMiddleware(platformmiddleware.CorsMiddleware(platformmiddleware.RecoveryMiddleware(mux)))),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}, cleanup, nil

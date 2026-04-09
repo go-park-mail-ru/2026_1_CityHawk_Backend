@@ -2,12 +2,11 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
-	"strings"
 	"time"
 
 	authmodel "cityhawk/backend/internal/auth/model"
+	platformcookies "cityhawk/backend/internal/platform/cookies"
 )
 
 const RefreshCookieName = "refresh_token"
@@ -52,75 +51,35 @@ func NewAuthHandler(authUC AuthFlowUsecase, accessTTL, refreshTTL time.Duration)
 }
 
 func SetRefreshCookie(w http.ResponseWriter, refreshToken string, ttl time.Duration) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     RefreshCookieName,
-		Value:    refreshToken,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().UTC().Add(ttl),
-		MaxAge:   int(ttl.Seconds()),
-	})
+	platformcookies.Set(w, RefreshCookieName, refreshToken, authCookieOptions(ttl))
 }
 
 func SetAccessCookie(w http.ResponseWriter, accessToken string, ttl time.Duration) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     AccessCookieName,
-		Value:    accessToken,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().UTC().Add(ttl),
-		MaxAge:   int(ttl.Seconds()),
-	})
+	platformcookies.Set(w, AccessCookieName, accessToken, authCookieOptions(ttl))
 }
 
 func ClearRefreshCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     RefreshCookieName,
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Unix(0, 0),
-		MaxAge:   -1,
-	})
+	platformcookies.Clear(w, RefreshCookieName, authCookieOptions(0))
 }
 
 func ClearAccessCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     AccessCookieName,
-		Value:    "",
+	platformcookies.Clear(w, AccessCookieName, authCookieOptions(0))
+}
+
+func ReadRefreshCookie(r *http.Request) string {
+	return platformcookies.Read(r, RefreshCookieName)
+}
+
+func ReadAccessCookie(r *http.Request) string {
+	return platformcookies.Read(r, AccessCookieName)
+}
+
+func authCookieOptions(ttl time.Duration) platformcookies.Options {
+	return platformcookies.Options{
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Unix(0, 0),
-		MaxAge:   -1,
-	})
-}
-
-func ReadRefreshCookie(r *http.Request) string {
-	cookie, err := r.Cookie(RefreshCookieName)
-	if err != nil {
-		return ""
+		TTL:      ttl,
 	}
-	return strings.TrimSpace(cookie.Value)
-}
-
-func ReadAccessCookie(r *http.Request) string {
-	cookie, err := r.Cookie(AccessCookieName)
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(cookie.Value)
-}
-
-func writeJSON(w http.ResponseWriter, status int, payload any) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(payload)
 }

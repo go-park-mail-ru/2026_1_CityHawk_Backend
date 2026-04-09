@@ -1,8 +1,9 @@
 package config
 
 import (
-	"fmt"
 	"log"
+	"net"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -83,20 +84,38 @@ func LoadFromEnv() Config {
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     getEnv("DB_PORT", "5432"),
-			User:     getEnv("DB_USER", "postgres"),
+			User:     getEnv("DB_USER", "cityhawk"),
 			Password: getEnv("DB_PASSWORD", ""),
-			Name:     getEnv("DB_NAME", "postgres"),
+			Name:     getEnv("DB_NAME", "cityhawk"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 	}
 }
 
 func (c DatabaseConfig) DSN() string {
-	return fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		c.User, c.Password, c.Host, c.Port, c.Name, c.SSLMode,
-	)
+	query := url.Values{}
+	query.Set("sslmode", c.SSLMode)
+
+	dsn := &url.URL{
+		Scheme:   "postgres",
+		Host:     net.JoinHostPort(c.Host, c.Port),
+		Path:     "/" + c.Name,
+		RawPath:  "/" + url.PathEscape(c.Name),
+		RawQuery: query.Encode(),
+	}
+
+	switch {
+	case c.User != "" && c.Password != "":
+		dsn.User = url.UserPassword(c.User, c.Password)
+	case c.User != "":
+		dsn.User = url.User(c.User)
+	case c.Password != "":
+		dsn.User = url.UserPassword("", c.Password)
+	}
+
+	return dsn.String()
 }
+
 
 func parseDurationEnv(key string, fallback time.Duration) time.Duration {
 	raw := strings.TrimSpace(os.Getenv(key))

@@ -44,7 +44,7 @@ func newTestAuthDeps(t *testing.T) *testAuthDeps {
 		store,
 		authUC,
 		platformsecurity.NewBcryptPasswordService(),
-		platformid.NewTimeUserIDProvider(platformid.TimeUserIDLayout),
+		platformid.NewUUIDUserIDProvider(),
 	)
 
 	return &testAuthDeps{
@@ -81,7 +81,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	authRefreshHandler := authdelivery.NewRefreshHandler(deps.authUsecase, deps.accessTTL, deps.refreshTTL)
 	meHandler := userdelivery.NewMeHandler(deps.store)
 
-	registerReq := httptest.NewRequest(http.MethodPost, "/auth/register", mustJSONBody(t, map[string]any{
+	registerReq := httptest.NewRequest(http.MethodPost, "/api/auth/register", mustJSONBody(t, map[string]any{
 		"email":    "Tester@example.com ",
 		"password": "verysecret",
 		"username": "тест_user-1",
@@ -111,7 +111,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 		t.Fatalf("refresh cookie not set: %+v", registerCookies)
 	}
 
-	meReq := httptest.NewRequest(http.MethodGet, "/me", nil)
+	meReq := httptest.NewRequest(http.MethodGet, "/api/me", nil)
 	meReq.AddCookie(accessCookie)
 	meRec := httptest.NewRecorder()
 	platformmiddleware.AuthMiddleware(
@@ -136,7 +136,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 		t.Fatalf("unexpected username: %+v", mePayload)
 	}
 
-	refreshReq := httptest.NewRequest(http.MethodPost, "/auth/refresh", nil)
+	refreshReq := httptest.NewRequest(http.MethodPost, "/api/auth/refresh", nil)
 	refreshReq.AddCookie(refreshCookie)
 	refreshRec := httptest.NewRecorder()
 	http.HandlerFunc(authRefreshHandler.Refresh).ServeHTTP(refreshRec, refreshReq)
@@ -145,7 +145,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	}
 
 	logoutCookie := refreshRec.Result().Cookies()[0]
-	logoutReq := httptest.NewRequest(http.MethodPost, "/auth/logout", nil)
+	logoutReq := httptest.NewRequest(http.MethodPost, "/api/auth/logout", nil)
 	logoutReq.AddCookie(logoutCookie)
 	logoutRec := httptest.NewRecorder()
 	http.HandlerFunc(authRefreshHandler.Logout).ServeHTTP(logoutRec, logoutReq)
@@ -153,7 +153,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 		t.Fatalf("logout status = %d, want %d, body=%s", logoutRec.Code, http.StatusOK, logoutRec.Body.String())
 	}
 
-	refreshAfterLogoutReq := httptest.NewRequest(http.MethodPost, "/auth/refresh", nil)
+	refreshAfterLogoutReq := httptest.NewRequest(http.MethodPost, "/api/auth/refresh", nil)
 	refreshAfterLogoutReq.AddCookie(logoutCookie)
 	refreshAfterLogoutRec := httptest.NewRecorder()
 	http.HandlerFunc(authRefreshHandler.Refresh).ServeHTTP(refreshAfterLogoutRec, refreshAfterLogoutReq)

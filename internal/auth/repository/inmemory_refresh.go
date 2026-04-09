@@ -2,12 +2,11 @@ package repository
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"sync"
 	"time"
 
 	platformerrors "cityhawk/backend/internal/platform/errors"
+	platformsecurity "cityhawk/backend/internal/platform/security"
 )
 
 type refreshSession struct {
@@ -30,7 +29,7 @@ func (r *InMemoryRefreshRepository) Store(_ context.Context, refreshToken, userI
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.sessions[tokenHash(refreshToken)] = refreshSession{
+	r.sessions[platformsecurity.SHA256Hex(refreshToken)] = refreshSession{
 		UserID:    userID,
 		ExpiresAt: expiresAt,
 	}
@@ -41,7 +40,7 @@ func (r *InMemoryRefreshRepository) Consume(_ context.Context, refreshToken stri
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	hash := tokenHash(refreshToken)
+	hash := platformsecurity.SHA256Hex(refreshToken)
 	s, ok := r.sessions[hash]
 	if !ok {
 		return "", platformerrors.ErrTokenRevoked
@@ -59,11 +58,6 @@ func (r *InMemoryRefreshRepository) Consume(_ context.Context, refreshToken stri
 func (r *InMemoryRefreshRepository) Revoke(_ context.Context, refreshToken string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	delete(r.sessions, tokenHash(refreshToken))
+	delete(r.sessions, platformsecurity.SHA256Hex(refreshToken))
 	return nil
-}
-
-func tokenHash(token string) string {
-	sum := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(sum[:])
 }

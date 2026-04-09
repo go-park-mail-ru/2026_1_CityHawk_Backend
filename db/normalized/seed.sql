@@ -108,7 +108,7 @@ VALUES
     )
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO event (id, author_user_id, title, short_description, full_description, age_limit, source_url)
+INSERT INTO event (id, author_user_id, title, location_description, full_description, age_limit, source_url)
 VALUES
     (
         '55555555-5555-5555-5555-555555555551',
