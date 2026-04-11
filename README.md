@@ -181,52 +181,67 @@ Cookie: access_token=<jwt>
   - `401`: `{"error":"unauthorized"}`
   - `401`: `{"error":"user not found"}`
 
-### `GET /api/places`
+### `GET /api/events`
 
-Список всех карточек мест (краткий формат).
+Список всех карточек мероприятий.
 
 - Тело запроса: нет
 - Успешный ответ `200`:
 
 ```json
 {
-  "items": [
+      "items": [
     {
-      "id": "vdnh",
-      "title": "ВДНХ",
-      "categories": ["park"],
-      "short_description": "Большой парковый и выставочный комплекс для прогулок и активностей.",
-      "address": "Москва, проспект Мира, 119",
-      "image_url": "https://example.com/images/vdnh.jpg"
+      "id": "uuid",
+      "title": "Rock concert",
+      "shortDescription": "Best rock night",
+      "coverImageUrl": "https://example.com/event.jpg",
+      "tags": [],
+      "nextSession": {
+        "startAt": "2026-03-30T19:00:00Z",
+        "place": {
+          "name": "Arena",
+          "addressLine": "Lenina 1"
+        }
+      }
     }
   ]
 }
 ```
 
 - Возможные ошибки:
+  - `400`: `{"error":"Validation failed"}`
   - `405`: `{"error":"method not allowed"}`
 
-### `GET /api/places/{id}`
+### `GET /api/events/{id}`
 
-Полная информация о выбранной карточке места.
+Полная информация о выбранном мероприятии.
 
 - Тело запроса: нет
-- Пример: `GET /places/vdnh`
+- Пример: `GET /api/events/futurione`
 - Успешный ответ `200`:
 
 ```json
 {
-    "item": {
-        "id": "vdnh",
-        "title": "ВДНХ",
-        "categories": ["park"],
-        "short_description": "Большой парковый и выставочный комплекс для прогулок и активностей.",
-        "full_description": "ВДНХ объединяет павильоны, парковые зоны и культурные площадки. Подходит для долгих прогулок, семейных выходных и посещения временных выставок.",
-        "address": "Москва, проспект Мира, 119",
-        "image_url": "images/vdnh.jpg",
-        "working_hours": "ежедневно, 10:00-22:00",
-        "price_level": "free"
-    }
+  "id": "uuid",
+  "title": "Rock concert",
+  "shortDescription": "Best rock night",
+  "fullDescription": "Long description",
+  "ageLimit": 18,
+  "sourceUrl": "https://example.com",
+  "author": {
+    "id": "uuid",
+    "username": "Alice",
+    "avatarUrl": null
+  },
+  "categories": [],
+  "tags": [],
+  "images": [],
+  "sessions": [],
+  "createdAt": "2026-03-20T10:00:00Z",
+  "updatedAt": "2026-03-22T10:00:00Z",
+  "isFavorite": false,
+  "isOwner": true
 }
 ```
 

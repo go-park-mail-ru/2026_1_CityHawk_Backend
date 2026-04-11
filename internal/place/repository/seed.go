@@ -1,105 +1,79 @@
 package repository
 
-import placemodel "cityhawk/backend/internal/place/model"
+import (
+	"time"
 
-func SeedPlaces() []placemodel.Place {
-	return []placemodel.Place{
-		{
-			ID:               "futurione",
-			Title:            "Futurione",
-			Categories:       []string{"park", "exhibition", "family"},
-			LikeCount:        150,
-			ShortDescription: "ВДНХ, Москва",
-			FullDescription:  "Иммерсивная выставка Futurione на территории ВДНХ с мультимедийными инсталляциями и интерактивными зонами. Подходит для посещения с друзьями и семьей.",
-			Address:          "Москва, проспект Мира, 119",
-			ImageURL:         "/public/static/img/futurione.jpeg",
-			WorkingHours:     "ежедневно, 10:00-22:00",
-			PriceLevel:       "medium",
-		},
-		{
-			ID:               "navka-show",
-			Title:            "Ледовое шоу Татьяны Навки",
-			Categories:       []string{"show", "family"},
-			LikeCount:        132,
-			ShortDescription: "10 февраля - 21 марта, Navka arena, Москва",
-			FullDescription:  "Большое ледовое шоу Татьяны Навки с постановочными номерами и театральной драматургией. Формат подходит для вечернего досуга и семейного похода.",
-			Address:          "Москва, Navka arena",
-			ImageURL:         "/public/static/img/navka.jpeg",
-			WorkingHours:     "по расписанию площадки",
-			PriceLevel:       "medium",
-		},
-		{
-			ID:               "womens-standup",
-			Title:            "Женский стендап",
-			Categories:       []string{"show", "comedy"},
-			LikeCount:        121,
-			ShortDescription: "27 марта, Live Арена, Москва",
-			FullDescription:  "Концертный стендап-формат с выступлениями резидентов и актуальными монологами. Подойдет для компании друзей и насыщенного вечернего досуга.",
-			Address:          "Москва, Live Арена",
-			ImageURL:         "/public/static/img/standup.png",
-			WorkingHours:     "по расписанию площадки",
-			PriceLevel:       "medium",
-		},
-		{
-			ID:               "balet-shelkunchik",
-			Title:            "Балет Щелкунчик",
-			Categories:       []string{"theatre", "classic"},
-			LikeCount:        118,
-			ShortDescription: "14 марта, Большой театр, Москва",
-			FullDescription:  "Классическая постановка балета «Щелкунчик» на исторической сцене Большого театра. Подходит для романтического вечера и культурного маршрута.",
-			Address:          "Москва, Большой театр",
-			ImageURL:         "/public/static/img/balet.jpg",
-			WorkingHours:     "по расписанию театра",
-			PriceLevel:       "medium",
-		},
-		{
-			ID:               "art-xx",
-			Title:            "Искусство XX века",
-			Categories:       []string{"museum", "photo"},
-			LikeCount:        110,
-			ShortDescription: "10–24 марта, Третьяковская галерея, Москва",
-			FullDescription:  "Выставочный проект об искусстве XX века с работами ключевых авторов и тематическими залами. Хороший выбор для вдумчивого культурного посещения.",
-			Address:          "Москва, Третьяковская галерея",
-			ImageURL:         "/public/static/img/art.png",
-			WorkingHours:     "по расписанию музея",
-			PriceLevel:       "medium",
-		},
-		{
-			ID:               "rock-concert",
-			Title:            "Рок-концерт",
-			Categories:       []string{"concert", "music"},
-			LikeCount:        104,
-			ShortDescription: "20 марта, Атмосфера, Москва",
-			FullDescription:  "Большой рок-концерт с живым звуком и вечерней программой. Подходит для любителей концертного формата и активного отдыха.",
-			Address:          "Москва, Атмосфера",
-			ImageURL:         "/public/static/img/rok.jpg",
-			WorkingHours:     "по расписанию площадки",
-			PriceLevel:       "medium",
-		},
-		{
-			ID:               "ruki-vverh",
-			Title:            "Руки Вверх",
-			Categories:       []string{"concert", "music"},
-			LikeCount:        127,
-			ShortDescription: "17 марта, Лужники, Москва",
-			FullDescription:  "Концерт группы «Руки Вверх» на большой площадке с ретро-хитами и масштабным шоу. Формат рассчитан на вечерний досуг и большую компанию.",
-			Address:          "Москва, Лужники",
-			ImageURL:         "/public/static/img/concert.jpeg",
-			WorkingHours:     "по расписанию площадки",
-			PriceLevel:       "medium",
-		},
-		{
-			ID:               "quest-iskuplenie",
-			Title:            "Квест Искупление",
-			Categories:       []string{"quest", "adventure"},
-			LikeCount:        96,
-			ShortDescription: "улица Пруд-Ключики, 5, Москва",
-			FullDescription:  "Атмосферный квест «Искупление» с сюжетными загадками и командным прохождением. Подходит для небольших групп и вечернего досуга.",
-			Address:          "Москва, улица Пруд-Ключики, 5",
-			ImageURL:         "/public/static/img/horror.jpg",
-			WorkingHours:     "ежедневно, 10:00-23:00",
-			PriceLevel:       "medium",
-		},
+	placemodel "cityhawk/backend/internal/place/model"
+)
+
+func SeedPlaces() []placemodel.EventDetailsView {
+	city := placemodel.EventSessionPlaceCityView{
+		ID:          "city-moscow",
+		Name:        "Moscow",
+		CountryName: "Russia",
+		Timezone:    "Europe/Moscow",
+	}
+
+	author := placemodel.EventAuthorView{
+		ID:       "user-1",
+		Username: "seed_author",
+	}
+
+	return []placemodel.EventDetailsView{
+		newSeedEvent("futurione", "Futurione", "ВДНХ, Москва", "Иммерсивная выставка Futurione на территории ВДНХ с мультимедийными инсталляциями и интерактивными зонами. Подходит для посещения с друзьями и семьей.", []string{"park", "exhibition", "family"}, []string{"park", "family"}, "https://example.com/futurione.jpg", "place-vdnh", "ВДНХ", "Москва, проспект Мира, 119", city, author, 0, nil, time.Date(2026, time.April, 12, 10, 0, 0, 0, time.UTC), time.Date(2026, time.April, 12, 22, 0, 0, 0, time.UTC), 1200),
+		newSeedEvent("navka-show", "Ледовое шоу Татьяны Навки", "10 февраля - 21 марта, Navka arena, Москва", "Большое ледовое шоу Татьяны Навки с постановочными номерами и театральной драматургией. Формат подходит для вечернего досуга и семейного похода.", []string{"show", "family"}, []string{"show", "family"}, "https://example.com/navka.jpg", "place-navka", "Navka Arena", "Москва, Navka arena", city, author, 6, nil, time.Date(2026, time.April, 13, 19, 0, 0, 0, time.UTC), time.Date(2026, time.April, 13, 21, 30, 0, 0, time.UTC), 2500),
+		newSeedEvent("rock-concert", "Рок-концерт", "20 марта, Атмосфера, Москва", "Большой рок-концерт с живым звуком и вечерней программой. Подходит для любителей концертного формата и активного отдыха.", []string{"concert", "music"}, []string{"rock", "music"}, "https://example.com/rock.jpg", "place-atmosphere", "Атмосфера", "Москва, Атмосфера", city, author, 12, strPtr("https://cityhawk.local/events/rock-concert"), time.Date(2026, time.April, 14, 19, 30, 0, 0, time.UTC), time.Date(2026, time.April, 14, 22, 30, 0, 0, time.UTC), 2200),
 	}
 }
 
+func newSeedEvent(id, title, shortDescription, fullDescription string, categoryNames, tagNames []string, imageURL, placeID, placeName, address string, city placemodel.EventSessionPlaceCityView, author placemodel.EventAuthorView, ageLimit int, sourceURL *string, startAt, endAt time.Time, price int) placemodel.EventDetailsView {
+	now := time.Date(2026, time.April, 10, 10, 0, 0, 0, time.UTC)
+	return placemodel.EventDetailsView{
+		ID:               id,
+		Title:            title,
+		ShortDescription: shortDescription,
+		FullDescription:  fullDescription,
+		AgeLimit:         ageLimit,
+		SourceURL:        sourceURL,
+		Author:           author,
+		Categories:       taxonomyFromNames(categoryNames),
+		Tags:             taxonomyFromNames(tagNames),
+		Images: []placemodel.EventImageView{
+			{ID: "img-" + id, ImageURL: imageURL},
+		},
+		Sessions: []placemodel.EventSessionView{
+			{
+				ID:      "session-" + id,
+				StartAt: startAt,
+				EndAt:   endAt,
+				Price:   price,
+				Place: placemodel.EventSessionPlaceView{
+					ID:          placeID,
+					Name:        placeName,
+					AddressLine: address,
+					Latitude:    55.75,
+					Longitude:   37.61,
+					City:        city,
+				},
+			},
+		},
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+}
+
+func taxonomyFromNames(names []string) []placemodel.EventTaxonomyItem {
+	items := make([]placemodel.EventTaxonomyItem, 0, len(names))
+	for _, name := range names {
+		items = append(items, placemodel.EventTaxonomyItem{
+			ID:   slugify(name),
+			Name: name,
+			Slug: slugify(name),
+		})
+	}
+	return items
+}
+
+func strPtr(value string) *string {
+	return &value
+}

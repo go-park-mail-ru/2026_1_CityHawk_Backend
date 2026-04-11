@@ -14,14 +14,12 @@ import (
 type OAuthUserService struct {
 	users     AuthUserRepository
 	passwords PasswordService
-	ids       UserIDProvider
 }
 
-func NewOAuthUserService(users AuthUserRepository, passwords PasswordService, ids UserIDProvider) *OAuthUserService {
+func NewOAuthUserService(users AuthUserRepository, passwords PasswordService) *OAuthUserService {
 	return &OAuthUserService{
 		users:     users,
 		passwords: passwords,
-		ids:       ids,
 	}
 }
 
@@ -75,9 +73,9 @@ func (s *OAuthUserService) createOAuthUser(ctx context.Context, email, username 
 	}
 
 	u := usermodel.User{
-		ID:           s.ids.New(),
 		Email:        email,
 		Username:     username,
+		UserSurname:  username,
 		PasswordHash: passwordHash,
 	}
 

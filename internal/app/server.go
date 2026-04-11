@@ -16,7 +16,6 @@ import (
 	placerepo "cityhawk/backend/internal/place/repository"
 	placeusecase "cityhawk/backend/internal/place/usecase"
 	"cityhawk/backend/internal/platform/httpx"
-	platformid "cityhawk/backend/internal/platform/id"
 	platformmiddleware "cityhawk/backend/internal/platform/middleware"
 	platformpostgres "cityhawk/backend/internal/platform/postgres"
 	platformsecurity "cityhawk/backend/internal/platform/security"
@@ -45,12 +44,10 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		store,
 		authUC,
 		platformsecurity.NewBcryptPasswordService(),
-		platformid.NewUUIDUserIDProvider(),
 	)
 	oauthUsers := authusecase.NewOAuthUserService(
 		store,
 		platformsecurity.NewBcryptPasswordService(),
-		platformid.NewUUIDUserIDProvider(),
 	)
 	placeHandler := placedelivery.NewHandler(placeUC)
 	authFlowHandler := authdelivery.NewAuthHandler(authFlowUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL)
@@ -110,11 +107,31 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 			httpx.UserIDContextKey,
 		),
 	)
-	mux.HandleFunc("/api/places", placeHandler.List)
+	mux.Handle("/api/events", platformmiddleware.OptionalAuthMiddleware(
+		http.HandlerFunc(placeHandler.Events),
+		authdelivery.ReadAccessCookie,
+		func(token string) (string, string, error) {
+			claims, err := tokenService.Parse(token)
+			if err != nil {
+				return "", "", err
+			}
+			return claims.Subject, claims.Type, nil
+		},
+		httpx.UserIDContextKey,
+	))
 	mux.HandleFunc("/api/home", placeHandler.Home)
-	mux.HandleFunc("/api/places/", placeHandler.Details)
-	mux.HandleFunc("/api/places/best", placeHandler.Best)
-	mux.HandleFunc("/api/places/category/", placeHandler.ByCategory)
+	mux.Handle("/api/events/", platformmiddleware.OptionalAuthMiddleware(
+		http.HandlerFunc(placeHandler.EventByID),
+		authdelivery.ReadAccessCookie,
+		func(token string) (string, string, error) {
+			claims, err := tokenService.Parse(token)
+			if err != nil {
+				return "", "", err
+			}
+			return claims.Subject, claims.Type, nil
+		},
+		httpx.UserIDContextKey,
+	))
 
 	cleanup := func() {
 		pool.Close()

@@ -16,7 +16,7 @@ tags:
   - name: Health
   - name: Auth
   - name: User
-  - name: Places
+  - name: Events
 paths:
   /api/health:
     get:
@@ -46,7 +46,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                $ref: '#/components/schemas/RegisterResponse'
         "400":
           description: Validation or JSON error
           content:
@@ -75,7 +75,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                $ref: '#/components/schemas/LoginResponse'
         "400":
           description: Validation or JSON error
           content:
@@ -260,13 +260,13 @@ paths:
         - refreshCookie: []
       responses:
         "200":
-          description: New access token
+          description: Session refreshed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccessTokenResponse'
+                $ref: '#/components/schemas/OKResponse'
         "401":
-          description: Missing or invalid refresh token
+          description: Session expired
           content:
             application/json:
               schema:
@@ -283,9 +283,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                $ref: '#/components/schemas/OKResponse'
         "401":
-          description: Missing refresh token
+          description: Session expired
           content:
             application/json:
               schema:
@@ -293,12 +293,12 @@ paths:
   /api/me:
     get:
       tags: [User]
-      summary: Get current user
+      summary: Get current user profile
       security:
         - accessCookie: []
       responses:
         "200":
-          description: Current user
+          description: Current user profile
           content:
             application/json:
               schema:
@@ -309,27 +309,134 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/places:
-    get:
-      tags: [Places]
-      summary: List place cards
+    patch:
+      tags: [User]
+      summary: Partially update current user profile
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchMeRequest'
       responses:
         "200":
-          description: Place cards list
+          description: Updated user profile
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceCardsResponse'
+                $ref: '#/components/schemas/PatchMeResponse'
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/events:
+    get:
+      tags: [Events]
+      summary: List events
+      parameters:
+        - in: query
+          name: query
+          schema:
+            type: string
+        - in: query
+          name: categoryId
+          schema:
+            type: string
+        - in: query
+          name: tagId
+          schema:
+            type: string
+        - in: query
+          name: cityId
+          schema:
+            type: string
+        - in: query
+          name: dateFrom
+          schema:
+            type: string
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+        - in: query
+          name: authorId
+          schema:
+            type: string
+        - in: query
+          name: sort
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: offset
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventListResponse'
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         "405":
           description: Method not allowed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/places/{id}:
+    post:
+      tags: [Events]
+      summary: Create event
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        "201":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventIDResponse'
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/events/{id}:
     get:
-      tags: [Places]
-      summary: Get place details by ID
+      tags: [Events]
+      summary: Get event details by ID
       parameters:
         - in: path
           name: id
@@ -338,13 +445,13 @@ paths:
             type: string
       responses:
         "200":
-          description: Place details
+          description: Event details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceItemResponse'
+                $ref: '#/components/schemas/EventDetails'
         "404":
-          description: Place not found
+          description: Event not found
           content:
             application/json:
               schema:
@@ -355,55 +462,81 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/places/category/{category}:
-    get:
-      tags: [Places]
-      summary: List place cards by category
-      parameters:
-        - in: path
-          name: category
-          required: true
-          schema:
-            type: string
+    patch:
+      tags: [Events]
+      summary: Update event
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchEventRequest'
       responses:
         "200":
-          description: Place cards by category
+          description: Event updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceCardsResponse'
+                $ref: '#/components/schemas/EventDetails'
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         "404":
-          description: Category not found
+          description: Event not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        "405":
-          description: Method not allowed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /api/places/best:
-    get:
-      tags: [Places]
-      summary: Get top places by like count
+    delete:
+      tags: [Events]
+      summary: Delete event
+      security:
+        - accessCookie: []
       responses:
         "200":
-          description: Best places
+          description: Event deleted
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceCardsResponse'
-        "405":
-          description: Method not allowed
+                $ref: '#/components/schemas/OKResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Event not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   /api/home:
     get:
-      tags: [Places]
+      tags: [Events]
       summary: Get home payload
       responses:
         "200":
@@ -431,14 +564,40 @@ components:
   schemas:
     RegisterRequest:
       type: object
-      required: [email, password, username]
+      required: [email, username, userSurname, password]
       properties:
         email:
           type: string
+        username:
+          type: string
+        userSurname:
+          type: string
         password:
+          type: string
+        birthday:
+          type: string
+          format: date
+          nullable: true
+        cityId:
+          type: string
+          nullable: true
+    RegisterResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
           type: string
         username:
           type: string
+        userSurname:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
     LoginRequest:
       type: object
       required: [email, password]
@@ -457,11 +616,28 @@ components:
       properties:
         access_token:
           type: string
+    OKResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+    LoginResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        username:
+          type: string
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
+        details:
+          type: object
+          additionalProperties: true
     MeResponse:
       type: object
       properties:
@@ -471,106 +647,377 @@ components:
           type: string
         username:
           type: string
-    PlaceCard:
+        userSurname:
+          type: string
+        birthday:
+          type: string
+          format: date
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        city:
+          $ref: '#/components/schemas/UserCity'
+        createdAt:
+          type: string
+          format: date-time
+    PatchMeRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        userSurname:
+          type: string
+        birthday:
+          type: string
+          format: date
+        cityId:
+          type: string
+        avatarUrl:
+          type: string
+    PatchMeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        username:
+          type: string
+        userSurname:
+          type: string
+        birthday:
+          type: string
+          format: date
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+    UserCity:
+      type: object
+      nullable: true
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        countryName:
+          type: string
+        timezone:
+          type: string
+    EventTaxonomyItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+    EventCardNextSessionPlace:
+      type: object
+      properties:
+        name:
+          type: string
+        addressLine:
+          type: string
+    EventCardNextSession:
+      type: object
+      properties:
+        startAt:
+          type: string
+          format: date-time
+        place:
+          $ref: '#/components/schemas/EventCardNextSessionPlace'
+    EventCard:
       type: object
       properties:
         id:
           type: string
         title:
           type: string
-        categories:
+        shortDescription:
+          type: string
+        coverImageUrl:
+          type: string
+        tags:
           type: array
           items:
-            type: string
-        like_count:
-          type: integer
-        short_description:
-          type: string
-        address:
-          type: string
-        image_url:
-          type: string
-    Place:
-      type: object
-      properties:
-        id:
-          type: string
-        title:
-          type: string
-        categories:
-          type: array
-          items:
-            type: string
-        like_count:
-          type: integer
-        short_description:
-          type: string
-        full_description:
-          type: string
-        address:
-          type: string
-        image_url:
-          type: string
-        working_hours:
-          type: string
-        price_level:
-          type: string
-    PlaceCardsResponse:
+            $ref: '#/components/schemas/EventTaxonomyItem'
+        nextSession:
+          $ref: '#/components/schemas/EventCardNextSession'
+    EventListResponse:
       type: object
       properties:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/PlaceCard'
-    PlaceItemResponse:
+            $ref: '#/components/schemas/EventCard'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    EventAuthor:
       type: object
       properties:
-        item:
-          $ref: '#/components/schemas/Place'
-    HomePlaceCard:
+        id:
+          type: string
+        username:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+    EventImage:
       type: object
       properties:
         id:
           type: string
         imageUrl:
+          type: string
+    EventSessionPlaceCity:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        countryName:
+          type: string
+        timezone:
+          type: string
+    EventSessionPlace:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        addressLine:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        city:
+          $ref: '#/components/schemas/EventSessionPlaceCity'
+    EventSession:
+      type: object
+      properties:
+        id:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        price:
+          type: integer
+        place:
+          $ref: '#/components/schemas/EventSessionPlace'
+    EventDetails:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        shortDescription:
+          type: string
+        fullDescription:
+          type: string
+        ageLimit:
+          type: integer
+        sourceUrl:
+          type: string
+          nullable: true
+        author:
+          $ref: '#/components/schemas/EventAuthor'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventTaxonomyItem'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventTaxonomyItem'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventImage'
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventSession'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        isFavorite:
+          type: boolean
+        isOwner:
+          type: boolean
+    EventSessionInput:
+      type: object
+      required: [placeId, startAt, endAt, price]
+      properties:
+        placeId:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        price:
+          type: integer
+    CreateEventRequest:
+      type: object
+      required: [title, shortDescription, fullDescription, categoryIds, sessions]
+      properties:
+        title:
+          type: string
+        shortDescription:
+          type: string
+        fullDescription:
+          type: string
+        ageLimit:
+          type: integer
+        sourceUrl:
+          type: string
+          nullable: true
+        categoryIds:
+          type: array
+          items:
+            type: string
+        tagIds:
+          type: array
+          items:
+            type: string
+        imageUrls:
+          type: array
+          items:
+            type: string
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventSessionInput'
+    PatchEventRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        shortDescription:
+          type: string
+        fullDescription:
+          type: string
+        ageLimit:
+          type: integer
+        sourceUrl:
+          type: string
+          nullable: true
+        categoryIds:
+          type: array
+          items:
+            type: string
+        tagIds:
+          type: array
+          items:
+            type: string
+        imageUrls:
+          type: array
+          items:
+            type: string
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventSessionInput'
+    EventIDResponse:
+      type: object
+      properties:
+        id:
+          type: string
+    HomeTag:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+    HomeNextSessionPlace:
+      type: object
+      properties:
+        name:
+          type: string
+        addressLine:
+          type: string
+    HomeNextSession:
+      type: object
+      properties:
+        startAt:
+          type: string
+          format: date-time
+        place:
+          $ref: '#/components/schemas/HomeNextSessionPlace'
+    HomeFeaturedEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        coverImageUrl:
+          type: string
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomeTag'
+        nextSession:
+          $ref: '#/components/schemas/HomeNextSession'
+    HomeCategory:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+    HomeCollection:
+      type: object
+      properties:
+        id:
           type: string
         title:
           type: string
         description:
           type: string
-    MoodCard:
-      type: object
-      properties:
-        id:
-          type: string
         imageUrl:
-          type: string
-        title:
-          type: string
-        modifier:
-          type: string
-    HomeMoodTall:
-      type: object
-      properties:
-        id:
-          type: string
-        imageUrl:
-          type: string
-        title:
           type: string
     HomePayload:
       type: object
       properties:
-        places:
+        featuredEvents:
           type: array
           items:
-            $ref: '#/components/schemas/HomePlaceCard'
-        moodLeft:
+            $ref: '#/components/schemas/HomeFeaturedEvent'
+        categories:
           type: array
           items:
-            $ref: '#/components/schemas/MoodCard'
-        moodTall:
-          $ref: '#/components/schemas/HomeMoodTall'
+            $ref: '#/components/schemas/HomeCategory'
+        collections:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomeCollection'
 `
 
 func OpenAPIYAMLHandler(w http.ResponseWriter, r *http.Request) {

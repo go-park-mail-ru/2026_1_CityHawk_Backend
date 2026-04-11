@@ -1,50 +1,133 @@
 package http
 
-type placeResponse struct {
-	ID               string   `json:"id"`
-	Title            string   `json:"title"`
-	Categories       []string `json:"categories"`
-	LikeCount        int      `json:"like_count"`
-	ShortDescription string   `json:"short_description"`
-	FullDescription  string   `json:"full_description"`
-	Address          string   `json:"address"`
-	ImageURL         string   `json:"image_url"`
-	WorkingHours     string   `json:"working_hours"`
-	PriceLevel       string   `json:"price_level"`
+type taxonomyItemResponse struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
 }
 
-type placeCardResponse struct {
-	ID               string   `json:"id"`
-	Title            string   `json:"title"`
-	Categories       []string `json:"categories"`
-	LikeCount        int      `json:"like_count"`
-	ShortDescription string   `json:"short_description"`
-	Address          string   `json:"address"`
-	ImageURL         string   `json:"image_url"`
+type eventCardNextSessionPlaceResponse struct {
+	Name        string `json:"name"`
+	AddressLine string `json:"addressLine"`
 }
 
-type homePlaceCardResponse struct {
+type eventCardNextSessionResponse struct {
+	StartAt string                            `json:"startAt"`
+	Place   eventCardNextSessionPlaceResponse `json:"place"`
+}
+
+type eventCardResponse struct {
+	ID               string                        `json:"id"`
+	Title            string                        `json:"title"`
+	ShortDescription string                        `json:"shortDescription"`
+	CoverImageURL    string                        `json:"coverImageUrl"`
+	Tags             []taxonomyItemResponse        `json:"tags"`
+	NextSession      *eventCardNextSessionResponse `json:"nextSession"`
+}
+
+type eventListResponse struct {
+	Items  []eventCardResponse `json:"items"`
+	Total  int                 `json:"total"`
+	Limit  int                 `json:"limit"`
+	Offset int                 `json:"offset"`
+}
+
+type eventAuthorResponse struct {
+	ID        string  `json:"id"`
+	Username  string  `json:"username"`
+	AvatarURL *string `json:"avatarUrl"`
+}
+
+type eventImageResponse struct {
+	ID       string `json:"id"`
+	ImageURL string `json:"imageUrl"`
+}
+
+type eventSessionPlaceCityResponse struct {
 	ID          string `json:"id"`
-	ImageURL    string `json:"imageUrl"`
+	Name        string `json:"name"`
+	CountryName string `json:"countryName"`
+	Timezone    string `json:"timezone"`
+}
+
+type eventSessionPlaceResponse struct {
+	ID          string                        `json:"id"`
+	Name        string                        `json:"name"`
+	AddressLine string                        `json:"addressLine"`
+	Latitude    float64                       `json:"latitude"`
+	Longitude   float64                       `json:"longitude"`
+	City        eventSessionPlaceCityResponse `json:"city"`
+}
+
+type eventSessionResponse struct {
+	ID      string                    `json:"id"`
+	StartAt string                    `json:"startAt"`
+	EndAt   string                    `json:"endAt"`
+	Price   int                       `json:"price"`
+	Place   eventSessionPlaceResponse `json:"place"`
+}
+
+type eventDetailsResponse struct {
+	ID               string                 `json:"id"`
+	Title            string                 `json:"title"`
+	ShortDescription string                 `json:"shortDescription"`
+	FullDescription  string                 `json:"fullDescription"`
+	AgeLimit         int                    `json:"ageLimit"`
+	SourceURL        *string                `json:"sourceUrl"`
+	Author           eventAuthorResponse    `json:"author"`
+	Categories       []taxonomyItemResponse `json:"categories"`
+	Tags             []taxonomyItemResponse `json:"tags"`
+	Images           []eventImageResponse   `json:"images"`
+	Sessions         []eventSessionResponse `json:"sessions"`
+	CreatedAt        string                 `json:"createdAt"`
+	UpdatedAt        string                 `json:"updatedAt"`
+	IsFavorite       bool                   `json:"isFavorite"`
+	IsOwner          bool                   `json:"isOwner"`
+}
+
+type eventIDResponse struct {
+	ID string `json:"id"`
+}
+
+type homeTagResponse struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
+type homeNextSessionPlaceResponse struct {
+	Name        string `json:"name"`
+	AddressLine string `json:"addressLine"`
+}
+
+type homeNextSessionResponse struct {
+	StartAt string                       `json:"startAt"`
+	Place   homeNextSessionPlaceResponse `json:"place"`
+}
+
+type homeFeaturedEventResponse struct {
+	ID            string                  `json:"id"`
+	Title         string                  `json:"title"`
+	CoverImageURL string                  `json:"coverImageUrl"`
+	Tags          []homeTagResponse       `json:"tags"`
+	NextSession   homeNextSessionResponse `json:"nextSession"`
+}
+
+type homeCategoryResponse struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
+type homeCollectionResponse struct {
+	ID          string `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
-}
-
-type moodCardResponse struct {
-	ID       string `json:"id"`
-	ImageURL string `json:"imageUrl"`
-	Title    string `json:"title"`
-	Modifier string `json:"modifier,omitempty"`
-}
-
-type homeMoodTallResponse struct {
-	ID       string `json:"id"`
-	ImageURL string `json:"imageUrl"`
-	Title    string `json:"title"`
+	ImageURL    string `json:"imageUrl"`
 }
 
 type homePayloadResponse struct {
-	Places   []homePlaceCardResponse `json:"places"`
-	MoodLeft []moodCardResponse      `json:"moodLeft"`
-	MoodTall homeMoodTallResponse    `json:"moodTall"`
+	FeaturedEvents []homeFeaturedEventResponse `json:"featuredEvents"`
+	Categories     []homeCategoryResponse      `json:"categories"`
+	Collections    []homeCollectionResponse    `json:"collections"`
 }

@@ -20,10 +20,6 @@ type PasswordService interface {
 	Verify(password, stored string) bool
 }
 
-type UserIDProvider interface {
-	New() string
-}
-
 type tokenPairIssuer interface {
 	IssueTokenPair(ctx context.Context, u usermodel.User) (authmodel.TokenPair, error)
 }
@@ -32,70 +28,75 @@ type AuthFlowService struct {
 	users     AuthUserRepository
 	issuer    tokenPairIssuer
 	passwords PasswordService
-	ids       UserIDProvider
 }
 
 func NewAuthFlowService(
 	users AuthUserRepository,
 	issuer tokenPairIssuer,
 	passwords PasswordService,
-	ids UserIDProvider,
 ) *AuthFlowService {
 	return &AuthFlowService{
 		users:     users,
 		issuer:    issuer,
 		passwords: passwords,
-		ids:       ids,
 	}
 }
 
-func (s *AuthFlowService) Register(ctx context.Context, email, password, username string) (authmodel.TokenPair, error) {
-	normalizedEmail, normalizedPassword, normalizedUsername, err := authvalidation.ValidateRegister(email, password, username)
+func (s *AuthFlowService) Register(ctx context.Context, email, username, userSurname, password, birthday, cityID string) (authmodel.RegistrationResult, error) {
+	normalizedEmail, normalizedUsername, normalizedSurname, normalizedPassword, normalizedBirthday, normalizedCityID, err := authvalidation.ValidateRegister(email, username, userSurname, password, birthday, cityID)
 	if err != nil {
-		return authmodel.TokenPair{}, err
+		return authmodel.RegistrationResult{}, err
 	}
 
 	passwordHash, err := s.passwords.Hash(normalizedPassword)
 	if err != nil {
-		return authmodel.TokenPair{}, platformerrors.ErrInternal
+		return authmodel.RegistrationResult{}, platformerrors.ErrInternal
 	}
 
 	u := usermodel.User{
-		ID:           s.ids.New(),
 		Email:        normalizedEmail,
 		Username:     normalizedUsername,
+		UserSurname:  normalizedSurname,
 		PasswordHash: passwordHash,
+		Birthday:     normalizedBirthday,
+		CityID:       normalizedCityID,
 	}
 
 	persistedUser, err := s.users.Create(ctx, u)
 	if err != nil {
 		if errors.Is(err, platformerrors.ErrEmailExists) {
-			return authmodel.TokenPair{}, platformerrors.ErrEmailExists
+			return authmodel.RegistrationResult{}, platformerrors.ErrEmailExists
 		}
-		return authmodel.TokenPair{}, err
+		return authmodel.RegistrationResult{}, err
 	}
 
 	resp, err := s.issuer.IssueTokenPair(ctx, persistedUser)
 	if err != nil {
-		return authmodel.TokenPair{}, platformerrors.ErrIssueTokens
+		return authmodel.RegistrationResult{}, platformerrors.ErrIssueTokens
 	}
-	return resp, nil
+	return authmodel.RegistrationResult{
+		User:   persistedUser,
+		Tokens: resp,
+	}, nil
 }
 
-func (s *AuthFlowService) Login(ctx context.Context, email, password string) (authmodel.TokenPair, error) {
+func (s *AuthFlowService) Login(ctx context.Context, email, password string) (authmodel.SessionResult, error) {
 	normalizedEmail, normalizedPassword, err := authvalidation.ValidateLogin(email, password)
 	if err != nil {
-		return authmodel.TokenPair{}, err
+		return authmodel.SessionResult{}, err
 	}
 
 	u, ok := s.users.GetByEmail(ctx, normalizedEmail)
 	if !ok || !s.passwords.Verify(normalizedPassword, u.PasswordHash) {
-		return authmodel.TokenPair{}, platformerrors.ErrInvalidCredentials
+		return authmodel.SessionResult{}, platformerrors.ErrInvalidCredentials
 	}
 
 	resp, err := s.issuer.IssueTokenPair(ctx, u)
 	if err != nil {
-		return authmodel.TokenPair{}, platformerrors.ErrIssueTokens
+		return authmodel.SessionResult{}, platformerrors.ErrIssueTokens
 	}
-	return resp, nil
+	return authmodel.SessionResult{
+		User:   u,
+		Tokens: resp,
+	}, nil
 }

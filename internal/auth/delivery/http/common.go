@@ -18,8 +18,8 @@ type RefreshUsecase interface {
 }
 
 type AuthFlowUsecase interface {
-	Register(ctx context.Context, email, password, username string) (authmodel.TokenPair, error)
-	Login(ctx context.Context, email, password string) (authmodel.TokenPair, error)
+	Register(ctx context.Context, email, username, userSurname, password, birthday, cityID string) (authmodel.RegistrationResult, error)
+	Login(ctx context.Context, email, password string) (authmodel.SessionResult, error)
 }
 
 type AuthHandler struct {

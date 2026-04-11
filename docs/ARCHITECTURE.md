@@ -301,15 +301,15 @@ sequenceDiagram
 
 Название домена немного маскирует смысл.
 
-На уровне API кажется, что это “места”, но в реальности текущий `place`-модуль отдает пользователю карточки событий. Это видно по SQL в `internal/place/repository/postgres.go`:
+На уровне API модуль уже отдает именно события, хотя историческое имя пакета осталось `place`. Это видно по SQL в `internal/place/repository/postgres.go`:
 
 - база запроса строится от таблицы `event`;
 - дальше подтягиваются `event_session`, `place`, `event_image`, `event_category`, `favorite_event`;
-- наружу это маппится в `Place`, `PlaceCard`, `HomePlaceCard`.
+- наружу это маппится в `EventDetails`, `EventCard`, `HomeFeaturedEvent`.
 
 То есть:
 
-- в API это называется `place`;
+- в API это называется `event`;
 - в БД первичная сущность для выдачи это скорее `event`;
 - реальная “локация” лежит в таблице `place`.
 
@@ -317,7 +317,7 @@ sequenceDiagram
 
 Функции домена:
 
-- `GET /places` -> список карточек;
+- `GET /api/events` -> список карточек мероприятий;
 - `GET /places/{id}` -> детали;
 - `GET /places/category/{category}` -> фильтр;
 - `GET /places/best` -> лучшие по лайкам;

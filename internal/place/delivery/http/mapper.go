@@ -2,65 +2,169 @@ package http
 
 import placemodel "cityhawk/backend/internal/place/model"
 
-func toPlaceResponse(p placemodel.Place) placeResponse {
-	return placeResponse{
-		ID:               p.ID,
-		Title:            p.Title,
-		Categories:       p.Categories,
-		LikeCount:        p.LikeCount,
-		ShortDescription: p.ShortDescription,
-		FullDescription:  p.FullDescription,
-		Address:          p.Address,
-		ImageURL:         p.ImageURL,
-		WorkingHours:     p.WorkingHours,
-		PriceLevel:       p.PriceLevel,
+func toEventListResponse(items []placemodel.EventCardView, total, limit, offset int) eventListResponse {
+	respItems := make([]eventCardResponse, 0, len(items))
+	for _, item := range items {
+		tags := make([]taxonomyItemResponse, 0, len(item.Tags))
+		for _, tag := range item.Tags {
+			tags = append(tags, taxonomyItemResponse{
+				ID:   tag.ID,
+				Name: tag.Name,
+				Slug: tag.Slug,
+			})
+		}
+
+		var nextSession *eventCardNextSessionResponse
+		if item.NextSession != nil {
+			nextSession = &eventCardNextSessionResponse{
+				StartAt: item.NextSession.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
+				Place: eventCardNextSessionPlaceResponse{
+					Name:        item.NextSession.Place.Name,
+					AddressLine: item.NextSession.Place.AddressLine,
+				},
+			}
+		}
+
+		respItems = append(respItems, eventCardResponse{
+			ID:               item.ID,
+			Title:            item.Title,
+			ShortDescription: item.ShortDescription,
+			CoverImageURL:    item.CoverImageURL,
+			Tags:             tags,
+			NextSession:      nextSession,
+		})
+	}
+
+	return eventListResponse{
+		Items:  respItems,
+		Total:  total,
+		Limit:  limit,
+		Offset: offset,
 	}
 }
 
-func toPlaceCardResponses(items []placemodel.PlaceCard) []placeCardResponse {
-	resp := make([]placeCardResponse, 0, len(items))
-	for _, item := range items {
-		resp = append(resp, placeCardResponse{
-			ID:               item.ID,
-			Title:            item.Title,
-			Categories:       item.Categories,
-			LikeCount:        item.LikeCount,
-			ShortDescription: item.ShortDescription,
-			Address:          item.Address,
-			ImageURL:         item.ImageURL,
+func toEventDetailsResponse(item placemodel.EventDetailsView) eventDetailsResponse {
+	categories := make([]taxonomyItemResponse, 0, len(item.Categories))
+	for _, category := range item.Categories {
+		categories = append(categories, taxonomyItemResponse{
+			ID:   category.ID,
+			Name: category.Name,
+			Slug: category.Slug,
 		})
 	}
-	return resp
+
+	tags := make([]taxonomyItemResponse, 0, len(item.Tags))
+	for _, tag := range item.Tags {
+		tags = append(tags, taxonomyItemResponse{
+			ID:   tag.ID,
+			Name: tag.Name,
+			Slug: tag.Slug,
+		})
+	}
+
+	images := make([]eventImageResponse, 0, len(item.Images))
+	for _, image := range item.Images {
+		images = append(images, eventImageResponse{
+			ID:       image.ID,
+			ImageURL: image.ImageURL,
+		})
+	}
+
+	sessions := make([]eventSessionResponse, 0, len(item.Sessions))
+	for _, session := range item.Sessions {
+		sessions = append(sessions, eventSessionResponse{
+			ID:      session.ID,
+			StartAt: session.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
+			EndAt:   session.EndAt.UTC().Format("2006-01-02T15:04:05Z"),
+			Price:   session.Price,
+			Place: eventSessionPlaceResponse{
+				ID:          session.Place.ID,
+				Name:        session.Place.Name,
+				AddressLine: session.Place.AddressLine,
+				Latitude:    session.Place.Latitude,
+				Longitude:   session.Place.Longitude,
+				City: eventSessionPlaceCityResponse{
+					ID:          session.Place.City.ID,
+					Name:        session.Place.City.Name,
+					CountryName: session.Place.City.CountryName,
+					Timezone:    session.Place.City.Timezone,
+				},
+			},
+		})
+	}
+
+	return eventDetailsResponse{
+		ID:               item.ID,
+		Title:            item.Title,
+		ShortDescription: item.ShortDescription,
+		FullDescription:  item.FullDescription,
+		AgeLimit:         item.AgeLimit,
+		SourceURL:        item.SourceURL,
+		Author: eventAuthorResponse{
+			ID:        item.Author.ID,
+			Username:  item.Author.Username,
+			AvatarURL: item.Author.AvatarURL,
+		},
+		Categories: categories,
+		Tags:       tags,
+		Images:     images,
+		Sessions:   sessions,
+		CreatedAt:  item.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:  item.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		IsFavorite: item.IsFavorite,
+		IsOwner:    item.IsOwner,
+	}
 }
 
 func toHomePayloadResponse(p placemodel.HomePayload) homePayloadResponse {
-	places := make([]homePlaceCardResponse, 0, len(p.Places))
-	for _, place := range p.Places {
-		places = append(places, homePlaceCardResponse{
-			ID:          place.ID,
-			ImageURL:    place.ImageURL,
-			Title:       place.Title,
-			Description: place.Description,
+	featuredEvents := make([]homeFeaturedEventResponse, 0, len(p.FeaturedEvents))
+	for _, item := range p.FeaturedEvents {
+		tags := make([]homeTagResponse, 0, len(item.Tags))
+		for _, tag := range item.Tags {
+			tags = append(tags, homeTagResponse{
+				ID:   tag.ID,
+				Name: tag.Name,
+				Slug: tag.Slug,
+			})
+		}
+
+		featuredEvents = append(featuredEvents, homeFeaturedEventResponse{
+			ID:            item.ID,
+			Title:         item.Title,
+			CoverImageURL: item.CoverImageURL,
+			Tags:          tags,
+			NextSession: homeNextSessionResponse{
+				StartAt: item.NextSession.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
+				Place: homeNextSessionPlaceResponse{
+					Name:        item.NextSession.Place.Name,
+					AddressLine: item.NextSession.Place.AddressLine,
+				},
+			},
 		})
 	}
 
-	moodLeft := make([]moodCardResponse, 0, len(p.MoodLeft))
-	for _, mood := range p.MoodLeft {
-		moodLeft = append(moodLeft, moodCardResponse{
-			ID:       mood.ID,
-			ImageURL: mood.ImageURL,
-			Title:    mood.Title,
-			Modifier: mood.Modifier,
+	categories := make([]homeCategoryResponse, 0, len(p.Categories))
+	for _, item := range p.Categories {
+		categories = append(categories, homeCategoryResponse{
+			ID:   item.ID,
+			Name: item.Name,
+			Slug: item.Slug,
+		})
+	}
+
+	collections := make([]homeCollectionResponse, 0, len(p.Collections))
+	for _, item := range p.Collections {
+		collections = append(collections, homeCollectionResponse{
+			ID:          item.ID,
+			Title:       item.Title,
+			Description: item.Description,
+			ImageURL:    item.ImageURL,
 		})
 	}
 
 	return homePayloadResponse{
-		Places:   places,
-		MoodLeft: moodLeft,
-		MoodTall: homeMoodTallResponse{
-			ID:       p.MoodTall.ID,
-			ImageURL: p.MoodTall.ImageURL,
-			Title:    p.MoodTall.Title,
-		},
+		FeaturedEvents: featuredEvents,
+		Categories:     categories,
+		Collections:    collections,
 	}
 }
