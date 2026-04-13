@@ -5,34 +5,7 @@ import placemodel "cityhawk/backend/internal/place/model"
 func toEventListResponse(items []placemodel.EventCardView, total, limit, offset int) eventListResponse {
 	respItems := make([]eventCardResponse, 0, len(items))
 	for _, item := range items {
-		tags := make([]taxonomyItemResponse, 0, len(item.Tags))
-		for _, tag := range item.Tags {
-			tags = append(tags, taxonomyItemResponse{
-				ID:   tag.ID,
-				Name: tag.Name,
-				Slug: tag.Slug,
-			})
-		}
-
-		var nextSession *eventCardNextSessionResponse
-		if item.NextSession != nil {
-			nextSession = &eventCardNextSessionResponse{
-				StartAt: item.NextSession.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
-				Place: eventCardNextSessionPlaceResponse{
-					Name:        item.NextSession.Place.Name,
-					AddressLine: item.NextSession.Place.AddressLine,
-				},
-			}
-		}
-
-		respItems = append(respItems, eventCardResponse{
-			ID:               item.ID,
-			Title:            item.Title,
-			ShortDescription: item.ShortDescription,
-			CoverImageURL:    item.CoverImageURL,
-			Tags:             tags,
-			NextSession:      nextSession,
-		})
+		respItems = append(respItems, toEventCardResponse(item))
 	}
 
 	return eventListResponse{
@@ -116,6 +89,68 @@ func toEventDetailsResponse(item placemodel.EventDetailsView) eventDetailsRespon
 	}
 }
 
+func toCategoriesResponse(items []placemodel.HomeCategory) categoriesResponse {
+	respItems := make([]taxonomyItemResponse, 0, len(items))
+	for _, item := range items {
+		respItems = append(respItems, taxonomyItemResponse{
+			ID:   item.ID,
+			Name: item.Name,
+			Slug: item.Slug,
+		})
+	}
+	return categoriesResponse{Items: respItems}
+}
+
+func toTagsResponse(items []placemodel.HomeTag) tagsResponse {
+	respItems := make([]taxonomyItemResponse, 0, len(items))
+	for _, item := range items {
+		respItems = append(respItems, taxonomyItemResponse{
+			ID:   item.ID,
+			Name: item.Name,
+			Slug: item.Slug,
+		})
+	}
+	return tagsResponse{Items: respItems}
+}
+
+func toCollectionsResponse(items []placemodel.CollectionCardView) collectionsResponse {
+	respItems := make([]collectionCardResponse, 0, len(items))
+	for _, item := range items {
+		respItems = append(respItems, collectionCardResponse{
+			ID:          item.ID,
+			Title:       item.Title,
+			Description: item.Description,
+			ImageURL:    item.ImageURL,
+			IsPublic:    item.IsPublic,
+		})
+	}
+	return collectionsResponse{Items: respItems}
+}
+
+func toCollectionDetailsResponse(item placemodel.CollectionDetailsView) collectionDetailsResponse {
+	events := make([]eventCardResponse, 0, len(item.Events))
+	for _, event := range item.Events {
+		events = append(events, toEventCardResponse(event))
+	}
+
+	return collectionDetailsResponse{
+		ID:          item.ID,
+		Title:       item.Title,
+		Description: item.Description,
+		ImageURL:    item.ImageURL,
+		IsPublic:    item.IsPublic,
+		Events:      events,
+	}
+}
+
+func toSearchSuggestionsResponse(items []placemodel.SearchSuggestion) searchSuggestionsResponse {
+	respItems := make([]string, 0, len(items))
+	for _, item := range items {
+		respItems = append(respItems, item.Name)
+	}
+	return searchSuggestionsResponse{Items: respItems}
+}
+
 func toHomePayloadResponse(p placemodel.HomePayload) homePayloadResponse {
 	featuredEvents := make([]homeFeaturedEventResponse, 0, len(p.FeaturedEvents))
 	for _, item := range p.FeaturedEvents {
@@ -166,5 +201,36 @@ func toHomePayloadResponse(p placemodel.HomePayload) homePayloadResponse {
 		FeaturedEvents: featuredEvents,
 		Categories:     categories,
 		Collections:    collections,
+	}
+}
+
+func toEventCardResponse(item placemodel.EventCardView) eventCardResponse {
+	tags := make([]taxonomyItemResponse, 0, len(item.Tags))
+	for _, tag := range item.Tags {
+		tags = append(tags, taxonomyItemResponse{
+			ID:   tag.ID,
+			Name: tag.Name,
+			Slug: tag.Slug,
+		})
+	}
+
+	var nextSession *eventCardNextSessionResponse
+	if item.NextSession != nil {
+		nextSession = &eventCardNextSessionResponse{
+			StartAt: item.NextSession.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
+			Place: eventCardNextSessionPlaceResponse{
+				Name:        item.NextSession.Place.Name,
+				AddressLine: item.NextSession.Place.AddressLine,
+			},
+		}
+	}
+
+	return eventCardResponse{
+		ID:               item.ID,
+		Title:            item.Title,
+		ShortDescription: item.ShortDescription,
+		CoverImageURL:    item.CoverImageURL,
+		Tags:             tags,
+		NextSession:      nextSession,
 	}
 }

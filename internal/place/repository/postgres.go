@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	placemodel "cityhawk/backend/internal/place/model"
@@ -42,6 +43,18 @@ type homeCollectionRow struct {
 	ImageURL    string
 }
 
+type collectionCardRow struct {
+	ID          string
+	Title       string
+	Description string
+	ImageURL    string
+	IsPublic    bool
+}
+
+type searchSuggestionRow struct {
+	Name string
+}
+
 type eventListRow struct {
 	ID            string
 	Title         string
@@ -60,11 +73,84 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 }
 
 func (r *PostgresRepository) HomePayload(ctx context.Context) placemodel.HomePayload {
+	var (
+		featuredEvents []placemodel.HomeFeaturedEvent
+		categories     []placemodel.HomeCategory
+		collections    []placemodel.HomeCollection
+		wg             sync.WaitGroup
+	)
+
+	wg.Add(3)
+
+	go func() {
+		defer wg.Done()
+		featuredEvents = r.ListFeaturedEvents(ctx, 8)
+	}()
+
+	go func() {
+		defer wg.Done()
+		categories = r.ListHomeCategories(ctx, 8)
+	}()
+
+	go func() {
+		defer wg.Done()
+		collections = r.ListHomeCollections(ctx, 8)
+	}()
+
+	wg.Wait()
+
 	return placemodel.HomePayload{
-		FeaturedEvents: r.ListFeaturedEvents(ctx, 8),
-		Categories:     r.ListHomeCategories(ctx, 8),
-		Collections:    r.ListHomeCollections(ctx, 8),
+		FeaturedEvents: featuredEvents,
+		Categories:     categories,
+		Collections:    collections,
 	}
+}
+
+func (r *PostgresRepository) ListCategories(ctx context.Context) []placemodel.HomeCategory {
+	rows, err := r.pool.Query(ctx, `SELECT c.id::text, c.name FROM category c ORDER BY c.name ASC, c.id ASC`)
+	if err != nil {
+		return []placemodel.HomeCategory{}
+	}
+	defer rows.Close()
+
+	items := make([]placemodel.HomeCategory, 0)
+	for rows.Next() {
+		var row homeCategoryRow
+		if err := rows.Scan(&row.ID, &row.Name); err != nil {
+			return []placemodel.HomeCategory{}
+		}
+		items = append(items, placemodel.HomeCategory{ID: row.ID, Name: row.Name, Slug: slugify(row.Name)})
+	}
+	if rows.Err() != nil {
+		return []placemodel.HomeCategory{}
+	}
+	return items
+}
+
+func (r *PostgresRepository) ListTags(ctx context.Context) []placemodel.HomeTag {
+	rows, err := r.pool.Query(ctx, `SELECT t.id::text, t.name FROM tag t ORDER BY t.name ASC, t.id ASC`)
+	if err != nil {
+		return []placemodel.HomeTag{}
+	}
+	defer rows.Close()
+
+	items := make([]placemodel.HomeTag, 0)
+	for rows.Next() {
+		var id string
+		var name string
+		if err := rows.Scan(&id, &name); err != nil {
+			return []placemodel.HomeTag{}
+		}
+		items = append(items, placemodel.HomeTag{
+			ID:   id,
+			Name: name,
+			Slug: slugify(name),
+		})
+	}
+	if rows.Err() != nil {
+		return []placemodel.HomeTag{}
+	}
+	return items
 }
 
 func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int) []placemodel.HomeFeaturedEvent {
@@ -203,6 +289,165 @@ func (r *PostgresRepository) ListHomeCollections(ctx context.Context, limit int)
 		return []placemodel.HomeCollection{}
 	}
 	return items
+}
+
+func (r *PostgresRepository) ListCollections(ctx context.Context) ([]placemodel.CollectionCardView, error) {
+	const query = `
+		WITH first_image AS (
+			SELECT DISTINCT ON (ci.collection_id)
+				ci.collection_id,
+				ci.image_url
+			FROM collection_image ci
+			ORDER BY ci.collection_id, ci.created_at ASC, ci.id ASC
+		)
+		SELECT
+			c.id::text,
+			c.title,
+			COALESCE(c.description, '') AS description,
+			COALESCE(fi.image_url, '') AS image_url,
+			c.is_public
+		FROM collection c
+		LEFT JOIN first_image fi ON fi.collection_id = c.id
+		WHERE c.is_public = TRUE
+		ORDER BY c.created_at DESC, c.id ASC
+	`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]placemodel.CollectionCardView, 0)
+	for rows.Next() {
+		var row collectionCardRow
+		if err := rows.Scan(&row.ID, &row.Title, &row.Description, &row.ImageURL, &row.IsPublic); err != nil {
+			return nil, err
+		}
+		items = append(items, placemodel.CollectionCardView(row))
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+	return items, nil
+}
+
+func (r *PostgresRepository) GetCollectionByID(ctx context.Context, id string) (placemodel.CollectionDetailsView, bool, error) {
+	const baseQuery = `
+		WITH first_image AS (
+			SELECT DISTINCT ON (ci.collection_id)
+				ci.collection_id,
+				ci.image_url
+			FROM collection_image ci
+			ORDER BY ci.collection_id, ci.created_at ASC, ci.id ASC
+		)
+		SELECT
+			c.id::text,
+			c.title,
+			COALESCE(c.description, '') AS description,
+			COALESCE(fi.image_url, '') AS image_url,
+			c.is_public
+		FROM collection c
+		LEFT JOIN first_image fi ON fi.collection_id = c.id
+		WHERE c.id = $1 AND c.is_public = TRUE
+	`
+
+	var item placemodel.CollectionDetailsView
+	if err := r.pool.QueryRow(ctx, baseQuery, id).Scan(
+		&item.ID,
+		&item.Title,
+		&item.Description,
+		&item.ImageURL,
+		&item.IsPublic,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return placemodel.CollectionDetailsView{}, false, nil
+		}
+		return placemodel.CollectionDetailsView{}, false, err
+	}
+
+	events, err := r.fetchCollectionEvents(ctx, id)
+	if err != nil {
+		return placemodel.CollectionDetailsView{}, false, err
+	}
+	item.Events = events
+
+	return item, true, nil
+}
+
+func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string, limit int) ([]placemodel.SearchSuggestion, error) {
+	if limit <= 0 {
+		limit = 5
+	}
+
+	const sqlQuery = `
+		WITH candidates AS (
+			SELECT
+				e.title AS name,
+				similarity(lower(e.title), lower($1)) AS rank
+			FROM event e
+			WHERE lower(e.title) LIKE lower($1) || '%'
+			   OR e.title % $1
+			UNION ALL
+			SELECT
+				c.name AS name,
+				similarity(lower(c.name), lower($1)) AS rank
+			FROM category c
+			WHERE lower(c.name) LIKE lower($1) || '%'
+			   OR c.name % $1
+			UNION ALL
+			SELECT
+				t.name AS name,
+				similarity(lower(t.name), lower($1)) AS rank
+			FROM tag t
+			WHERE lower(t.name) LIKE lower($1) || '%'
+			   OR t.name % $1
+			UNION ALL
+			SELECT
+				col.title AS name,
+				similarity(lower(col.title), lower($1)) AS rank
+			FROM collection col
+			WHERE col.is_public = TRUE
+			  AND (
+					lower(col.title) LIKE lower($1) || '%'
+					OR col.title % $1
+			  )
+		),
+		deduped AS (
+			SELECT
+				name,
+				MAX(rank) AS rank
+			FROM candidates
+			GROUP BY name
+		)
+		SELECT name
+		FROM deduped
+		ORDER BY
+			CASE WHEN lower(name) LIKE lower($1) || '%' THEN 0 ELSE 1 END,
+			rank DESC,
+			char_length(name) ASC,
+			name ASC
+		LIMIT $2
+	`
+
+	rows, err := r.pool.Query(ctx, sqlQuery, query, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]placemodel.SearchSuggestion, 0, limit)
+	for rows.Next() {
+		var row searchSuggestionRow
+		if err := rows.Scan(&row.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, placemodel.SearchSuggestion{Name: row.Name})
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+	return items, nil
 }
 
 func (r *PostgresRepository) ListEvents(ctx context.Context, filter placemodel.EventListFilter) ([]placemodel.EventCardView, int, error) {
@@ -807,6 +1052,74 @@ func toEventCard(row eventListRow) placemodel.EventCardView {
 		Tags:             tags,
 		NextSession:      nextSession,
 	}
+}
+
+func (r *PostgresRepository) fetchCollectionEvents(ctx context.Context, collectionID string) ([]placemodel.EventCardView, error) {
+	const query = `
+		WITH first_image AS (
+			SELECT DISTINCT ON (ei.event_id)
+				ei.event_id,
+				ei.image_url
+			FROM event_image ei
+			ORDER BY ei.event_id, ei.created_at ASC, ei.id ASC
+		),
+		next_session AS (
+			SELECT DISTINCT ON (es.event_id)
+				es.event_id,
+				es.start_at,
+				p.name AS place_name,
+				p.address_line
+			FROM event_session es
+			JOIN place p ON p.id = es.place_id
+			ORDER BY es.event_id, es.start_at ASC, es.id ASC
+		),
+		tags AS (
+			SELECT
+				et.event_id,
+				ARRAY_AGG(t.id::text ORDER BY t.name, t.id) AS tag_ids,
+				ARRAY_AGG(t.name ORDER BY t.name, t.id) AS tag_names
+			FROM event_tag et
+			JOIN tag t ON t.id = et.tag_id
+			GROUP BY et.event_id
+		)
+		SELECT
+			e.id::text,
+			e.title,
+			e.location_description,
+			COALESCE(fi.image_url, '') AS cover_image_url,
+			COALESCE(tags.tag_ids, '{}'::text[]) AS tag_ids,
+			COALESCE(tags.tag_names, '{}'::text[]) AS tag_names,
+			ns.start_at,
+			COALESCE(ns.place_name, '') AS place_name,
+			COALESCE(ns.address_line, '') AS address_line,
+			0 AS total_count
+		FROM collection_event ce
+		JOIN event e ON e.id = ce.event_id
+		LEFT JOIN first_image fi ON fi.event_id = e.id
+		LEFT JOIN next_session ns ON ns.event_id = e.id
+		LEFT JOIN tags ON tags.event_id = e.id
+		WHERE ce.collection_id = $1
+		ORDER BY ce.created_at ASC, e.id ASC
+	`
+
+	rows, err := r.pool.Query(ctx, query, collectionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]placemodel.EventCardView, 0)
+	for rows.Next() {
+		var row eventListRow
+		if err := rows.Scan(&row.ID, &row.Title, &row.ShortDesc, &row.CoverImageURL, &row.TagIDs, &row.TagNames, &row.StartAt, &row.PlaceName, &row.AddressLine, &row.TotalCount); err != nil {
+			return nil, err
+		}
+		items = append(items, toEventCard(row))
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+	return items, nil
 }
 
 func toHomeFeaturedEvent(row homeFeaturedEventRow) placemodel.HomeFeaturedEvent {

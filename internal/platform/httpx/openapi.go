@@ -17,6 +17,9 @@ tags:
   - name: Auth
   - name: User
   - name: Events
+  - name: Search
+  - name: Tags
+  - name: Collections
 paths:
   /api/health:
     get:
@@ -551,6 +554,122 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/categories:
+    get:
+      tags: [Events]
+      summary: Get categories
+      responses:
+        "200":
+          description: Categories list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoriesResponse'
+        "405":
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/tags:
+    get:
+      tags: [Tags]
+      summary: Get tags
+      responses:
+        "200":
+          description: Tags list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagsResponse'
+        "405":
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/collections:
+    get:
+      tags: [Collections]
+      summary: Get public collections
+      responses:
+        "200":
+          description: Collections list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionsResponse'
+        "405":
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/collections/{collectionId}:
+    get:
+      tags: [Collections]
+      summary: Get collection details
+      parameters:
+        - in: path
+          name: collectionId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Collection details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionDetails'
+        "404":
+          description: Collection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "405":
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/search:
+    get:
+      tags: [Search]
+      summary: Get search suggestions
+      parameters:
+        - in: query
+          name: query
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 5
+            maximum: 10
+      responses:
+        "200":
+          description: Search suggestions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchSuggestionsResponse'
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "405":
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     accessCookie:
@@ -944,6 +1063,64 @@ components:
       properties:
         id:
           type: string
+    CategoriesResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventTaxonomyItem'
+    TagsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventTaxonomyItem'
+    CollectionCard:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        isPublic:
+          type: boolean
+    CollectionsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionCard'
+    CollectionDetails:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        isPublic:
+          type: boolean
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventCard'
+    SearchSuggestionsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: string
     HomeTag:
       type: object
       properties:

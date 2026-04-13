@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -80,6 +81,141 @@ func (r *InMemoryRepository) HomePayload(_ context.Context) placemodel.HomePaylo
 	}
 }
 
+func (r *InMemoryRepository) ListCategories(_ context.Context) []placemodel.HomeCategory {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	categoriesSet := map[string]placemodel.HomeCategory{}
+	for _, id := range r.order {
+		event := r.byID[id]
+		for _, category := range event.Categories {
+			categoriesSet[category.ID] = placemodel.HomeCategory{
+				ID:   category.ID,
+				Name: category.Name,
+				Slug: category.Slug,
+			}
+		}
+	}
+
+	items := make([]placemodel.HomeCategory, 0, len(categoriesSet))
+	for _, category := range categoriesSet {
+		items = append(items, category)
+	}
+	return items
+}
+
+func (r *InMemoryRepository) ListTags(_ context.Context) []placemodel.HomeTag {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	tagsSet := map[string]placemodel.HomeTag{}
+	for _, id := range r.order {
+		event := r.byID[id]
+		for _, tag := range event.Tags {
+			tagsSet[tag.ID] = placemodel.HomeTag{
+				ID:   tag.ID,
+				Name: tag.Name,
+				Slug: tag.Slug,
+			}
+		}
+	}
+
+	items := make([]placemodel.HomeTag, 0, len(tagsSet))
+	for _, tag := range tagsSet {
+		items = append(items, tag)
+	}
+	return items
+}
+
+func (r *InMemoryRepository) ListCollections(_ context.Context) ([]placemodel.CollectionCardView, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return []placemodel.CollectionCardView{
+		{
+			ID:          "weekend-picks",
+			Title:       "Weekend Picks",
+			Description: "Best events for weekend",
+			ImageURL:    "https://example.com/collection.jpg",
+			IsPublic:    true,
+		},
+	}, nil
+}
+
+func (r *InMemoryRepository) GetCollectionByID(_ context.Context, id string) (placemodel.CollectionDetailsView, bool, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if id != "weekend-picks" {
+		return placemodel.CollectionDetailsView{}, false, nil
+	}
+
+	events := make([]placemodel.EventCardView, 0, min(2, len(r.order)))
+	for i, eventID := range r.order {
+		if i >= 2 {
+			break
+		}
+		events = append(events, toCard(r.byID[eventID]))
+	}
+
+	return placemodel.CollectionDetailsView{
+		ID:          "weekend-picks",
+		Title:       "Weekend Picks",
+		Description: "Best events for weekend",
+		ImageURL:    "https://example.com/collection.jpg",
+		IsPublic:    true,
+		Events:      events,
+	}, true, nil
+}
+
+func (r *InMemoryRepository) SearchSuggestions(_ context.Context, query string, limit int) ([]placemodel.SearchSuggestion, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	query = strings.ToLower(strings.TrimSpace(query))
+	if limit <= 0 {
+		limit = 5
+	}
+
+	seen := map[string]struct{}{}
+	items := make([]placemodel.SearchSuggestion, 0)
+
+	add := func(name string) {
+		key := strings.ToLower(strings.TrimSpace(name))
+		if key == "" {
+			return
+		}
+		if !strings.Contains(key, query) && !strings.HasPrefix(key, query) {
+			return
+		}
+		if _, ok := seen[key]; ok {
+			return
+		}
+		seen[key] = struct{}{}
+		items = append(items, placemodel.SearchSuggestion{Name: name})
+	}
+
+	for _, id := range r.order {
+		event := r.byID[id]
+		add(event.Title)
+		for _, category := range event.Categories {
+			add(category.Name)
+		}
+		for _, tag := range event.Tags {
+			add(tag.Name)
+		}
+	}
+	add("Weekend Picks")
+
+	sort.Slice(items, func(i, j int) bool {
+		return strings.ToLower(items[i].Name) < strings.ToLower(items[j].Name)
+	})
+	if len(items) > limit {
+		items = items[:limit]
+	}
+	return items, nil
+}
+
 func (r *InMemoryRepository) ListEvents(_ context.Context, filter placemodel.EventListFilter) ([]placemodel.EventCardView, int, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -119,11 +255,18 @@ func (r *InMemoryRepository) GetByID(_ context.Context, id, userID string) (plac
 }
 
 func (r *InMemoryRepository) CreateEvent(_ context.Context, input placemodel.EventWriteInput) (string, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	eventID := generateID("event", &r.nextEventID)
 	now := time.Now().UTC()
+	categoryItems := buildTaxonomyItems(derefStringSlice(input.CategoryIDs))
+	tagItems := buildTaxonomyItems(derefStringSlice(input.TagIDs))
+	imageURLs := derefStringSlice(input.ImageURLs)
+	sessionInputs := derefSessions(input.Sessions)
+
+	r.mu.Lock()
+	eventID := generateID("event", &r.nextEventID)
+	imageIDs := reserveIDs("image", &r.nextImageID, len(imageURLs))
+	sessionIDs := reserveIDs("session", &r.nextSessID, len(sessionInputs))
+	r.mu.Unlock()
+
 	event := placemodel.EventDetailsView{
 		ID:               eventID,
 		Title:            derefStringLocal(input.Title),
@@ -135,23 +278,72 @@ func (r *InMemoryRepository) CreateEvent(_ context.Context, input placemodel.Eve
 			ID:       input.AuthorUserID,
 			Username: "author",
 		},
-		Categories: buildTaxonomyItems(derefStringSlice(input.CategoryIDs)),
-		Tags:       buildTaxonomyItems(derefStringSlice(input.TagIDs)),
-		Images:     buildImageItems(derefStringSlice(input.ImageURLs), &r.nextImageID),
-		Sessions:   buildSessionItems(derefSessions(input.Sessions), &r.nextSessID),
+		Categories: categoryItems,
+		Tags:       tagItems,
+		Images:     buildImageItemsWithIDs(imageURLs, imageIDs),
+		Sessions:   buildSessionItemsWithIDs(sessionInputs, sessionIDs),
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}
+
+	r.mu.Lock()
 	r.byID[eventID] = event
 	r.order = append([]string{eventID}, r.order...)
+	r.mu.Unlock()
 	return eventID, nil
 }
 
 func (r *InMemoryRepository) UpdateEvent(_ context.Context, input placemodel.EventWriteInput) (bool, error) {
+	r.mu.RLock()
+	event, ok := r.byID[input.ID]
+	if !ok {
+		r.mu.RUnlock()
+		return false, nil
+	}
+	if event.Author.ID != input.AuthorUserID {
+		r.mu.RUnlock()
+		return false, platformerrors.ErrForbidden
+	}
+	r.mu.RUnlock()
+
+	var categoryItems []placemodel.EventTaxonomyItem
+	if input.CategoryIDs != nil {
+		categoryItems = buildTaxonomyItems(*input.CategoryIDs)
+	}
+
+	var tagItems []placemodel.EventTaxonomyItem
+	if input.TagIDs != nil {
+		tagItems = buildTaxonomyItems(*input.TagIDs)
+	}
+
+	var imageIDs []string
+	if input.ImageURLs != nil {
+		r.mu.Lock()
+		imageIDs = reserveIDs("image", &r.nextImageID, len(*input.ImageURLs))
+		r.mu.Unlock()
+	}
+
+	var sessionIDs []string
+	if input.Sessions != nil {
+		r.mu.Lock()
+		sessionIDs = reserveIDs("session", &r.nextSessID, len(*input.Sessions))
+		r.mu.Unlock()
+	}
+
+	var imageItems []placemodel.EventImageView
+	if input.ImageURLs != nil {
+		imageItems = buildImageItemsWithIDs(*input.ImageURLs, imageIDs)
+	}
+
+	var sessionItems []placemodel.EventSessionView
+	if input.Sessions != nil {
+		sessionItems = buildSessionItemsWithIDs(*input.Sessions, sessionIDs)
+	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	event, ok := r.byID[input.ID]
+	event, ok = r.byID[input.ID]
 	if !ok {
 		return false, nil
 	}
@@ -178,16 +370,16 @@ func (r *InMemoryRepository) UpdateEvent(_ context.Context, input placemodel.Eve
 		event.SourceURL = nil
 	}
 	if input.CategoryIDs != nil {
-		event.Categories = buildTaxonomyItems(*input.CategoryIDs)
+		event.Categories = categoryItems
 	}
 	if input.TagIDs != nil {
-		event.Tags = buildTaxonomyItems(*input.TagIDs)
+		event.Tags = tagItems
 	}
 	if input.ImageURLs != nil {
-		event.Images = buildImageItems(*input.ImageURLs, &r.nextImageID)
+		event.Images = imageItems
 	}
 	if input.Sessions != nil {
-		event.Sessions = buildSessionItems(*input.Sessions, &r.nextSessID)
+		event.Sessions = sessionItems
 	}
 	event.UpdatedAt = time.Now().UTC()
 	r.byID[input.ID] = event
@@ -292,18 +484,26 @@ func buildTaxonomyItems(ids []string) []placemodel.EventTaxonomyItem {
 }
 
 func buildImageItems(urls []string, next *int) []placemodel.EventImageView {
+	return buildImageItemsWithIDs(urls, reserveIDs("image", next, len(urls)))
+}
+
+func buildImageItemsWithIDs(urls, ids []string) []placemodel.EventImageView {
 	items := make([]placemodel.EventImageView, 0, len(urls))
-	for _, imageURL := range urls {
-		items = append(items, placemodel.EventImageView{ID: generateID("image", next), ImageURL: imageURL})
+	for i, imageURL := range urls {
+		items = append(items, placemodel.EventImageView{ID: ids[i], ImageURL: imageURL})
 	}
 	return items
 }
 
 func buildSessionItems(sessions []placemodel.EventSessionInput, next *int) []placemodel.EventSessionView {
+	return buildSessionItemsWithIDs(sessions, reserveIDs("session", next, len(sessions)))
+}
+
+func buildSessionItemsWithIDs(sessions []placemodel.EventSessionInput, ids []string) []placemodel.EventSessionView {
 	items := make([]placemodel.EventSessionView, 0, len(sessions))
-	for _, session := range sessions {
+	for i, session := range sessions {
 		items = append(items, placemodel.EventSessionView{
-			ID:      generateID("session", next),
+			ID:      ids[i],
 			StartAt: session.StartAt,
 			EndAt:   session.EndAt,
 			Price:   session.Price,
@@ -338,8 +538,19 @@ func derefSessions(value *[]placemodel.EventSessionInput) []placemodel.EventSess
 }
 
 func generateID(prefix string, next *int) string {
+	if next == nil {
+		panic("generateID: next must not be nil")
+	}
 	*next = *next + 1
 	return prefix + "-" + strconv.Itoa(*next)
+}
+
+func reserveIDs(prefix string, next *int, count int) []string {
+	ids := make([]string, 0, count)
+	for range count {
+		ids = append(ids, generateID(prefix, next))
+	}
+	return ids
 }
 
 func derefStringLocal(value *string) string {

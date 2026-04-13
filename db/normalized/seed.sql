@@ -19,16 +19,29 @@ ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO category (name)
 VALUES
-    ('park'),
-    ('exhibition'),
-    ('family'),
-    ('show'),
-    ('comedy'),
-    ('theatre'),
-    ('museum'),
-    ('music'),
-    ('quest'),
-    ('photo')
+    ('Парк'),
+    ('Выставка'),
+    ('Семья'),
+    ('Шоу'),
+    ('Стендап'),
+    ('Театр'),
+    ('Музей'),
+    ('Музыка'),
+    ('Квест'),
+    ('Фото')
+ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO tag (name)
+VALUES
+    ('Иммерсивное'),
+    ('Семейное'),
+    ('Ледовое шоу'),
+    ('Стендап'),
+    ('Балет'),
+    ('Искусство'),
+    ('Рок'),
+    ('Ретро'),
+    ('Квест')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO place (city_id, name, address_line, latitude, longitude, description)
@@ -143,23 +156,85 @@ SELECT
     c.id
 FROM (
     VALUES
-        ('Futurione', 'park'),
-        ('Futurione', 'exhibition'),
-        ('Futurione', 'family'),
-        ('Ледовое шоу Татьяны Навки', 'show'),
-        ('Ледовое шоу Татьяны Навки', 'family'),
-        ('Женский стендап', 'show'),
-        ('Женский стендап', 'comedy'),
-        ('Балет Щелкунчик', 'theatre'),
-        ('Искусство XX века', 'museum'),
-        ('Искусство XX века', 'photo'),
-        ('Рок-концерт', 'music'),
-        ('Руки Вверх', 'music'),
-        ('Квест Искупление', 'quest')
+        ('Futurione', 'Парк'),
+        ('Futurione', 'Выставка'),
+        ('Futurione', 'Семья'),
+        ('Ледовое шоу Татьяны Навки', 'Шоу'),
+        ('Ледовое шоу Татьяны Навки', 'Семья'),
+        ('Женский стендап', 'Шоу'),
+        ('Женский стендап', 'Стендап'),
+        ('Балет Щелкунчик', 'Театр'),
+        ('Искусство XX века', 'Музей'),
+        ('Искусство XX века', 'Фото'),
+        ('Рок-концерт', 'Музыка'),
+        ('Руки Вверх', 'Музыка'),
+        ('Квест Искупление', 'Квест')
 ) AS v(event_title, category_name)
 JOIN event e ON e.title = v.event_title
 JOIN category c ON c.name = v.category_name
 ON CONFLICT (event_id, category_id) DO NOTHING;
+
+INSERT INTO event_tag (event_id, tag_id)
+SELECT
+    e.id,
+    t.id
+FROM (
+    VALUES
+        ('Futurione', 'Иммерсивное'),
+        ('Futurione', 'Семейное'),
+        ('Ледовое шоу Татьяны Навки', 'Ледовое шоу'),
+        ('Ледовое шоу Татьяны Навки', 'Семейное'),
+        ('Женский стендап', 'Стендап'),
+        ('Балет Щелкунчик', 'Балет'),
+        ('Искусство XX века', 'Искусство'),
+        ('Рок-концерт', 'Рок'),
+        ('Руки Вверх', 'Ретро'),
+        ('Квест Искупление', 'Квест')
+) AS v(event_title, tag_name)
+JOIN event e ON e.title = v.event_title
+JOIN tag t ON t.name = v.tag_name
+ON CONFLICT (event_id, tag_id) DO NOTHING;
+
+INSERT INTO collection (author_user_id, title, description, is_public)
+SELECT
+    u.id,
+    'Выбор на выходные',
+    'Подборка лучших событий на выходные',
+    TRUE
+FROM user_account u
+WHERE u.email = 'seed.author@cityhawk.local'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM collection c
+      WHERE c.title = 'Выбор на выходные' AND c.author_user_id = u.id
+  );
+
+INSERT INTO collection_image (collection_id, image_url)
+SELECT
+    c.id,
+    'https://example.com/collection.jpg'
+FROM collection c
+WHERE c.title = 'Выбор на выходные'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM collection_image ci
+      WHERE ci.collection_id = c.id
+        AND ci.image_url = 'https://example.com/collection.jpg'
+  );
+
+INSERT INTO collection_event (collection_id, event_id)
+SELECT
+    c.id,
+    e.id
+FROM (
+    VALUES
+        ('Выбор на выходные', 'Futurione'),
+        ('Выбор на выходные', 'Рок-концерт'),
+        ('Выбор на выходные', 'Ледовое шоу Татьяны Навки')
+) AS v(collection_title, event_title)
+JOIN collection c ON c.title = v.collection_title
+JOIN event e ON e.title = v.event_title
+ON CONFLICT (collection_id, event_id) DO NOTHING;
 
 INSERT INTO favorite_event (user_id, event_id)
 SELECT

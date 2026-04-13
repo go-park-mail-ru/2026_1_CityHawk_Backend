@@ -89,6 +89,39 @@ type eventIDResponse struct {
 	ID string `json:"id"`
 }
 
+type categoriesResponse struct {
+	Items []taxonomyItemResponse `json:"items"`
+}
+
+type tagsResponse struct {
+	Items []taxonomyItemResponse `json:"items"`
+}
+
+type collectionCardResponse struct {
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	ImageURL    string `json:"imageUrl"`
+	IsPublic    bool   `json:"isPublic"`
+}
+
+type collectionsResponse struct {
+	Items []collectionCardResponse `json:"items"`
+}
+
+type collectionDetailsResponse struct {
+	ID          string              `json:"id"`
+	Title       string              `json:"title"`
+	Description string              `json:"description"`
+	ImageURL    string              `json:"imageUrl"`
+	IsPublic    bool                `json:"isPublic"`
+	Events      []eventCardResponse `json:"events"`
+}
+
+type searchSuggestionsResponse struct {
+	Items []string `json:"items"`
+}
+
 type homeTagResponse struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`

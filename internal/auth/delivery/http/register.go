@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	authmodel "cityhawk/backend/internal/auth/model"
 	authvalidation "cityhawk/backend/internal/auth/validation"
 	platformerrors "cityhawk/backend/internal/platform/errors"
 	"cityhawk/backend/internal/platform/httpx"
@@ -19,7 +20,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.authUC.Register(r.Context(), req.Email, req.Username, req.UserSurname, req.Password, req.Birthday, req.CityID)
+	resp, err := h.authUC.Register(r.Context(), authmodel.RegisterInput{
+		Email:       req.Email,
+		Username:    req.Username,
+		UserSurname: req.UserSurname,
+		Password:    req.Password,
+		Birthday:    req.Birthday,
+		CityID:      req.CityID,
+	})
 	if err != nil {
 		var validationErr authvalidation.ValidationError
 		switch {
@@ -32,7 +40,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, platformerrors.ErrInternal):
 			httpx.WriteJSON(w, http.StatusInternalServerError, httpx.NewErrorResponse("internal error", nil))
 		default:
-			httpx.WriteJSON(w, http.StatusBadRequest, httpx.NewErrorResponse(err.Error(), nil))
+			httpx.WriteJSON(w, http.StatusInternalServerError, httpx.NewErrorResponse("internal error", nil))
 		}
 		return
 	}

@@ -146,3 +146,136 @@ func TestHomeHandlerReturnsHomePayload(t *testing.T) {
 		t.Fatalf("home payload missing collections: %+v", payload)
 	}
 }
+
+func TestCategoriesHandlerReturnsCategories(t *testing.T) {
+	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
+	handler := placedelivery.NewHandler(placeusecase.NewService(repo))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/categories", nil)
+	rec := httptest.NewRecorder()
+	http.HandlerFunc(handler.Categories).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("categories status = %d, want %d body=%s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	payload := decodeJSONMap(t, rec.Body)
+	items, ok := payload["items"].([]any)
+	if !ok || len(items) == 0 {
+		t.Fatalf("categories payload missing items: %+v", payload)
+	}
+
+	badReq := httptest.NewRequest(http.MethodPost, "/api/categories", nil)
+	badRec := httptest.NewRecorder()
+	http.HandlerFunc(handler.Categories).ServeHTTP(badRec, badReq)
+	if badRec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("bad method status = %d, want %d", badRec.Code, http.StatusMethodNotAllowed)
+	}
+}
+
+func TestTagsHandlerReturnsTags(t *testing.T) {
+	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
+	handler := placedelivery.NewHandler(placeusecase.NewService(repo))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/tags", nil)
+	rec := httptest.NewRecorder()
+	http.HandlerFunc(handler.Tags).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("tags status = %d, want %d body=%s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	payload := decodeJSONMap(t, rec.Body)
+	items, ok := payload["items"].([]any)
+	if !ok || len(items) == 0 {
+		t.Fatalf("tags payload missing items: %+v", payload)
+	}
+
+	badReq := httptest.NewRequest(http.MethodPost, "/api/tags", nil)
+	badRec := httptest.NewRecorder()
+	http.HandlerFunc(handler.Tags).ServeHTTP(badRec, badReq)
+	if badRec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("bad method status = %d, want %d", badRec.Code, http.StatusMethodNotAllowed)
+	}
+}
+
+func TestCollectionsHandlers(t *testing.T) {
+	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
+	handler := placedelivery.NewHandler(placeusecase.NewService(repo))
+
+	t.Run("list collections", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/collections", nil)
+		rec := httptest.NewRecorder()
+		http.HandlerFunc(handler.Collections).ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("collections status = %d, want %d body=%s", rec.Code, http.StatusOK, rec.Body.String())
+		}
+
+		payload := decodeJSONMap(t, rec.Body)
+		items, ok := payload["items"].([]any)
+		if !ok || len(items) == 0 {
+			t.Fatalf("collections payload missing items: %+v", payload)
+		}
+
+		badReq := httptest.NewRequest(http.MethodPost, "/api/collections", nil)
+		badRec := httptest.NewRecorder()
+		http.HandlerFunc(handler.Collections).ServeHTTP(badRec, badReq)
+		if badRec.Code != http.StatusMethodNotAllowed {
+			t.Fatalf("bad method status = %d, want %d", badRec.Code, http.StatusMethodNotAllowed)
+		}
+	})
+
+	t.Run("collection details", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/collections/weekend-picks", nil)
+		rec := httptest.NewRecorder()
+		http.HandlerFunc(handler.CollectionByID).ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("collection details status = %d, want %d body=%s", rec.Code, http.StatusOK, rec.Body.String())
+		}
+
+		payload := decodeJSONMap(t, rec.Body)
+		if payload["id"] != "weekend-picks" {
+			t.Fatalf("unexpected collection details response: %+v", payload)
+		}
+		if _, ok := payload["events"].([]any); !ok {
+			t.Fatalf("missing events in collection details: %+v", payload)
+		}
+
+		missingReq := httptest.NewRequest(http.MethodGet, "/api/collections/unknown", nil)
+		missingRec := httptest.NewRecorder()
+		http.HandlerFunc(handler.CollectionByID).ServeHTTP(missingRec, missingReq)
+		if missingRec.Code != http.StatusNotFound {
+			t.Fatalf("collection missing status = %d, want %d", missingRec.Code, http.StatusNotFound)
+		}
+	})
+}
+
+func TestSearchSuggestionsHandler(t *testing.T) {
+	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
+	handler := placedelivery.NewHandler(placeusecase.NewService(repo))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/search?query=ro&limit=5", nil)
+	rec := httptest.NewRecorder()
+	http.HandlerFunc(handler.Search).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("search status = %d, want %d body=%s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	payload := decodeJSONMap(t, rec.Body)
+	items, ok := payload["items"].([]any)
+	if !ok || len(items) == 0 {
+		t.Fatalf("search payload missing items: %+v", payload)
+	}
+
+	badReq := httptest.NewRequest(http.MethodGet, "/api/search?query=r", nil)
+	badRec := httptest.NewRecorder()
+	http.HandlerFunc(handler.Search).ServeHTTP(badRec, badReq)
+	if badRec.Code != http.StatusBadRequest {
+		t.Fatalf("bad query status = %d, want %d body=%s", badRec.Code, http.StatusBadRequest, badRec.Body.String())
+	}
+
+	badLimitReq := httptest.NewRequest(http.MethodGet, "/api/search?query=ro&limit=11", nil)
+	badLimitRec := httptest.NewRecorder()
+	http.HandlerFunc(handler.Search).ServeHTTP(badLimitRec, badLimitReq)
+	if badLimitRec.Code != http.StatusBadRequest {
+		t.Fatalf("bad limit status = %d, want %d body=%s", badLimitRec.Code, http.StatusBadRequest, badLimitRec.Body.String())
+	}
+}

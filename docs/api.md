@@ -744,59 +744,32 @@ GET /api/events?query=rock&categoryId=uuid&sort=dateAsc&limit=12&offset=0
 
 ## GET /api/search
 
-Поиск по мероприятиям, категориям и тегам.
+Подсказки для строки поиска.
 
 ### Query параметры
 
 - `query` — обязательная поисковая строка
+- `limit` — необязательный лимит подсказок, от `5` до `10`, по умолчанию `5`
 
 Пример:
 
 ```text
-GET /api/search?query=rock
+GET /api/search?query=ro&limit=5
 ```
 
 ### Успешный ответ
 
 ```json
 {
-  "events": [
-    {
-      "id": "uuid",
-      "title": "Rock concert",
-      "coverImageUrl": "https://example.com/event.jpg",
-      "tags": [
-        {
-          "id": "uuid",
-          "name": "Rock",
-          "slug": "rock"
-        }
-      ],
-      "nextSession": {
-        "startAt": "2026-03-30T19:00:00Z",
-        "place": {
-          "name": "Arena",
-          "addressLine": "Lenina 1"
-        }
-      }
-    }
-  ],
-  "categories": [
-    {
-      "id": "uuid",
-      "name": "Concert",
-      "slug": "concert"
-    }
-  ],
-  "tags": [
-    {
-      "id": "uuid",
-      "name": "Rock",
-      "slug": "rock"
-    }
-  ]
+  "items": ["Rock concert", "rock", "retro"]
 }
 ```
+
+### Правила
+
+- поиск начинается от `2` символов
+- подсказки возвращают только названия без дополнительных полей
+- в Postgres используется триграммный поиск
 
 ---
 

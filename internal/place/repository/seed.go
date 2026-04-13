@@ -9,8 +9,8 @@ import (
 func SeedPlaces() []placemodel.EventDetailsView {
 	city := placemodel.EventSessionPlaceCityView{
 		ID:          "city-moscow",
-		Name:        "Moscow",
-		CountryName: "Russia",
+		Name:        "Москва",
+		CountryName: "Россия",
 		Timezone:    "Europe/Moscow",
 	}
 
@@ -20,9 +20,9 @@ func SeedPlaces() []placemodel.EventDetailsView {
 	}
 
 	return []placemodel.EventDetailsView{
-		newSeedEvent("futurione", "Futurione", "ВДНХ, Москва", "Иммерсивная выставка Futurione на территории ВДНХ с мультимедийными инсталляциями и интерактивными зонами. Подходит для посещения с друзьями и семьей.", []string{"park", "exhibition", "family"}, []string{"park", "family"}, "https://example.com/futurione.jpg", "place-vdnh", "ВДНХ", "Москва, проспект Мира, 119", city, author, 0, nil, time.Date(2026, time.April, 12, 10, 0, 0, 0, time.UTC), time.Date(2026, time.April, 12, 22, 0, 0, 0, time.UTC), 1200),
-		newSeedEvent("navka-show", "Ледовое шоу Татьяны Навки", "10 февраля - 21 марта, Navka arena, Москва", "Большое ледовое шоу Татьяны Навки с постановочными номерами и театральной драматургией. Формат подходит для вечернего досуга и семейного похода.", []string{"show", "family"}, []string{"show", "family"}, "https://example.com/navka.jpg", "place-navka", "Navka Arena", "Москва, Navka arena", city, author, 6, nil, time.Date(2026, time.April, 13, 19, 0, 0, 0, time.UTC), time.Date(2026, time.April, 13, 21, 30, 0, 0, time.UTC), 2500),
-		newSeedEvent("rock-concert", "Рок-концерт", "20 марта, Атмосфера, Москва", "Большой рок-концерт с живым звуком и вечерней программой. Подходит для любителей концертного формата и активного отдыха.", []string{"concert", "music"}, []string{"rock", "music"}, "https://example.com/rock.jpg", "place-atmosphere", "Атмосфера", "Москва, Атмосфера", city, author, 12, strPtr("https://cityhawk.local/events/rock-concert"), time.Date(2026, time.April, 14, 19, 30, 0, 0, time.UTC), time.Date(2026, time.April, 14, 22, 30, 0, 0, time.UTC), 2200),
+		newSeedEvent("futurione", "Futurione", "ВДНХ, Москва", "Иммерсивная выставка Futurione на территории ВДНХ с мультимедийными инсталляциями и интерактивными зонами. Подходит для посещения с друзьями и семьей.", []string{"Парк", "Выставка", "Семья"}, []string{"Иммерсивное", "Семейное"}, "https://example.com/futurione.jpg", "place-vdnh", "ВДНХ", "Москва, проспект Мира, 119", city, author, 0, nil, time.Date(2026, time.April, 12, 10, 0, 0, 0, time.UTC), time.Date(2026, time.April, 12, 22, 0, 0, 0, time.UTC), 1200),
+		newSeedEvent("navka-show", "Ледовое шоу Татьяны Навки", "10 февраля - 21 марта, Navka arena, Москва", "Большое ледовое шоу Татьяны Навки с постановочными номерами и театральной драматургией. Формат подходит для вечернего досуга и семейного похода.", []string{"Шоу", "Семья"}, []string{"Ледовое шоу", "Семейное"}, "https://example.com/navka.jpg", "place-navka", "Navka Arena", "Москва, Navka arena", city, author, 6, nil, time.Date(2026, time.April, 13, 19, 0, 0, 0, time.UTC), time.Date(2026, time.April, 13, 21, 30, 0, 0, time.UTC), 2500),
+		newSeedEvent("rock-concert", "Рок-концерт", "20 марта, Атмосфера, Москва", "Большой рок-концерт с живым звуком и вечерней программой. Подходит для любителей концертного формата и активного отдыха.", []string{"Музыка"}, []string{"Рок"}, "https://example.com/rock.jpg", "place-atmosphere", "Атмосфера", "Москва, Атмосфера", city, author, 12, strPtr("https://cityhawk.local/events/rock-concert"), time.Date(2026, time.April, 14, 19, 30, 0, 0, time.UTC), time.Date(2026, time.April, 14, 22, 30, 0, 0, time.UTC), 2200),
 	}
 }
 

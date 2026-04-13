@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -48,6 +50,10 @@ type DatabaseConfig struct {
 }
 
 func LoadFromEnv() Config {
+	if err := godotenv.Load(); err != nil {
+		log.Println(".env not found, use system env")
+	}
+
 	port := getEnv("PORT", "8080")
 	secret := getEnv("JWT_SECRET", "")
 	if secret == "" {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	authmodel "cityhawk/backend/internal/auth/model"
 	authvalidation "cityhawk/backend/internal/auth/validation"
 	platformerrors "cityhawk/backend/internal/platform/errors"
 	"cityhawk/backend/internal/platform/httpx"
@@ -19,7 +20,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.authUC.Login(r.Context(), req.Email, req.Password)
+	resp, err := h.authUC.Login(r.Context(), authmodel.LoginInput{
+		Email:    req.Email,
+		Password: req.Password,
+	})
 	if err != nil {
 		var validationErr authvalidation.ValidationError
 		switch {
@@ -30,7 +34,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, platformerrors.ErrIssueTokens):
 			httpx.WriteJSON(w, http.StatusInternalServerError, httpx.NewErrorResponse("failed to issue tokens", nil))
 		default:
-			httpx.WriteJSON(w, http.StatusBadRequest, httpx.NewErrorResponse(err.Error(), nil))
+			httpx.WriteJSON(w, http.StatusInternalServerError, httpx.NewErrorResponse("internal error", nil))
 		}
 		return
 	}

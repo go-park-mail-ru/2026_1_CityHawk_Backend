@@ -42,8 +42,15 @@ func NewAuthFlowService(
 	}
 }
 
-func (s *AuthFlowService) Register(ctx context.Context, email, username, userSurname, password, birthday, cityID string) (authmodel.RegistrationResult, error) {
-	normalizedEmail, normalizedUsername, normalizedSurname, normalizedPassword, normalizedBirthday, normalizedCityID, err := authvalidation.ValidateRegister(email, username, userSurname, password, birthday, cityID)
+func (s *AuthFlowService) Register(ctx context.Context, input authmodel.RegisterInput) (authmodel.RegistrationResult, error) {
+	normalizedEmail, normalizedUsername, normalizedSurname, normalizedPassword, normalizedBirthday, normalizedCityID, err := authvalidation.ValidateRegister(
+		input.Email,
+		input.Username,
+		input.UserSurname,
+		input.Password,
+		input.Birthday,
+		input.CityID,
+	)
 	if err != nil {
 		return authmodel.RegistrationResult{}, err
 	}
@@ -80,8 +87,8 @@ func (s *AuthFlowService) Register(ctx context.Context, email, username, userSur
 	}, nil
 }
 
-func (s *AuthFlowService) Login(ctx context.Context, email, password string) (authmodel.SessionResult, error) {
-	normalizedEmail, normalizedPassword, err := authvalidation.ValidateLogin(email, password)
+func (s *AuthFlowService) Login(ctx context.Context, input authmodel.LoginInput) (authmodel.SessionResult, error) {
+	normalizedEmail, normalizedPassword, err := authvalidation.ValidateLogin(input.Email, input.Password)
 	if err != nil {
 		return authmodel.SessionResult{}, err
 	}

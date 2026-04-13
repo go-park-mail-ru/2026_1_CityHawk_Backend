@@ -1,5 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS btree_gist;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS trigger
@@ -696,3 +697,19 @@ CREATE TRIGGER set_notification_collection_updated_at
 BEFORE UPDATE ON notification_collection
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_event_title_trgm
+    ON event
+    USING gin (title gin_trgm_ops);
+
+CREATE INDEX IF NOT EXISTS idx_category_name_trgm
+    ON category
+    USING gin (name gin_trgm_ops);
+
+CREATE INDEX IF NOT EXISTS idx_tag_name_trgm
+    ON tag
+    USING gin (name gin_trgm_ops);
+
+CREATE INDEX IF NOT EXISTS idx_collection_title_trgm
+    ON collection
+    USING gin (title gin_trgm_ops);
