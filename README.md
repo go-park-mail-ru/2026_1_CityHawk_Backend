@@ -24,6 +24,8 @@ Runnable migrations лежат в:
 - `db/migrations/0002_seed.down.sql`
 - `db/migrations/0003_search_trgm.up.sql`
 - `db/migrations/0003_search_trgm.down.sql`
+- `db/migrations/0004_kudago_external_ids.up.sql`
+- `db/migrations/0004_kudago_external_ids.down.sql`
 
 Требования к окружению для локального запуска:
 
@@ -34,6 +36,12 @@ DB_USER=cityhawk
 DB_PASSWORD=cityhawk
 DB_NAME=cityhawk
 DB_SSLMODE=disable
+KUDAGO_ENABLED=false
+KUDAGO_BASE_URL=https://kudago.com/public-api/v1.4
+KUDAGO_LOCATION=msk
+KUDAGO_SYNC_INTERVAL=15m
+KUDAGO_REQUEST_TIMEOUT=20s
+KUDAGO_PAGE_SIZE=50
 ```
 
 Применить схему и сиды можно так:
@@ -48,6 +56,7 @@ make db-seed
 ```bash
 psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0001_init.up.sql
 psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0003_search_trgm.up.sql
+psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0004_kudago_external_ids.up.sql
 psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0002_seed.up.sql
 ```
 

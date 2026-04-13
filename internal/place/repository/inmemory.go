@@ -445,15 +445,23 @@ func buildImageItems(urls []string, next *int) []placemodel.EventImageView {
 func buildSessionItems(sessions []placemodel.EventSessionInput, next *int) []placemodel.EventSessionView {
 	items := make([]placemodel.EventSessionView, 0, len(sessions))
 	for _, session := range sessions {
+		placeID := session.PlaceID
+		if placeID == "" {
+			placeID = generateID("place", next)
+		}
+		placeName := session.PlaceName
+		if placeName == "" {
+			placeName = placeID
+		}
 		items = append(items, placemodel.EventSessionView{
 			ID:      generateID("session", next),
 			StartAt: session.StartAt,
 			EndAt:   session.EndAt,
 			Price:   session.Price,
 			Place: placemodel.EventSessionPlaceView{
-				ID:          session.PlaceID,
-				Name:        session.PlaceID,
-				AddressLine: "Address for " + session.PlaceID,
+				ID:          placeID,
+				Name:        placeName,
+				AddressLine: "Address for " + placeName,
 				City: placemodel.EventSessionPlaceCityView{
 					ID:          "city-1",
 					Name:        "Moscow",

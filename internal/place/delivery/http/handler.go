@@ -530,8 +530,9 @@ func validateSessions(items []eventSessionRequest) ([]placemodel.EventSessionInp
 
 	for i, item := range items {
 		placeID := strings.TrimSpace(item.PlaceID)
-		if placeID == "" {
-			details["sessions["+strconv.Itoa(i)+"].placeId"] = "placeId is required"
+		placeName := strings.TrimSpace(item.PlaceName)
+		if placeID == "" && placeName == "" {
+			details["sessions["+strconv.Itoa(i)+"].placeId"] = "placeId or placeName is required"
 			continue
 		}
 
@@ -555,10 +556,11 @@ func validateSessions(items []eventSessionRequest) ([]placemodel.EventSessionInp
 		}
 
 		sessions = append(sessions, placemodel.EventSessionInput{
-			PlaceID: placeID,
-			StartAt: startAt.UTC(),
-			EndAt:   endAt.UTC(),
-			Price:   item.Price,
+			PlaceID:   placeID,
+			PlaceName: placeName,
+			StartAt:   startAt.UTC(),
+			EndAt:     endAt.UTC(),
+			Price:     item.Price,
 		})
 	}
 

@@ -164,8 +164,8 @@ func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int) 
 			COALESCE(fi.image_url, '') AS cover_image_url,
 			COALESCE(tags.tag_ids, '{}'::text[]) AS tag_ids,
 			COALESCE(tags.tag_names, '{}'::text[]) AS tag_names,
-			ns.start_at,
-			COALESCE(ns.place_name, '') AS place_name,
+			COALESCE(ns.start_at, e.created_at) AS start_at,
+			COALESCE(ns.place_name, e.location_description) AS place_name,
 			COALESCE(ns.address_line, '') AS address_line
 		FROM event e
 		LEFT JOIN first_image fi ON fi.event_id = e.id
@@ -957,14 +957,93 @@ func replaceSessions(ctx context.Context, tx pgx.Tx, eventID string, sessions *[
 		return err
 	}
 	for _, session := range *sessions {
+		placeID, err := ensureSessionPlaceID(ctx, tx, session)
+		if err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO event_session (event_id, place_id, start_at, end_at, price)
 			VALUES ($1, $2, $3, $4, $5)
-		`, eventID, session.PlaceID, session.StartAt, session.EndAt, session.Price); err != nil {
+		`, eventID, placeID, session.StartAt, session.EndAt, session.Price); err != nil {
 			return mapPGError(err)
 		}
 	}
 	return nil
+}
+
+func ensureSessionPlaceID(ctx context.Context, tx pgx.Tx, session placemodel.EventSessionInput) (string, error) {
+	if session.PlaceID != "" {
+		return session.PlaceID, nil
+	}
+
+	placeName := strings.TrimSpace(session.PlaceName)
+	if placeName == "" {
+		return "", platformerrors.ErrInvalidReference
+	}
+
+	var placeID string
+	err := tx.QueryRow(ctx, `
+		SELECT p.id::text
+		FROM place p
+		WHERE lower(btrim(p.name)) = lower(btrim($1))
+		ORDER BY p.created_at ASC, p.id ASC
+		LIMIT 1
+	`, placeName).Scan(&placeID)
+	if err == nil {
+		return placeID, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return "", err
+	}
+
+	cityID, err := defaultCityID(ctx, tx)
+	if err != nil {
+		return "", err
+	}
+
+	err = tx.QueryRow(ctx, `
+		INSERT INTO place (city_id, name, address_line, latitude, longitude)
+		VALUES ($1, $2, $3, 0, 0)
+		RETURNING id::text
+	`, cityID, placeName, placeName).Scan(&placeID)
+	if err != nil {
+		return "", mapPGError(err)
+	}
+	return placeID, nil
+}
+
+func defaultCityID(ctx context.Context, tx pgx.Tx) (string, error) {
+	cityCandidates := []string{"Москва", "Moscow"}
+	for _, cityName := range cityCandidates {
+		var cityID string
+		err := tx.QueryRow(ctx, `
+			SELECT c.id::text
+			FROM city c
+			WHERE lower(btrim(c.name)) = lower(btrim($1))
+			ORDER BY c.created_at ASC, c.id ASC
+			LIMIT 1
+		`, cityName).Scan(&cityID)
+		if err == nil {
+			return cityID, nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return "", err
+		}
+	}
+
+	var cityID string
+	if err := tx.QueryRow(ctx, `
+		SELECT c.id::text
+		FROM city c
+		ORDER BY c.created_at ASC, c.id ASC
+		LIMIT 1
+	`).Scan(&cityID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", platformerrors.ErrInvalidReference
+		}
+		return "", err
+	}
+	return cityID, nil
 }
 
 func getEventOwner(ctx context.Context, tx pgx.Tx, eventID string) (string, error) {
@@ -995,15 +1074,25 @@ func rollbackTx(ctx context.Context, tx pgx.Tx) {
 func toEventCard(row eventListRow) placemodel.EventCardView {
 	tags := make([]placemodel.EventTaxonomyItem, 0, len(row.TagNames))
 	for i, name := range row.TagNames {
+		if shouldHideCardTag(name) {
+			continue
+		}
+		displayName := formatCardTagName(name)
+		if displayName == "" {
+			continue
+		}
 		id := ""
 		if i < len(row.TagIDs) {
 			id = row.TagIDs[i]
 		}
 		tags = append(tags, placemodel.EventTaxonomyItem{
 			ID:   id,
-			Name: name,
-			Slug: slugify(name),
+			Name: displayName,
+			Slug: slugify(displayName),
 		})
+		if len(tags) == 3 {
+			break
+		}
 	}
 
 	var nextSession *placemodel.EventCardNextSession
@@ -1098,11 +1187,21 @@ func (r *PostgresRepository) fetchCollectionEvents(ctx context.Context, collecti
 func toHomeFeaturedEvent(row homeFeaturedEventRow) placemodel.HomeFeaturedEvent {
 	tags := make([]placemodel.HomeTag, 0, len(row.TagNames))
 	for i, name := range row.TagNames {
+		if shouldHideCardTag(name) {
+			continue
+		}
+		displayName := formatCardTagName(name)
+		if displayName == "" {
+			continue
+		}
 		id := ""
 		if i < len(row.TagIDs) {
 			id = row.TagIDs[i]
 		}
-		tags = append(tags, placemodel.HomeTag{ID: id, Name: name, Slug: slugify(name)})
+		tags = append(tags, placemodel.HomeTag{ID: id, Name: displayName, Slug: slugify(displayName)})
+		if len(tags) == 3 {
+			break
+		}
 	}
 
 	return placemodel.HomeFeaturedEvent{
@@ -1145,4 +1244,19 @@ func slugify(s string) string {
 		return "item"
 	}
 	return s
+}
+
+func shouldHideCardTag(name string) bool {
+	switch strings.TrimSpace(strings.ToLower(name)) {
+	case "12", "16", "18":
+		return true
+	default:
+		return false
+	}
+}
+
+func formatCardTagName(name string) string {
+	name = strings.ReplaceAll(strings.TrimSpace(name), "-", " ")
+	name = strings.Join(strings.Fields(name), " ")
+	return name
 }

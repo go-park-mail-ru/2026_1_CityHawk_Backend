@@ -16,12 +16,14 @@ coverage:
 db-schema:
 	psql "$(DATABASE_URL)" -f db/migrations/0001_init.up.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0003_search_trgm.up.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0004_kudago_external_ids.up.sql
 
 db-seed:
 	psql "$(DATABASE_URL)" -f db/migrations/0002_seed.up.sql
 
 db-reset:
 	psql "$(DATABASE_URL)" -f db/migrations/0002_seed.down.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0004_kudago_external_ids.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0003_search_trgm.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0001_init.down.sql
 

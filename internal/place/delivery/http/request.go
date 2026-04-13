@@ -3,10 +3,11 @@ package http
 import "encoding/json"
 
 type eventSessionRequest struct {
-	PlaceID string `json:"placeId"`
-	StartAt string `json:"startAt"`
-	EndAt   string `json:"endAt"`
-	Price   int    `json:"price"`
+	PlaceID   string `json:"placeId"`
+	PlaceName string `json:"placeName"`
+	StartAt   string `json:"startAt"`
+	EndAt     string `json:"endAt"`
+	Price     int    `json:"price"`
 }
 
 type createEventRequest struct {

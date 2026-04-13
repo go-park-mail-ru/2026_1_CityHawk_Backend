@@ -95,10 +95,11 @@ type EventListFilter struct {
 }
 
 type EventSessionInput struct {
-	PlaceID string
-	StartAt time.Time
-	EndAt   time.Time
-	Price   int
+	PlaceID   string
+	PlaceName string
+	StartAt   time.Time
+	EndAt     time.Time
+	Price     int
 }
 
 type EventWriteInput struct {

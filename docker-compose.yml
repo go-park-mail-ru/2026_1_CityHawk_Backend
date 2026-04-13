@@ -34,10 +34,16 @@ services:
       - DB_USER=${DB_USER:-cityhawk}
       - DB_NAME=${DB_NAME:-cityhawk}
       - DB_PASSWORD=${DB_PASSWORD:-cityhawk}
+      - KUDAGO_ENABLED=${KUDAGO_ENABLED:-false}
+      - KUDAGO_BASE_URL=${KUDAGO_BASE_URL:-https://kudago.com/public-api/v1.4}
+      - KUDAGO_LOCATION=${KUDAGO_LOCATION:-msk}
+      - KUDAGO_SYNC_INTERVAL=${KUDAGO_SYNC_INTERVAL:-15m}
+      - KUDAGO_REQUEST_TIMEOUT=${KUDAGO_REQUEST_TIMEOUT:-20s}
+      - KUDAGO_PAGE_SIZE=${KUDAGO_PAGE_SIZE:-50}
       #  - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost}  # only for local development
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--spider", "http://localhost:8080/api/health"]
       interval: 1m
       timeout: 5s
       retries: 3
