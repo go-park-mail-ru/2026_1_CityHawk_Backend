@@ -558,12 +558,13 @@ GET /api/events?query=rock&categoryId=uuid&sort=dateAsc&limit=12&offset=0
 
 ### Правила
 
-- `title`, `shortDescription`, `fullDescription`, `categoryIds` и `sessions` обязательны
+- `title`, `shortDescription`, `fullDescription` и `categoryIds` обязательны
 - `shortDescription` используется как описание местоположения (`locationDescription`)
 - `sourceUrl` опционален и может использоваться как ссылка на внешний источник события
 - событие можно создать полностью вручную, без `sourceUrl`
 - если `sourceUrl` передан, backend сохраняет его как ссылку на первоисточник, но не требует обязательного импорта данных по ссылке
 - `tagIds` и `imageUrls` могут быть пустыми массивами
+- `sessions` опционален и может быть пустым массивом
 - `categoryIds` и `tagIds` полностью описывают связи many-to-many
 - каждая запись в `sessions` создаёт отдельную сессию мероприятия
 

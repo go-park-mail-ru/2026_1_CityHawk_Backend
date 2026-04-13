@@ -999,7 +999,7 @@ components:
           type: integer
     CreateEventRequest:
       type: object
-      required: [title, shortDescription, fullDescription, categoryIds, sessions]
+      required: [title, shortDescription, fullDescription, categoryIds]
       properties:
         title:
           type: string

@@ -122,6 +122,47 @@ func TestEventsHandlers(t *testing.T) {
 			t.Fatalf("delete status = %d, want %d body=%s", deleteRec.Code, http.StatusOK, deleteRec.Body.String())
 		}
 	})
+
+	t.Run("create without sessions", func(t *testing.T) {
+		events := http.HandlerFunc(handler.Events)
+		eventByID := http.HandlerFunc(handler.EventByID)
+
+		createReq := httptest.NewRequest(http.MethodPost, "/api/events", mustJSONBody(t, map[string]any{
+			"title":            "No Sessions Event",
+			"shortDescription": "Short text",
+			"fullDescription":  "Long event description",
+			"categoryIds":      []string{"music"},
+			"imageUrls":        []string{"https://example.com/new.jpg"},
+		}))
+		createReq = createReq.WithContext(context.WithValue(createReq.Context(), httpx.UserIDContextKey, "user-1"))
+		createRec := httptest.NewRecorder()
+		events.ServeHTTP(createRec, createReq)
+		if createRec.Code != http.StatusCreated {
+			t.Fatalf("create without sessions status = %d, want %d body=%s", createRec.Code, http.StatusCreated, createRec.Body.String())
+		}
+
+		createPayload := decodeJSONMap(t, createRec.Body)
+		eventID, ok := createPayload["id"].(string)
+		if !ok || eventID == "" {
+			t.Fatalf("unexpected create payload: %+v", createPayload)
+		}
+
+		detailsReq := httptest.NewRequest(http.MethodGet, "/api/events/"+eventID, nil)
+		detailsRec := httptest.NewRecorder()
+		eventByID.ServeHTTP(detailsRec, detailsReq)
+		if detailsRec.Code != http.StatusOK {
+			t.Fatalf("details status = %d, want %d body=%s", detailsRec.Code, http.StatusOK, detailsRec.Body.String())
+		}
+
+		detailsPayload := decodeJSONMap(t, detailsRec.Body)
+		sessions, ok := detailsPayload["sessions"].([]any)
+		if !ok {
+			t.Fatalf("missing sessions in details: %+v", detailsPayload)
+		}
+		if len(sessions) != 0 {
+			t.Fatalf("sessions length = %d, want 0", len(sessions))
+		}
+	})
 }
 
 func TestHomeHandlerReturnsHomePayload(t *testing.T) {
