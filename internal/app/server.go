@@ -120,6 +120,11 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		httpx.UserIDContextKey,
 	))
 	mux.HandleFunc("/api/home", placeHandler.Home)
+	mux.HandleFunc("/api/categories", placeHandler.Categories)
+	mux.HandleFunc("/api/tags", placeHandler.Tags)
+	mux.HandleFunc("/api/collections", placeHandler.Collections)
+	mux.HandleFunc("/api/collections/", placeHandler.CollectionByID)
+	mux.HandleFunc("/api/search", placeHandler.Search)
 	mux.Handle("/api/events/", platformmiddleware.OptionalAuthMiddleware(
 		http.HandlerFunc(placeHandler.EventByID),
 		authdelivery.ReadAccessCookie,

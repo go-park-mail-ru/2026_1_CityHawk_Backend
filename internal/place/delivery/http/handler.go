@@ -19,6 +19,11 @@ import (
 
 type EventsUsecase interface {
 	HomePayload(ctx context.Context) placemodel.HomePayload
+	ListCategories(ctx context.Context) []placemodel.HomeCategory
+	ListTags(ctx context.Context) []placemodel.HomeTag
+	ListCollections(ctx context.Context) ([]placemodel.CollectionCardView, error)
+	GetCollectionByID(ctx context.Context, id string) (placemodel.CollectionDetailsView, bool, error)
+	SearchSuggestions(ctx context.Context, query string, limit int) ([]placemodel.SearchSuggestion, error)
 	ListEvents(ctx context.Context, filter placemodel.EventListFilter) ([]placemodel.EventCardView, int, error)
 	GetByID(ctx context.Context, id, userID string) (placemodel.EventDetailsView, bool, error)
 	CreateEvent(ctx context.Context, input placemodel.EventWriteInput) (string, error)
@@ -40,6 +45,85 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
 		}
 		httpx.WriteJSON(w, http.StatusOK, toHomePayloadResponse(h.events.HomePayload(r.Context())))
+		return nil
+	}).ServeHTTP(w, r)
+}
+
+func (h *Handler) Categories(w http.ResponseWriter, r *http.Request) {
+	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodGet {
+			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
+		}
+		httpx.WriteJSON(w, http.StatusOK, toCategoriesResponse(h.events.ListCategories(r.Context())))
+		return nil
+	}).ServeHTTP(w, r)
+}
+
+func (h *Handler) Tags(w http.ResponseWriter, r *http.Request) {
+	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodGet {
+			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
+		}
+		httpx.WriteJSON(w, http.StatusOK, toTagsResponse(h.events.ListTags(r.Context())))
+		return nil
+	}).ServeHTTP(w, r)
+}
+
+func (h *Handler) Collections(w http.ResponseWriter, r *http.Request) {
+	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodGet {
+			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
+		}
+		items, err := h.events.ListCollections(r.Context())
+		if err != nil {
+			return err
+		}
+		httpx.WriteJSON(w, http.StatusOK, toCollectionsResponse(items))
+		return nil
+	}).ServeHTTP(w, r)
+}
+
+func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
+	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodGet {
+			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
+		}
+
+		query, limit, err := parseSearchSuggestionsRequest(r)
+		if err != nil {
+			return err
+		}
+
+		items, err := h.events.SearchSuggestions(r.Context(), query, limit)
+		if err != nil {
+			return err
+		}
+
+		httpx.WriteJSON(w, http.StatusOK, toSearchSuggestionsResponse(items))
+		return nil
+	}).ServeHTTP(w, r)
+}
+
+func (h *Handler) CollectionByID(w http.ResponseWriter, r *http.Request) {
+	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodGet {
+			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
+		}
+
+		collectionID := strings.TrimPrefix(r.URL.Path, "/api/collections/")
+		if collectionID == "" || strings.Contains(collectionID, "/") {
+			return httpx.NewHTTPError(http.StatusNotFound, "Collection not found")
+		}
+
+		item, ok, err := h.events.GetCollectionByID(r.Context(), collectionID)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return httpx.NewHTTPError(http.StatusNotFound, "Collection not found")
+		}
+
+		httpx.WriteJSON(w, http.StatusOK, toCollectionDetailsResponse(item))
 		return nil
 	}).ServeHTTP(w, r)
 }
@@ -251,6 +335,28 @@ func parseEventListFilter(r *http.Request) (placemodel.EventListFilter, error) {
 		Offset:     offset,
 		UserID:     userID,
 	}, nil
+}
+
+func parseSearchSuggestionsRequest(r *http.Request) (string, int, error) {
+	query := strings.TrimSpace(r.URL.Query().Get("query"))
+	if len([]rune(query)) < 2 {
+		return "", 0, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{
+			"query": "query must be at least 2 characters",
+		})
+	}
+
+	limit := 5
+	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil || value < 5 || value > 10 {
+			return "", 0, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{
+				"limit": "limit must be an integer between 5 and 10",
+			})
+		}
+		limit = value
+	}
+
+	return query, limit, nil
 }
 
 func validateCreateEventRequest(req createEventRequest, userID string) (placemodel.EventWriteInput, error) {

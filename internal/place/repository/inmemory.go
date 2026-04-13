@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -78,6 +79,141 @@ func (r *InMemoryRepository) HomePayload(_ context.Context) placemodel.HomePaylo
 			{ID: "weekend-picks", Title: "Weekend Picks", Description: "Best events for weekend", ImageURL: "https://example.com/collection.jpg"},
 		},
 	}
+}
+
+func (r *InMemoryRepository) ListCategories(_ context.Context) []placemodel.HomeCategory {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	categoriesSet := map[string]placemodel.HomeCategory{}
+	for _, id := range r.order {
+		event := r.byID[id]
+		for _, category := range event.Categories {
+			categoriesSet[category.ID] = placemodel.HomeCategory{
+				ID:   category.ID,
+				Name: category.Name,
+				Slug: category.Slug,
+			}
+		}
+	}
+
+	items := make([]placemodel.HomeCategory, 0, len(categoriesSet))
+	for _, category := range categoriesSet {
+		items = append(items, category)
+	}
+	return items
+}
+
+func (r *InMemoryRepository) ListTags(_ context.Context) []placemodel.HomeTag {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	tagsSet := map[string]placemodel.HomeTag{}
+	for _, id := range r.order {
+		event := r.byID[id]
+		for _, tag := range event.Tags {
+			tagsSet[tag.ID] = placemodel.HomeTag{
+				ID:   tag.ID,
+				Name: tag.Name,
+				Slug: tag.Slug,
+			}
+		}
+	}
+
+	items := make([]placemodel.HomeTag, 0, len(tagsSet))
+	for _, tag := range tagsSet {
+		items = append(items, tag)
+	}
+	return items
+}
+
+func (r *InMemoryRepository) ListCollections(_ context.Context) ([]placemodel.CollectionCardView, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return []placemodel.CollectionCardView{
+		{
+			ID:          "weekend-picks",
+			Title:       "Weekend Picks",
+			Description: "Best events for weekend",
+			ImageURL:    "https://example.com/collection.jpg",
+			IsPublic:    true,
+		},
+	}, nil
+}
+
+func (r *InMemoryRepository) GetCollectionByID(_ context.Context, id string) (placemodel.CollectionDetailsView, bool, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if id != "weekend-picks" {
+		return placemodel.CollectionDetailsView{}, false, nil
+	}
+
+	events := make([]placemodel.EventCardView, 0, minInt(2, len(r.order)))
+	for i, eventID := range r.order {
+		if i >= 2 {
+			break
+		}
+		events = append(events, toCard(r.byID[eventID]))
+	}
+
+	return placemodel.CollectionDetailsView{
+		ID:          "weekend-picks",
+		Title:       "Weekend Picks",
+		Description: "Best events for weekend",
+		ImageURL:    "https://example.com/collection.jpg",
+		IsPublic:    true,
+		Events:      events,
+	}, true, nil
+}
+
+func (r *InMemoryRepository) SearchSuggestions(_ context.Context, query string, limit int) ([]placemodel.SearchSuggestion, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	query = strings.ToLower(strings.TrimSpace(query))
+	if limit <= 0 {
+		limit = 5
+	}
+
+	seen := map[string]struct{}{}
+	items := make([]placemodel.SearchSuggestion, 0)
+
+	add := func(name string) {
+		key := strings.ToLower(strings.TrimSpace(name))
+		if key == "" {
+			return
+		}
+		if !strings.Contains(key, query) && !strings.HasPrefix(key, query) {
+			return
+		}
+		if _, ok := seen[key]; ok {
+			return
+		}
+		seen[key] = struct{}{}
+		items = append(items, placemodel.SearchSuggestion{Name: name})
+	}
+
+	for _, id := range r.order {
+		event := r.byID[id]
+		add(event.Title)
+		for _, category := range event.Categories {
+			add(category.Name)
+		}
+		for _, tag := range event.Tags {
+			add(tag.Name)
+		}
+	}
+	add("Weekend Picks")
+
+	sort.Slice(items, func(i, j int) bool {
+		return strings.ToLower(items[i].Name) < strings.ToLower(items[j].Name)
+	})
+	if len(items) > limit {
+		items = items[:limit]
+	}
+	return items, nil
 }
 
 func (r *InMemoryRepository) ListEvents(_ context.Context, filter placemodel.EventListFilter) ([]placemodel.EventCardView, int, error) {
@@ -289,6 +425,13 @@ func buildTaxonomyItems(ids []string) []placemodel.EventTaxonomyItem {
 		items = append(items, placemodel.EventTaxonomyItem{ID: id, Name: id, Slug: id})
 	}
 	return items
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func buildImageItems(urls []string, next *int) []placemodel.EventImageView {

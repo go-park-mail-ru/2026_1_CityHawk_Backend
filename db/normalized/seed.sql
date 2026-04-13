@@ -31,6 +31,19 @@ VALUES
     ('photo')
 ON CONFLICT (name) DO NOTHING;
 
+INSERT INTO tag (name)
+VALUES
+    ('immersive'),
+    ('family'),
+    ('ice-show'),
+    ('standup'),
+    ('ballet'),
+    ('art'),
+    ('rock'),
+    ('retro'),
+    ('quest')
+ON CONFLICT (name) DO NOTHING;
+
 INSERT INTO place (city_id, name, address_line, latitude, longitude, description)
 SELECT
     c.id,
@@ -160,6 +173,68 @@ FROM (
 JOIN event e ON e.title = v.event_title
 JOIN category c ON c.name = v.category_name
 ON CONFLICT (event_id, category_id) DO NOTHING;
+
+INSERT INTO event_tag (event_id, tag_id)
+SELECT
+    e.id,
+    t.id
+FROM (
+    VALUES
+        ('Futurione', 'immersive'),
+        ('Futurione', 'family'),
+        ('Ледовое шоу Татьяны Навки', 'ice-show'),
+        ('Ледовое шоу Татьяны Навки', 'family'),
+        ('Женский стендап', 'standup'),
+        ('Балет Щелкунчик', 'ballet'),
+        ('Искусство XX века', 'art'),
+        ('Рок-концерт', 'rock'),
+        ('Руки Вверх', 'retro'),
+        ('Квест Искупление', 'quest')
+) AS v(event_title, tag_name)
+JOIN event e ON e.title = v.event_title
+JOIN tag t ON t.name = v.tag_name
+ON CONFLICT (event_id, tag_id) DO NOTHING;
+
+INSERT INTO collection (author_user_id, title, description, is_public)
+SELECT
+    u.id,
+    'Weekend Picks',
+    'Best events for weekend',
+    TRUE
+FROM user_account u
+WHERE u.email = 'seed.author@cityhawk.local'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM collection c
+      WHERE c.title = 'Weekend Picks' AND c.author_user_id = u.id
+  );
+
+INSERT INTO collection_image (collection_id, image_url)
+SELECT
+    c.id,
+    'https://example.com/collection.jpg'
+FROM collection c
+WHERE c.title = 'Weekend Picks'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM collection_image ci
+      WHERE ci.collection_id = c.id
+        AND ci.image_url = 'https://example.com/collection.jpg'
+  );
+
+INSERT INTO collection_event (collection_id, event_id)
+SELECT
+    c.id,
+    e.id
+FROM (
+    VALUES
+        ('Weekend Picks', 'Futurione'),
+        ('Weekend Picks', 'Рок-концерт'),
+        ('Weekend Picks', 'Ледовое шоу Татьяны Навки')
+) AS v(collection_title, event_title)
+JOIN collection c ON c.title = v.collection_title
+JOIN event e ON e.title = v.event_title
+ON CONFLICT (collection_id, event_id) DO NOTHING;
 
 INSERT INTO favorite_event (user_id, event_id)
 SELECT

@@ -153,6 +153,27 @@ type HomeCollection struct {
 	ImageURL    string
 }
 
+type CollectionCardView struct {
+	ID          string
+	Title       string
+	Description string
+	ImageURL    string
+	IsPublic    bool
+}
+
+type CollectionDetailsView struct {
+	ID          string
+	Title       string
+	Description string
+	ImageURL    string
+	IsPublic    bool
+	Events      []EventCardView
+}
+
+type SearchSuggestion struct {
+	Name string
+}
+
 type HomePayload struct {
 	FeaturedEvents []HomeFeaturedEvent
 	Categories     []HomeCategory

@@ -22,6 +22,8 @@ Runnable migrations лежат в:
 - `db/migrations/0001_init.down.sql`
 - `db/migrations/0002_seed.up.sql`
 - `db/migrations/0002_seed.down.sql`
+- `db/migrations/0003_search_trgm.up.sql`
+- `db/migrations/0003_search_trgm.down.sql`
 
 Требования к окружению для локального запуска:
 
@@ -45,6 +47,7 @@ make db-seed
 
 ```bash
 psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0001_init.up.sql
+psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0003_search_trgm.up.sql
 psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0002_seed.up.sql
 ```
 
