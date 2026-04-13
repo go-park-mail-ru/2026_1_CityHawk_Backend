@@ -26,10 +26,12 @@ func NewInMemoryRefreshRepository() *InMemoryRefreshRepository {
 }
 
 func (r *InMemoryRefreshRepository) Store(_ context.Context, refreshToken, userID string, expiresAt time.Time) error {
+	hash := platformsecurity.SHA256Hex(refreshToken)
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.sessions[platformsecurity.SHA256Hex(refreshToken)] = refreshSession{
+	r.sessions[hash] = refreshSession{
 		UserID:    userID,
 		ExpiresAt: expiresAt,
 	}
@@ -37,10 +39,11 @@ func (r *InMemoryRefreshRepository) Store(_ context.Context, refreshToken, userI
 }
 
 func (r *InMemoryRefreshRepository) Consume(_ context.Context, refreshToken string) (string, error) {
+	hash := platformsecurity.SHA256Hex(refreshToken)
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	hash := platformsecurity.SHA256Hex(refreshToken)
 	s, ok := r.sessions[hash]
 	if !ok {
 		return "", platformerrors.ErrTokenRevoked
@@ -56,8 +59,10 @@ func (r *InMemoryRefreshRepository) Consume(_ context.Context, refreshToken stri
 }
 
 func (r *InMemoryRefreshRepository) Revoke(_ context.Context, refreshToken string) error {
+	hash := platformsecurity.SHA256Hex(refreshToken)
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	delete(r.sessions, platformsecurity.SHA256Hex(refreshToken))
+	delete(r.sessions, hash)
 	return nil
 }

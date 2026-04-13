@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	placemodel "cityhawk/backend/internal/place/model"
@@ -72,10 +73,36 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 }
 
 func (r *PostgresRepository) HomePayload(ctx context.Context) placemodel.HomePayload {
+	var (
+		featuredEvents []placemodel.HomeFeaturedEvent
+		categories     []placemodel.HomeCategory
+		collections    []placemodel.HomeCollection
+		wg             sync.WaitGroup
+	)
+
+	wg.Add(3)
+
+	go func() {
+		defer wg.Done()
+		featuredEvents = r.ListFeaturedEvents(ctx, 8)
+	}()
+
+	go func() {
+		defer wg.Done()
+		categories = r.ListHomeCategories(ctx, 8)
+	}()
+
+	go func() {
+		defer wg.Done()
+		collections = r.ListHomeCollections(ctx, 8)
+	}()
+
+	wg.Wait()
+
 	return placemodel.HomePayload{
-		FeaturedEvents: r.ListFeaturedEvents(ctx, 8),
-		Categories:     r.ListHomeCategories(ctx, 8),
-		Collections:    r.ListHomeCollections(ctx, 8),
+		FeaturedEvents: featuredEvents,
+		Categories:     categories,
+		Collections:    collections,
 	}
 }
 
