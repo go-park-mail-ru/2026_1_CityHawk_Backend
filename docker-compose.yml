@@ -17,6 +17,19 @@ services:
       timeout: 5s
       retries: 5
 
+  photon:
+    image: rtuszik/photon-docker:latest
+    container_name: cityhawk-photon
+    environment:
+      - REGION=${PHOTON_REGION:-russia}
+      - UPDATE_STRATEGY=${PHOTON_UPDATE_STRATEGY:-DISABLED}
+      - LOG_LEVEL=${PHOTON_LOG_LEVEL:-INFO}
+    ports:
+      - "${PHOTON_PORT:-2322}:2322"
+    volumes:
+      - photon_data:/photon/data
+    restart: unless-stopped
+
   cityhawk-backend:                      # any name you prefer
     build: .
     ports:
@@ -26,6 +39,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      photon:
+        condition: service_started
     environment:
       # defaults mirror the code's fallbacks
       - PORT=8080
@@ -34,13 +49,25 @@ services:
       - DB_USER=${DB_USER:-cityhawk}
       - DB_NAME=${DB_NAME:-cityhawk}
       - DB_PASSWORD=${DB_PASSWORD:-cityhawk}
+      - KUDAGO_ENABLED=${KUDAGO_ENABLED:-false}
+      - KUDAGO_BASE_URL=${KUDAGO_BASE_URL:-https://kudago.com/public-api/v1.4}
+      - KUDAGO_LOCATION=${KUDAGO_LOCATION:-msk}
+      - KUDAGO_SYNC_INTERVAL=${KUDAGO_SYNC_INTERVAL:-15m}
+      - KUDAGO_REQUEST_TIMEOUT=${KUDAGO_REQUEST_TIMEOUT:-20s}
+      - KUDAGO_PAGE_SIZE=${KUDAGO_PAGE_SIZE:-50}
+      - PHOTON_ENABLED=${PHOTON_ENABLED:-true}
+      - PHOTON_BASE_URL=http://photon:2322
+      - PHOTON_REQUEST_TIMEOUT=${PHOTON_REQUEST_TIMEOUT:-5s}
+      - PHOTON_DEFAULT_COUNTRY=${PHOTON_DEFAULT_COUNTRY:-Russia}
+      - PHOTON_DEFAULT_TIMEZONE=${PHOTON_DEFAULT_TIMEZONE:-Europe/Moscow}
       #  - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost}  # only for local development
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--spider", "http://localhost:8080/api/health"]
       interval: 1m
       timeout: 5s
       retries: 3
 
 volumes:
   postgres_data:
+  photon_data:

@@ -24,6 +24,8 @@ Runnable migrations лежат в:
 - `db/migrations/0002_seed.down.sql`
 - `db/migrations/0003_search_trgm.up.sql`
 - `db/migrations/0003_search_trgm.down.sql`
+- `db/migrations/0004_kudago_external_ids.up.sql`
+- `db/migrations/0004_kudago_external_ids.down.sql`
 
 Требования к окружению для локального запуска:
 
@@ -34,6 +36,17 @@ DB_USER=cityhawk
 DB_PASSWORD=cityhawk
 DB_NAME=cityhawk
 DB_SSLMODE=disable
+KUDAGO_ENABLED=false
+KUDAGO_BASE_URL=https://kudago.com/public-api/v1.4
+KUDAGO_LOCATION=msk
+KUDAGO_SYNC_INTERVAL=15m
+KUDAGO_REQUEST_TIMEOUT=20s
+KUDAGO_PAGE_SIZE=50
+PHOTON_ENABLED=false
+PHOTON_BASE_URL=http://localhost:2322
+PHOTON_REQUEST_TIMEOUT=5s
+PHOTON_DEFAULT_COUNTRY=Russia
+PHOTON_DEFAULT_TIMEZONE=Europe/Moscow
 ```
 
 Применить схему и сиды можно так:
@@ -48,6 +61,7 @@ make db-seed
 ```bash
 psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0001_init.up.sql
 psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0003_search_trgm.up.sql
+psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0004_kudago_external_ids.up.sql
 psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0002_seed.up.sql
 ```
 
@@ -56,6 +70,73 @@ psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f d
 ```bash
 make db-reset
 ```
+
+## Photon Self-Hosted
+
+Для адресных подсказок можно поднять локальный Photon через `docker compose`.
+
+По умолчанию в `docker-compose.yml` уже добавлен сервис `photon`:
+
+- порт: `2322`
+- регион индекса: `russia`
+- данные хранятся в docker volume `photon_data`
+- backend внутри compose ходит в Photon по адресу `http://photon:2322`
+
+Минимальные переменные окружения:
+
+```env
+PHOTON_ENABLED=true
+PHOTON_BASE_URL=http://localhost:2322
+PHOTON_REQUEST_TIMEOUT=5s
+PHOTON_DEFAULT_COUNTRY=Russia
+PHOTON_DEFAULT_TIMEZONE=Europe/Moscow
+PHOTON_REGION=russia
+PHOTON_UPDATE_STRATEGY=DISABLED
+PHOTON_LOG_LEVEL=INFO
+```
+
+Запуск:
+
+```bash
+docker compose up -d photon postgres cityhawk-backend
+```
+
+Проверка Photon:
+
+```bash
+curl "http://localhost:2322/status"
+curl "http://localhost:2322/api?q=ВДНХ&limit=5"
+```
+
+Проверка backend-подсказок:
+
+```bash
+curl "http://localhost:8080/api/place-suggestions?query=ВДНХ&limit=5"
+```
+
+Выбор подсказки и создание записи в таблице `place`:
+
+1. Взять `token` из ответа `/api/place-suggestions`.
+2. Отправить его в backend:
+
+```bash
+curl -X POST "http://localhost:8080/api/places/resolve" \
+  -H "Content-Type: application/json" \
+  -d '{"token":"<token-from-suggestion>"}'
+```
+
+Ответ вернет готовый `placeId`, который потом надо использовать в `sessions[].placeId` при создании события через `POST /api/events`.
+
+Как должен работать frontend:
+
+1. При вводе в поле `место` вызывать `GET /api/place-suggestions?query=<text>&limit=5`.
+2. Показывать только выпадающий список подсказок.
+3. Не разрешать сабмит формы, пока пользователь не выбрал один из вариантов.
+4. После выбора сохранить у себя `token`.
+5. Перед созданием события вызвать `POST /api/places/resolve`.
+6. Взять из ответа `id` и отправить его как `placeId` в `sessions`.
+
+Если пользователь после выбора снова меняет текст руками, выбранный `token` нужно сбросить и потребовать новое явное выбор из подсказок.
 
 ## API
 

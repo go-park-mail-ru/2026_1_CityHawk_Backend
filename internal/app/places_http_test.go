@@ -252,7 +252,7 @@ func TestSearchSuggestionsHandler(t *testing.T) {
 	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
 	handler := placedelivery.NewHandler(placeusecase.NewService(repo))
 
-	req := httptest.NewRequest(http.MethodGet, "/api/search?query=ro&limit=5", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/search?query=рок&limit=5", nil)
 	rec := httptest.NewRecorder()
 	http.HandlerFunc(handler.Search).ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -272,7 +272,7 @@ func TestSearchSuggestionsHandler(t *testing.T) {
 		t.Fatalf("bad query status = %d, want %d body=%s", badRec.Code, http.StatusBadRequest, badRec.Body.String())
 	}
 
-	badLimitReq := httptest.NewRequest(http.MethodGet, "/api/search?query=ro&limit=11", nil)
+	badLimitReq := httptest.NewRequest(http.MethodGet, "/api/search?query=рок&limit=11", nil)
 	badLimitRec := httptest.NewRecorder()
 	http.HandlerFunc(handler.Search).ServeHTTP(badLimitRec, badLimitReq)
 	if badLimitRec.Code != http.StatusBadRequest {
