@@ -230,7 +230,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 		t.Fatalf("unexpected patch response: %+v", patchPayload)
 	}
 	avatarURL, ok := patchPayload["avatarUrl"].(string)
-	if !ok || !strings.HasPrefix(avatarURL, "http://example.com/uploads/avatars/") {
+	if !ok || !strings.HasPrefix(avatarURL, "/uploads/avatars/") {
 		t.Fatalf("unexpected patch fields: %+v", patchPayload)
 	}
 	if patchPayload["birthday"] != "2005-02-13" {

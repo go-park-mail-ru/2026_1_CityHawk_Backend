@@ -300,7 +300,7 @@ func (h *Handler) saveEventImages(r *http.Request, userID string, headers []*mul
 				return nil, err
 			}
 		}
-		urls = append(urls, absoluteURL(r, publicPath))
+		urls = append(urls, publicPath)
 	}
 
 	return urls, nil
@@ -528,23 +528,6 @@ func multipartFiles(form *multipart.Form, key string) []*multipart.FileHeader {
 	return form.File[key]
 }
 
-func absoluteURL(r *http.Request, publicPath string) string {
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
-	}
-	if forwardedProto := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")); forwardedProto != "" {
-		scheme = strings.Split(forwardedProto, ",")[0]
-	}
-
-	host := r.Host
-	if host == "" {
-		host = "localhost"
-	}
-
-	return fmt.Sprintf("%s://%s%s", scheme, host, publicPath)
-}
-
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) error {
 	userID, ok := r.Context().Value(httpx.UserIDContextKey).(string)
 	if !ok || userID == "" {
@@ -696,8 +679,8 @@ func validateCreateEventRequest(req createEventRequest, userID string) (placemod
 	tagIDs := normalizeStringSlice(req.TagIDs)
 	imageURLs := normalizeStringSlice(req.ImageURLs)
 	for i, imageURL := range imageURLs {
-		if !isHTTPURL(imageURL) {
-			details["imageUrls["+strconv.Itoa(i)+"]"] = "imageUrl must start with http:// or https://"
+		if !media.IsFileReference(imageURL) {
+			details["imageUrls["+strconv.Itoa(i)+"]"] = "imageUrl must be an http(s) URL or /uploads path"
 		}
 	}
 
@@ -787,8 +770,8 @@ func validatePatchEventRequest(req patchEventRequest, eventID, userID string) (p
 	if req.ImageURLs != nil {
 		value := normalizeStringSlice(*req.ImageURLs)
 		for i, imageURL := range value {
-			if !isHTTPURL(imageURL) {
-				details["imageUrls["+strconv.Itoa(i)+"]"] = "imageUrl must start with http:// or https://"
+			if !media.IsFileReference(imageURL) {
+				details["imageUrls["+strconv.Itoa(i)+"]"] = "imageUrl must be an http(s) URL or /uploads path"
 			}
 		}
 		input.ImageURLs = &value
@@ -883,7 +866,7 @@ func normalizeStringSlice(items []string) []string {
 }
 
 func isHTTPURL(value string) bool {
-	return strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://")
+	return media.IsHTTPURL(value)
 }
 
 func mapEventWriteError(err error) error {

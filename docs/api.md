@@ -399,7 +399,7 @@ avatar=<binary file>
   "username": "Alice",
   "userSurname": "Ivanova",
   "birthday": "2004-01-12",
-  "avatarUrl": "http://example.com/uploads/avatars/user-avatar.png",
+  "avatarUrl": "/uploads/avatars/user-avatar.png",
   "updatedAt": "2026-03-23T12:00:00Z"
 }
 ```
@@ -595,7 +595,7 @@ GET /api/events?query=rock&categoryId=uuid&sort=dateAsc&limit=12&offset=0
 - событие можно создать полностью вручную, без `sourceUrl`
 - если `sourceUrl` передан, backend сохраняет его как ссылку на первоисточник, но не требует обязательного импорта данных по ссылке
 - `tagIds` и `imageUrls` могут быть пустыми массивами
-- загруженные через `images` файлы сохраняются локально, а их URL автоматически добавляются в `imageUrls`
+- загруженные через `images` файлы сохраняются локально, а их пути вида `/uploads/...` автоматически добавляются в `imageUrls`
 - `categoryIds` и `tagIds` полностью описывают связи many-to-many
 - каждая запись в `sessions` создаёт отдельную сессию мероприятия
 

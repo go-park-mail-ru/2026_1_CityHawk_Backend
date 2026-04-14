@@ -44,7 +44,7 @@ CREATE TABLE user_account (
     CONSTRAINT user_account_username_valid CHECK (char_length(btrim(username)) BETWEEN 3 AND 64),
     CONSTRAINT user_account_user_surname_valid CHECK (char_length(btrim(user_surname)) BETWEEN 1 AND 64),
     CONSTRAINT user_account_password_hash_valid CHECK (char_length(btrim(password_hash)) BETWEEN 1 AND 255),
-    CONSTRAINT user_account_avatar_url_format CHECK (avatar_url IS NULL OR avatar_url ~ '^https?://'),
+    CONSTRAINT user_account_avatar_url_format CHECK (avatar_url IS NULL OR avatar_url ~ '^(https?://|/uploads/)'),
     CONSTRAINT user_account_avatar_url_length CHECK (avatar_url IS NULL OR char_length(avatar_url) <= 2048),
     CONSTRAINT user_account_city_id_fkey
         FOREIGN KEY (city_id)
@@ -181,7 +181,7 @@ CREATE TABLE event_image (
     image_url text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT event_image_image_url_format CHECK (image_url ~ '^https?://'),
+    CONSTRAINT event_image_image_url_format CHECK (image_url ~ '^(https?://|/uploads/)'),
     CONSTRAINT event_image_image_url_length CHECK (char_length(image_url) <= 2048),
     CONSTRAINT event_image_event_id_fkey
         FOREIGN KEY (event_id)
@@ -257,7 +257,7 @@ CREATE TABLE collection_image (
     image_url text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT collection_image_image_url_format CHECK (image_url ~ '^https?://'),
+    CONSTRAINT collection_image_image_url_format CHECK (image_url ~ '^(https?://|/uploads/)'),
     CONSTRAINT collection_image_image_url_length CHECK (char_length(image_url) <= 2048),
     CONSTRAINT collection_image_collection_id_fkey
         FOREIGN KEY (collection_id)
