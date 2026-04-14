@@ -24,8 +24,8 @@ Runnable migrations лежат в:
 - `db/migrations/0002_seed.down.sql`
 - `db/migrations/0003_search_trgm.up.sql`
 - `db/migrations/0003_search_trgm.down.sql`
-- `db/migrations/0004_kudago_external_ids.up.sql`
-- `db/migrations/0004_kudago_external_ids.down.sql`
+- `db/migrations/0005_media_paths.up.sql`
+- `db/migrations/0005_media_paths.down.sql`
 
 Требования к окружению для локального запуска:
 
@@ -36,12 +36,6 @@ DB_USER=cityhawk
 DB_PASSWORD=cityhawk
 DB_NAME=cityhawk
 DB_SSLMODE=disable
-KUDAGO_ENABLED=false
-KUDAGO_BASE_URL=https://kudago.com/public-api/v1.4
-KUDAGO_LOCATION=msk
-KUDAGO_SYNC_INTERVAL=15m
-KUDAGO_REQUEST_TIMEOUT=20s
-KUDAGO_PAGE_SIZE=50
 PHOTON_ENABLED=false
 PHOTON_BASE_URL=http://localhost:2322
 PHOTON_REQUEST_TIMEOUT=5s
@@ -61,9 +55,11 @@ make db-seed
 ```bash
 psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0001_init.up.sql
 psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0003_search_trgm.up.sql
-psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0004_kudago_external_ids.up.sql
+psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0005_media_paths.up.sql
 psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0002_seed.up.sql
 ```
+
+После `make db-seed` база будет заполнена 100 сидовыми карточками событий, и у каждой карточки будут связанные категории, теги, картинка и сессия. Дополнительно создаются сидовые коллекции и избранные события для тестирования API.
 
 Для полного сброса:
 

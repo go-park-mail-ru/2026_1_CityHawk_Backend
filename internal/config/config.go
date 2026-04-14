@@ -17,7 +17,6 @@ type Config struct {
 	Auth     AuthConfig
 	OAuth    OAuthConfig
 	Database DatabaseConfig
-	KudaGo   KudaGoConfig
 	Photon   PhotonConfig
 }
 
@@ -50,15 +49,6 @@ type DatabaseConfig struct {
 	Password string
 	Name     string
 	SSLMode  string
-}
-
-type KudaGoConfig struct {
-	Enabled        bool
-	BaseURL        string
-	Location       string
-	SyncInterval   time.Duration
-	RequestTimeout time.Duration
-	PageSize       int
 }
 
 type PhotonConfig struct {
@@ -114,14 +104,6 @@ func LoadFromEnv() Config {
 			Password: getEnv("DB_PASSWORD", ""),
 			Name:     getEnv("DB_NAME", "cityhawk"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
-		},
-		KudaGo: KudaGoConfig{
-			Enabled:        parseBoolEnv("KUDAGO_ENABLED", false),
-			BaseURL:        getEnv("KUDAGO_BASE_URL", "https://kudago.com/public-api/v1.4"),
-			Location:       getEnv("KUDAGO_LOCATION", "msk"),
-			SyncInterval:   parseDurationEnv("KUDAGO_SYNC_INTERVAL", 15*time.Minute),
-			RequestTimeout: parseDurationEnv("KUDAGO_REQUEST_TIMEOUT", 20*time.Second),
-			PageSize:       parseIntEnv("KUDAGO_PAGE_SIZE", 50),
 		},
 		Photon: PhotonConfig{
 			Enabled:         parseBoolEnv("PHOTON_ENABLED", false),
