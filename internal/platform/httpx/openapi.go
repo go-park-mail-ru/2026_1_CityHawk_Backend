@@ -323,6 +323,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PatchMeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchMeMultipartRequest'
       responses:
         "200":
           description: Updated user profile
@@ -417,6 +420,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateEventRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateEventMultipartRequest'
       responses:
         "201":
           description: Event created
@@ -476,6 +482,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PatchEventRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchEventMultipartRequest'
       responses:
         "200":
           description: Event updated
@@ -794,6 +803,23 @@ components:
           type: string
         avatarUrl:
           type: string
+    PatchMeMultipartRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        userSurname:
+          type: string
+        birthday:
+          type: string
+          format: date
+        cityId:
+          type: string
+        avatarUrl:
+          type: string
+        avatar:
+          type: string
+          format: binary
     PatchMeResponse:
       type: object
       properties:
@@ -1058,6 +1084,69 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/EventSessionInput'
+    CreateEventMultipartRequest:
+      type: object
+      required: [title, shortDescription, fullDescription, categoryIds, sessions]
+      properties:
+        title:
+          type: string
+        shortDescription:
+          type: string
+        fullDescription:
+          type: string
+        ageLimit:
+          type: integer
+        sourceUrl:
+          type: string
+          nullable: true
+        categoryIds:
+          type: string
+          description: JSON array of strings
+        tagIds:
+          type: string
+          description: JSON array of strings
+        imageUrls:
+          type: string
+          description: JSON array of strings
+        sessions:
+          type: string
+          description: JSON array of session objects
+        images:
+          type: array
+          items:
+            type: string
+            format: binary
+    PatchEventMultipartRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        shortDescription:
+          type: string
+        fullDescription:
+          type: string
+        ageLimit:
+          type: integer
+        sourceUrl:
+          type: string
+          nullable: true
+        categoryIds:
+          type: string
+          description: JSON array of strings
+        tagIds:
+          type: string
+          description: JSON array of strings
+        imageUrls:
+          type: string
+          description: JSON array of strings
+        sessions:
+          type: string
+          description: JSON array of session objects
+        images:
+          type: array
+          items:
+            type: string
+            format: binary
     EventIDResponse:
       type: object
       properties:

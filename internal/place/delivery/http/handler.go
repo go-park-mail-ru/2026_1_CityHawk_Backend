@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -14,6 +16,7 @@ import (
 	placeusecase "cityhawk/backend/internal/place/usecase"
 	platformerrors "cityhawk/backend/internal/platform/errors"
 	"cityhawk/backend/internal/platform/httpx"
+	"cityhawk/backend/internal/platform/media"
 	platformmiddleware "cityhawk/backend/internal/platform/middleware"
 )
 
@@ -33,10 +36,11 @@ type EventsUsecase interface {
 
 type Handler struct {
 	events EventsUsecase
+	images media.Storage
 }
 
-func NewHandler(events EventsUsecase) *Handler {
-	return &Handler{events: events}
+func NewHandler(events EventsUsecase, images media.Storage) *Handler {
+	return &Handler{events: events, images: images}
 }
 
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
@@ -196,13 +200,15 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) error {
 		return httpx.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
-	var req createEventRequest
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&req); err != nil {
-		httpx.WriteJSON(w, http.StatusBadRequest, httpx.NewErrorResponse("invalid json", nil))
-		return nil
+	req, imageHeaders, err := decodeCreateEventRequest(r)
+	if err != nil {
+		return err
 	}
+	uploadedURLs, err := h.saveEventImages(r, userID, imageHeaders)
+	if err != nil {
+		return err
+	}
+	req.ImageURLs = append(req.ImageURLs, uploadedURLs...)
 
 	input, err := validateCreateEventRequest(req, userID)
 	if err != nil {
@@ -229,12 +235,21 @@ func (h *Handler) handlePatch(w http.ResponseWriter, r *http.Request) error {
 		return httpx.NewHTTPError(http.StatusNotFound, "Event not found")
 	}
 
-	var req patchEventRequest
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&req); err != nil {
-		httpx.WriteJSON(w, http.StatusBadRequest, httpx.NewErrorResponse("invalid json", nil))
-		return nil
+	req, imageHeaders, err := decodePatchEventRequest(r)
+	if err != nil {
+		return err
+	}
+	if imageHeaders != nil {
+		uploadedURLs, err := h.saveEventImages(r, userID, imageHeaders)
+		if err != nil {
+			return err
+		}
+		current := []string{}
+		if req.ImageURLs != nil {
+			current = append(current, *req.ImageURLs...)
+		}
+		current = append(current, uploadedURLs...)
+		req.ImageURLs = &current
 	}
 
 	input, err := validatePatchEventRequest(req, eventID, userID)
@@ -260,6 +275,274 @@ func (h *Handler) handlePatch(w http.ResponseWriter, r *http.Request) error {
 
 	httpx.WriteJSON(w, http.StatusOK, toEventDetailsResponse(item))
 	return nil
+}
+
+func (h *Handler) saveEventImages(r *http.Request, userID string, headers []*multipart.FileHeader) ([]string, error) {
+	if len(headers) == 0 {
+		return nil, nil
+	}
+	if h.images == nil {
+		return nil, fmt.Errorf("event image storage is not configured")
+	}
+
+	urls := make([]string, 0, len(headers))
+	for _, header := range headers {
+		publicPath, err := h.images.Save(userID, header)
+		if err != nil {
+			switch {
+			case errors.Is(err, media.ErrImageEmpty),
+				errors.Is(err, media.ErrImageTooLarge),
+				errors.Is(err, media.ErrUnsupportedImageType):
+				return nil, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{
+					"images": err.Error(),
+				})
+			default:
+				return nil, err
+			}
+		}
+		urls = append(urls, absoluteURL(r, publicPath))
+	}
+
+	return urls, nil
+}
+
+func decodeCreateEventRequest(r *http.Request) (createEventRequest, []*multipart.FileHeader, error) {
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		return decodeMultipartCreateEventRequest(r)
+	}
+
+	var req createEventRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		return createEventRequest{}, nil, httpx.NewHTTPError(http.StatusBadRequest, "invalid json")
+	}
+
+	return req, nil, nil
+}
+
+func decodePatchEventRequest(r *http.Request) (patchEventRequest, []*multipart.FileHeader, error) {
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		return decodeMultipartPatchEventRequest(r)
+	}
+
+	var req patchEventRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		return patchEventRequest{}, nil, httpx.NewHTTPError(http.StatusBadRequest, "invalid json")
+	}
+
+	return req, nil, nil
+}
+
+func decodeMultipartCreateEventRequest(r *http.Request) (createEventRequest, []*multipart.FileHeader, error) {
+	if err := r.ParseMultipartForm(media.MaxImageSize * 4); err != nil {
+		return createEventRequest{}, nil, httpx.NewHTTPError(http.StatusBadRequest, "invalid multipart form")
+	}
+
+	req := createEventRequest{
+		Title:            multipartStringValue(r.MultipartForm, "title"),
+		ShortDescription: multipartStringValue(r.MultipartForm, "shortDescription"),
+		FullDescription:  multipartStringValue(r.MultipartForm, "fullDescription"),
+	}
+
+	if value, ok, err := multipartIntValue(r.MultipartForm, "ageLimit"); err != nil {
+		return createEventRequest{}, nil, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"ageLimit": "ageLimit must be an integer"})
+	} else if ok {
+		req.AgeLimit = &value
+	}
+
+	if value, ok := multipartOptionalStringValue(r.MultipartForm, "sourceUrl"); ok {
+		req.SourceURL = value
+	}
+
+	categoryIDs, err := multipartStringSliceValue(r.MultipartForm, "categoryIds")
+	if err != nil {
+		return createEventRequest{}, nil, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"categoryIds": "categoryIds must be a JSON array of strings"})
+	}
+	req.CategoryIDs = categoryIDs
+
+	tagIDs, err := multipartStringSliceValue(r.MultipartForm, "tagIds")
+	if err != nil {
+		return createEventRequest{}, nil, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"tagIds": "tagIds must be a JSON array of strings"})
+	}
+	req.TagIDs = tagIDs
+
+	imageURLs, err := multipartStringSliceValue(r.MultipartForm, "imageUrls")
+	if err != nil {
+		return createEventRequest{}, nil, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"imageUrls": "imageUrls must be a JSON array of strings"})
+	}
+	req.ImageURLs = imageURLs
+
+	sessions, err := multipartSessionsValue(r.MultipartForm, "sessions")
+	if err != nil {
+		return createEventRequest{}, nil, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"sessions": "sessions must be a JSON array"})
+	}
+	req.Sessions = sessions
+
+	return req, multipartFiles(r.MultipartForm, "images"), nil
+}
+
+func decodeMultipartPatchEventRequest(r *http.Request) (patchEventRequest, []*multipart.FileHeader, error) {
+	if err := r.ParseMultipartForm(media.MaxImageSize * 4); err != nil {
+		return patchEventRequest{}, nil, httpx.NewHTTPError(http.StatusBadRequest, "invalid multipart form")
+	}
+
+	req := patchEventRequest{}
+	if value, ok := multipartOptionalStringValue(r.MultipartForm, "title"); ok && value != nil {
+		req.Title = value
+	}
+	if value, ok := multipartOptionalStringValue(r.MultipartForm, "shortDescription"); ok && value != nil {
+		req.ShortDescription = value
+	}
+	if value, ok := multipartOptionalStringValue(r.MultipartForm, "fullDescription"); ok && value != nil {
+		req.FullDescription = value
+	}
+	if value, ok, err := multipartIntValue(r.MultipartForm, "ageLimit"); err != nil {
+		return patchEventRequest{}, nil, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"ageLimit": "ageLimit must be an integer"})
+	} else if ok {
+		req.AgeLimit = &value
+	}
+	if value, ok := multipartOptionalStringValue(r.MultipartForm, "sourceUrl"); ok {
+		req.SourceURL.Set = true
+		req.SourceURL.Value = value
+	}
+	if values, ok, err := multipartOptionalStringSliceValue(r.MultipartForm, "categoryIds"); err != nil {
+		return patchEventRequest{}, nil, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"categoryIds": "categoryIds must be a JSON array of strings"})
+	} else if ok {
+		req.CategoryIDs = &values
+	}
+	if values, ok, err := multipartOptionalStringSliceValue(r.MultipartForm, "tagIds"); err != nil {
+		return patchEventRequest{}, nil, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"tagIds": "tagIds must be a JSON array of strings"})
+	} else if ok {
+		req.TagIDs = &values
+	}
+	if values, ok, err := multipartOptionalStringSliceValue(r.MultipartForm, "imageUrls"); err != nil {
+		return patchEventRequest{}, nil, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"imageUrls": "imageUrls must be a JSON array of strings"})
+	} else if ok {
+		req.ImageURLs = &values
+	}
+	if values, ok, err := multipartOptionalSessionsValue(r.MultipartForm, "sessions"); err != nil {
+		return patchEventRequest{}, nil, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"sessions": "sessions must be a JSON array"})
+	} else if ok {
+		req.Sessions = &values
+	}
+
+	return req, multipartFiles(r.MultipartForm, "images"), nil
+}
+
+func multipartStringValue(form *multipart.Form, key string) string {
+	if form == nil || form.Value == nil {
+		return ""
+	}
+	values := form.Value[key]
+	if len(values) == 0 {
+		return ""
+	}
+	return values[0]
+}
+
+func multipartOptionalStringValue(form *multipart.Form, key string) (*string, bool) {
+	if form == nil || form.Value == nil {
+		return nil, false
+	}
+	values, ok := form.Value[key]
+	if !ok || len(values) == 0 {
+		return nil, false
+	}
+	value := values[0]
+	return &value, true
+}
+
+func multipartIntValue(form *multipart.Form, key string) (int, bool, error) {
+	raw, ok := multipartOptionalStringValue(form, key)
+	if !ok || raw == nil {
+		return 0, false, nil
+	}
+	value, err := strconv.Atoi(strings.TrimSpace(*raw))
+	if err != nil {
+		return 0, false, err
+	}
+	return value, true, nil
+}
+
+func multipartStringSliceValue(form *multipart.Form, key string) ([]string, error) {
+	raw := strings.TrimSpace(multipartStringValue(form, key))
+	if raw == "" {
+		return nil, nil
+	}
+	var values []string
+	if err := json.Unmarshal([]byte(raw), &values); err != nil {
+		return nil, err
+	}
+	return values, nil
+}
+
+func multipartOptionalStringSliceValue(form *multipart.Form, key string) ([]string, bool, error) {
+	raw, ok := multipartOptionalStringValue(form, key)
+	if !ok || raw == nil {
+		return nil, false, nil
+	}
+	if strings.TrimSpace(*raw) == "" {
+		return []string{}, true, nil
+	}
+	var values []string
+	if err := json.Unmarshal([]byte(*raw), &values); err != nil {
+		return nil, false, err
+	}
+	return values, true, nil
+}
+
+func multipartSessionsValue(form *multipart.Form, key string) ([]eventSessionRequest, error) {
+	raw := strings.TrimSpace(multipartStringValue(form, key))
+	if raw == "" {
+		return nil, nil
+	}
+	var values []eventSessionRequest
+	if err := json.Unmarshal([]byte(raw), &values); err != nil {
+		return nil, err
+	}
+	return values, nil
+}
+
+func multipartOptionalSessionsValue(form *multipart.Form, key string) ([]eventSessionRequest, bool, error) {
+	raw, ok := multipartOptionalStringValue(form, key)
+	if !ok || raw == nil {
+		return nil, false, nil
+	}
+	if strings.TrimSpace(*raw) == "" {
+		return []eventSessionRequest{}, true, nil
+	}
+	var values []eventSessionRequest
+	if err := json.Unmarshal([]byte(*raw), &values); err != nil {
+		return nil, false, err
+	}
+	return values, true, nil
+}
+
+func multipartFiles(form *multipart.Form, key string) []*multipart.FileHeader {
+	if form == nil || form.File == nil {
+		return nil
+	}
+	return form.File[key]
+}
+
+func absoluteURL(r *http.Request, publicPath string) string {
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	if forwardedProto := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")); forwardedProto != "" {
+		scheme = strings.Split(forwardedProto, ",")[0]
+	}
+
+	host := r.Host
+	if host == "" {
+		host = "localhost"
+	}
+
+	return fmt.Sprintf("%s://%s%s", scheme, host, publicPath)
 }
 
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) error {
