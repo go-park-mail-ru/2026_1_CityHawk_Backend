@@ -168,8 +168,8 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		return nil
 	})
 	mux.HandleFunc("GET /api/health", healthHandler)
-	mux.Handle("GET /uploads/events/", http.StripPrefix("/uploads/events/", http.FileServer(http.Dir(eventImageStore.Dir()))))
-	mux.Handle("GET /uploads/avatars/", http.StripPrefix("/uploads/avatars/", http.FileServer(http.Dir(avatarStore.Dir()))))
+	mux.Handle("GET /uploads/events/", media.NewLocalFileHandler(eventImageStore.Dir(), "/uploads/events"))
+	mux.Handle("GET /uploads/avatars/", media.NewLocalFileHandler(avatarStore.Dir(), "/uploads/avatars"))
 	mux.HandleFunc("POST /api/auth/register", authFlowHandler.Register)
 	mux.HandleFunc("POST /api/auth/login", authFlowHandler.Login)
 	if vkOAuthCfg != nil {

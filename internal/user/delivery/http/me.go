@@ -123,8 +123,7 @@ func (h *MeHandler) handlePatch(w http.ResponseWriter, r *http.Request) error {
 			}
 		}
 
-		avatarURL := absoluteURL(r, publicPath)
-		patch.AvatarURL = &avatarURL
+		patch.AvatarURL = &publicPath
 	}
 
 	u, ok, err := h.users.UpdateProfile(r.Context(), userID, patch)
@@ -197,23 +196,6 @@ func multipartValue(form *multipart.Form, key string) *string {
 
 	value := values[0]
 	return &value
-}
-
-func absoluteURL(r *http.Request, publicPath string) string {
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
-	}
-	if forwardedProto := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")); forwardedProto != "" {
-		scheme = strings.Split(forwardedProto, ",")[0]
-	}
-
-	host := r.Host
-	if host == "" {
-		host = "localhost"
-	}
-
-	return fmt.Sprintf("%s://%s%s", scheme, host, publicPath)
 }
 
 func makeMeResponse(u usermodel.User) meResponse {

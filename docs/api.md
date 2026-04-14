@@ -348,7 +348,7 @@ avatar=<binary file>
   "username": "Alice",
   "userSurname": "Ivanova",
   "birthday": "2004-01-12",
-  "avatarUrl": "http://example.com/uploads/avatars/file.png",
+  "avatarUrl": "/uploads/avatars/user-avatar.png",
   "updatedAt": "2026-03-23T12:00:00Z"
 }
 ```
@@ -532,34 +532,31 @@ Query параметры:
 }
 ```
 
-#### 2. multipart/form-data
+### Правила
 
-Поле файлов: `images`
+- `title`, `shortDescription`, `fullDescription`, `categoryIds` и `sessions` обязательны
+- `shortDescription` используется как описание местоположения (`locationDescription`)
+- `sourceUrl` опционален и может использоваться как ссылка на внешний источник события
+- событие можно создать полностью вручную, без `sourceUrl`
+- если `sourceUrl` передан, backend сохраняет его как ссылку на первоисточник, но не требует обязательного импорта данных по ссылке
+- `tagIds` и `imageUrls` могут быть пустыми массивами
+- загруженные через `images` файлы сохраняются локально, а их пути вида `/uploads/...` автоматически добавляются в `imageUrls`
+- `categoryIds` и `tagIds` полностью описывают связи many-to-many
+- каждая запись в `sessions` создаёт отдельную сессию мероприятия
 
-Поля `categoryIds`, `tagIds`, `imageUrls`, `sessions` нужно передавать как JSON-строки.
+### Успешный ответ
 
-```text
-title=Rock concert
-shortDescription=Best rock night
-fullDescription=Long description
-categoryIds=["music"]
-tagIds=["rock"]
-imageUrls=["https://example.com/1.jpg"]
-sessions=[{"placeId":"place-1","startAt":"2026-04-20T19:00:00Z","endAt":"2026-04-20T21:00:00Z","price":1200}]
-images=<binary file>
-images=<binary file>
+**201 Created**
+
+```json
+{
+  "id": "uuid"
+}
 ```
 
-Правила:
+### Возможные ошибки
 
-- `title`, `shortDescription`, `fullDescription`, `categoryIds`, `sessions` обязательны
-- `tagIds` и `imageUrls` могут быть пустыми
-- `sourceUrl` опционален
-- загруженные файлы сохраняются локально, а их URL автоматически добавляются в `imageUrls`
-- допустимые форматы файлов: `PNG`, `JPEG`, `GIF`, `WebP`
-- максимальный размер одного файла: `5 MB`
-
-Успешный ответ `201 Created`:
+**400 Bad Request**
 
 ```json
 {
