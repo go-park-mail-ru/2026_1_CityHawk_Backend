@@ -14,6 +14,7 @@ import (
 	"cityhawk/backend/internal/platform/httpx"
 	"cityhawk/backend/internal/platform/media"
 	platformmiddleware "cityhawk/backend/internal/platform/middleware"
+	"cityhawk/backend/internal/platform/safety"
 	usermodel "cityhawk/backend/internal/user/model"
 )
 
@@ -235,8 +236,8 @@ func makeMeResponse(u usermodel.User) meResponse {
 	return meResponse{
 		ID:          u.ID,
 		Email:       u.Email,
-		Username:    u.Username,
-		UserSurname: u.UserSurname,
+		Username:    safety.EscapeText(u.Username),
+		UserSurname: safety.EscapeText(u.UserSurname),
 		Birthday:    birthday,
 		AvatarURL:   u.AvatarURL,
 		City:        city,
@@ -254,8 +255,8 @@ func makePatchMeResponse(u usermodel.User) patchMeResponse {
 	return patchMeResponse{
 		ID:          u.ID,
 		Email:       u.Email,
-		Username:    u.Username,
-		UserSurname: u.UserSurname,
+		Username:    safety.EscapeText(u.Username),
+		UserSurname: safety.EscapeText(u.UserSurname),
 		Birthday:    birthday,
 		AvatarURL:   u.AvatarURL,
 		UpdatedAt:   u.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),

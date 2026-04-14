@@ -1,6 +1,9 @@
 package http
 
-import placemodel "cityhawk/backend/internal/place/model"
+import (
+	placemodel "cityhawk/backend/internal/place/model"
+	"cityhawk/backend/internal/platform/safety"
+)
 
 func toEventListResponse(items []placemodel.EventCardView, total, limit, offset int) eventListResponse {
 	respItems := make([]eventCardResponse, 0, len(items))
@@ -52,14 +55,14 @@ func toEventDetailsResponse(item placemodel.EventDetailsView) eventDetailsRespon
 			Price:   session.Price,
 			Place: eventSessionPlaceResponse{
 				ID:          session.Place.ID,
-				Name:        session.Place.Name,
-				AddressLine: session.Place.AddressLine,
+				Name:        safety.EscapeText(session.Place.Name),
+				AddressLine: safety.EscapeText(session.Place.AddressLine),
 				Latitude:    session.Place.Latitude,
 				Longitude:   session.Place.Longitude,
 				City: eventSessionPlaceCityResponse{
 					ID:          session.Place.City.ID,
-					Name:        session.Place.City.Name,
-					CountryName: session.Place.City.CountryName,
+					Name:        safety.EscapeText(session.Place.City.Name),
+					CountryName: safety.EscapeText(session.Place.City.CountryName),
 					Timezone:    session.Place.City.Timezone,
 				},
 			},
@@ -68,14 +71,14 @@ func toEventDetailsResponse(item placemodel.EventDetailsView) eventDetailsRespon
 
 	return eventDetailsResponse{
 		ID:               item.ID,
-		Title:            item.Title,
-		ShortDescription: item.ShortDescription,
-		FullDescription:  item.FullDescription,
+		Title:            safety.EscapeText(item.Title),
+		ShortDescription: safety.EscapeText(item.ShortDescription),
+		FullDescription:  safety.EscapeText(item.FullDescription),
 		AgeLimit:         item.AgeLimit,
 		SourceURL:        item.SourceURL,
 		Author: eventAuthorResponse{
 			ID:        item.Author.ID,
-			Username:  item.Author.Username,
+			Username:  safety.EscapeText(item.Author.Username),
 			AvatarURL: item.Author.AvatarURL,
 		},
 		Categories: categories,
@@ -94,7 +97,7 @@ func toCategoriesResponse(items []placemodel.HomeCategory) categoriesResponse {
 	for _, item := range items {
 		respItems = append(respItems, taxonomyItemResponse{
 			ID:   item.ID,
-			Name: item.Name,
+			Name: safety.EscapeText(item.Name),
 			Slug: item.Slug,
 		})
 	}
@@ -106,7 +109,7 @@ func toTagsResponse(items []placemodel.HomeTag) tagsResponse {
 	for _, item := range items {
 		respItems = append(respItems, taxonomyItemResponse{
 			ID:   item.ID,
-			Name: item.Name,
+			Name: safety.EscapeText(item.Name),
 			Slug: item.Slug,
 		})
 	}
@@ -118,8 +121,8 @@ func toCollectionsResponse(items []placemodel.CollectionCardView) collectionsRes
 	for _, item := range items {
 		respItems = append(respItems, collectionCardResponse{
 			ID:          item.ID,
-			Title:       item.Title,
-			Description: item.Description,
+			Title:       safety.EscapeText(item.Title),
+			Description: safety.EscapeText(item.Description),
 			ImageURL:    item.ImageURL,
 			IsPublic:    item.IsPublic,
 		})
@@ -135,8 +138,8 @@ func toCollectionDetailsResponse(item placemodel.CollectionDetailsView) collecti
 
 	return collectionDetailsResponse{
 		ID:          item.ID,
-		Title:       item.Title,
-		Description: item.Description,
+		Title:       safety.EscapeText(item.Title),
+		Description: safety.EscapeText(item.Description),
 		ImageURL:    item.ImageURL,
 		IsPublic:    item.IsPublic,
 		Events:      events,
@@ -146,7 +149,7 @@ func toCollectionDetailsResponse(item placemodel.CollectionDetailsView) collecti
 func toSearchSuggestionsResponse(items []placemodel.SearchSuggestion) searchSuggestionsResponse {
 	respItems := make([]string, 0, len(items))
 	for _, item := range items {
-		respItems = append(respItems, item.Name)
+		respItems = append(respItems, safety.EscapeText(item.Name))
 	}
 	return searchSuggestionsResponse{Items: respItems}
 }
@@ -158,21 +161,21 @@ func toHomePayloadResponse(p placemodel.HomePayload) homePayloadResponse {
 		for _, tag := range item.Tags {
 			tags = append(tags, homeTagResponse{
 				ID:   tag.ID,
-				Name: tag.Name,
+				Name: safety.EscapeText(tag.Name),
 				Slug: tag.Slug,
 			})
 		}
 
 		featuredEvents = append(featuredEvents, homeFeaturedEventResponse{
 			ID:            item.ID,
-			Title:         item.Title,
+			Title:         safety.EscapeText(item.Title),
 			CoverImageURL: item.CoverImageURL,
 			Tags:          tags,
 			NextSession: homeNextSessionResponse{
 				StartAt: item.NextSession.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
 				Place: homeNextSessionPlaceResponse{
-					Name:        item.NextSession.Place.Name,
-					AddressLine: item.NextSession.Place.AddressLine,
+					Name:        safety.EscapeText(item.NextSession.Place.Name),
+					AddressLine: safety.EscapeText(item.NextSession.Place.AddressLine),
 				},
 			},
 		})
@@ -182,7 +185,7 @@ func toHomePayloadResponse(p placemodel.HomePayload) homePayloadResponse {
 	for _, item := range p.Categories {
 		categories = append(categories, homeCategoryResponse{
 			ID:   item.ID,
-			Name: item.Name,
+			Name: safety.EscapeText(item.Name),
 			Slug: item.Slug,
 		})
 	}
@@ -191,8 +194,8 @@ func toHomePayloadResponse(p placemodel.HomePayload) homePayloadResponse {
 	for _, item := range p.Collections {
 		collections = append(collections, homeCollectionResponse{
 			ID:          item.ID,
-			Title:       item.Title,
-			Description: item.Description,
+			Title:       safety.EscapeText(item.Title),
+			Description: safety.EscapeText(item.Description),
 			ImageURL:    item.ImageURL,
 		})
 	}
@@ -209,7 +212,7 @@ func toEventCardResponse(item placemodel.EventCardView) eventCardResponse {
 	for _, tag := range item.Tags {
 		tags = append(tags, taxonomyItemResponse{
 			ID:   tag.ID,
-			Name: tag.Name,
+			Name: safety.EscapeText(tag.Name),
 			Slug: tag.Slug,
 		})
 	}
@@ -219,16 +222,16 @@ func toEventCardResponse(item placemodel.EventCardView) eventCardResponse {
 		nextSession = &eventCardNextSessionResponse{
 			StartAt: item.NextSession.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
 			Place: eventCardNextSessionPlaceResponse{
-				Name:        item.NextSession.Place.Name,
-				AddressLine: item.NextSession.Place.AddressLine,
+				Name:        safety.EscapeText(item.NextSession.Place.Name),
+				AddressLine: safety.EscapeText(item.NextSession.Place.AddressLine),
 			},
 		}
 	}
 
 	return eventCardResponse{
 		ID:               item.ID,
-		Title:            item.Title,
-		ShortDescription: item.ShortDescription,
+		Title:            safety.EscapeText(item.Title),
+		ShortDescription: safety.EscapeText(item.ShortDescription),
 		CoverImageURL:    item.CoverImageURL,
 		Tags:             tags,
 		NextSession:      nextSession,

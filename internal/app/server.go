@@ -144,6 +144,17 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 			httpx.UserIDContextKey,
 		)
 	}
+	withCSRF := func(next http.Handler) http.Handler {
+		return platformmiddleware.CSRFMiddleware(next, authdelivery.ReadCSRFCookie)
+	}
+	withAuthAndCSRF := func(next http.HandlerFunc) http.Handler {
+		return platformmiddleware.AuthMiddleware(
+			withCSRF(http.HandlerFunc(next)),
+			authdelivery.ReadAccessCookie,
+			parseAccessToken,
+			httpx.UserIDContextKey,
+		)
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /openapi.yaml", httpx.OpenAPIYAMLHandler)
@@ -173,12 +184,12 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		mux.HandleFunc("GET /api/auth/google/login", authdelivery.GoogleLoginHandler(googleOAuthCfg))
 		mux.HandleFunc("GET /api/auth/google/callback", authdelivery.GoogleCallbackHandler(oauthLoginUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL))
 	}
-	mux.HandleFunc("POST /api/auth/refresh", authRefreshHandler.Refresh)
-	mux.HandleFunc("POST /api/auth/logout", authRefreshHandler.Logout)
+	mux.Handle("POST /api/auth/refresh", withCSRF(http.HandlerFunc(authRefreshHandler.Refresh)))
+	mux.Handle("POST /api/auth/logout", withCSRF(http.HandlerFunc(authRefreshHandler.Logout)))
 	mux.Handle("GET /api/me", withAuth(meHandler.Me))
-	mux.Handle("PATCH /api/me", withAuth(meHandler.Me))
+	mux.Handle("PATCH /api/me", withAuthAndCSRF(meHandler.Me))
 	mux.Handle("GET /api/events", withOptionalAuth(placeHandler.Events))
-	mux.Handle("POST /api/events", withAuth(placeHandler.Events))
+	mux.Handle("POST /api/events", withAuthAndCSRF(placeHandler.Events))
 	mux.HandleFunc("GET /api/home", placeHandler.Home)
 	mux.HandleFunc("GET /api/categories", placeHandler.Categories)
 	mux.HandleFunc("GET /api/tags", placeHandler.Tags)
@@ -190,8 +201,8 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		mux.Handle("POST /api/places/resolve", withAuth(placeLookupHandler.Resolve))
 	}
 	mux.Handle("GET /api/events/", withOptionalAuth(placeHandler.EventByID))
-	mux.Handle("PATCH /api/events/", withAuth(placeHandler.EventByID))
-	mux.Handle("DELETE /api/events/", withAuth(placeHandler.EventByID))
+	mux.Handle("PATCH /api/events/", withAuthAndCSRF(placeHandler.EventByID))
+	mux.Handle("DELETE /api/events/", withAuthAndCSRF(placeHandler.EventByID))
 
 	cleanup := func() {
 		syncCancel()
@@ -201,7 +212,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 
 	return &http.Server{
 		Addr:         ":" + cfg.Server.Port,
-		Handler:      platformmiddleware.RequestIDMiddleware(platformmiddleware.AccessLogMiddleware(platformmiddleware.CorsMiddleware(platformmiddleware.RecoveryMiddleware(mux)))),
+		Handler:      platformmiddleware.RequestIDMiddleware(platformmiddleware.AccessLogMiddleware(platformmiddleware.CorsMiddleware(platformmiddleware.CSRFTokenHeaderMiddleware(platformmiddleware.RecoveryMiddleware(mux), authdelivery.ReadCSRFCookie)))),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}, cleanup, nil
