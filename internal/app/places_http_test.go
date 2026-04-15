@@ -1,20 +1,26 @@
 package app
 
 import (
+	"bytes"
 	"context"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	placedelivery "cityhawk/backend/internal/place/delivery/http"
 	placerepo "cityhawk/backend/internal/place/repository"
 	placeusecase "cityhawk/backend/internal/place/usecase"
 	"cityhawk/backend/internal/platform/httpx"
+	"cityhawk/backend/internal/platform/media"
 )
 
 func TestEventsHandlers(t *testing.T) {
 	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
-	handler := placedelivery.NewHandler(placeusecase.NewService(repo))
+	imageStore, imageDir := newTestEventImageStorage(t)
+	handler := placedelivery.NewHandler(placeusecase.NewService(repo), imageStore)
 
 	t.Run("list ok and method not allowed", func(t *testing.T) {
 		h := http.HandlerFunc(handler.Events)
@@ -73,22 +79,17 @@ func TestEventsHandlers(t *testing.T) {
 		events := http.HandlerFunc(handler.Events)
 		eventByID := http.HandlerFunc(handler.EventByID)
 
-		createReq := httptest.NewRequest(http.MethodPost, "/api/events", mustJSONBody(t, map[string]any{
+		createBody, createContentType := mustMultipartEventBody(t, map[string]string{
 			"title":            "New Event",
 			"shortDescription": "Short text",
 			"fullDescription":  "Long event description",
-			"categoryIds":      []string{"music"},
-			"tagIds":           []string{"rock"},
-			"imageUrls":        []string{"https://example.com/new.jpg"},
-			"sessions": []map[string]any{
-				{
-					"placeId": "place-1",
-					"startAt": "2026-04-20T19:00:00Z",
-					"endAt":   "2026-04-20T21:00:00Z",
-					"price":   1200,
-				},
-			},
-		}))
+			"categoryIds":      `["music"]`,
+			"tagIds":           `["rock"]`,
+			"imageUrls":        `["https://example.com/new.jpg"]`,
+			"sessions":         `[{"placeId":"place-1","startAt":"2026-04-20T19:00:00Z","endAt":"2026-04-20T21:00:00Z","price":1200}]`,
+		}, "images", []namedFile{{name: "cover.png", content: tinyPNG()}})
+		createReq := httptest.NewRequest(http.MethodPost, "/api/events", createBody)
+		createReq.Header.Set("Content-Type", createContentType)
 		createReq = createReq.WithContext(context.WithValue(createReq.Context(), httpx.UserIDContextKey, "user-1"))
 		createRec := httptest.NewRecorder()
 		events.ServeHTTP(createRec, createReq)
@@ -102,16 +103,45 @@ func TestEventsHandlers(t *testing.T) {
 			t.Fatalf("unexpected create payload: %+v", createPayload)
 		}
 
-		patchReq := httptest.NewRequest(http.MethodPatch, "/api/events/"+eventID, mustJSONBody(t, map[string]any{
+		detailsReq := httptest.NewRequest(http.MethodGet, "/api/events/"+eventID, nil)
+		detailsRec := httptest.NewRecorder()
+		eventByID.ServeHTTP(detailsRec, detailsReq)
+		if detailsRec.Code != http.StatusOK {
+			t.Fatalf("details status = %d, want %d body=%s", detailsRec.Code, http.StatusOK, detailsRec.Body.String())
+		}
+		detailsPayload := decodeJSONMap(t, detailsRec.Body)
+		images, ok := detailsPayload["images"].([]any)
+		if !ok || len(images) != 2 {
+			t.Fatalf("unexpected created images: %+v", detailsPayload)
+		}
+
+		patchBody, patchContentType := mustMultipartEventBody(t, map[string]string{
 			"title":       "Updated Event",
-			"sourceUrl":   nil,
-			"categoryIds": []string{},
-		}))
+			"sourceUrl":   "",
+			"categoryIds": `[]`,
+		}, "images", []namedFile{{name: "updated.png", content: tinyPNG()}})
+		patchReq := httptest.NewRequest(http.MethodPatch, "/api/events/"+eventID, patchBody)
+		patchReq.Header.Set("Content-Type", patchContentType)
 		patchReq = patchReq.WithContext(context.WithValue(patchReq.Context(), httpx.UserIDContextKey, "user-1"))
 		patchRec := httptest.NewRecorder()
 		eventByID.ServeHTTP(patchRec, patchReq)
 		if patchRec.Code != http.StatusOK {
 			t.Fatalf("patch status = %d, want %d body=%s", patchRec.Code, http.StatusOK, patchRec.Body.String())
+		}
+		patchPayload := decodeJSONMap(t, patchRec.Body)
+		updatedImages, ok := patchPayload["images"].([]any)
+		if !ok || len(updatedImages) != 1 {
+			t.Fatalf("unexpected patched images: %+v", patchPayload)
+		}
+		entries, err := os.ReadDir(imageDir)
+		if err != nil {
+			t.Fatalf("read image dir: %v", err)
+		}
+		if len(entries) != 2 {
+			t.Fatalf("stored image files = %d, want 2", len(entries))
+		}
+		if _, err := os.ReadFile(filepath.Join(imageDir, entries[0].Name())); err != nil {
+			t.Fatalf("read stored file: %v", err)
 		}
 
 		deleteReq := httptest.NewRequest(http.MethodDelete, "/api/events/"+eventID, nil)
@@ -126,7 +156,7 @@ func TestEventsHandlers(t *testing.T) {
 
 func TestHomeHandlerReturnsHomePayload(t *testing.T) {
 	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
-	handler := placedelivery.NewHandler(placeusecase.NewService(repo))
+	handler := placedelivery.NewHandler(placeusecase.NewService(repo), nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/home", nil)
 	rec := httptest.NewRecorder()
@@ -149,7 +179,7 @@ func TestHomeHandlerReturnsHomePayload(t *testing.T) {
 
 func TestCategoriesHandlerReturnsCategories(t *testing.T) {
 	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
-	handler := placedelivery.NewHandler(placeusecase.NewService(repo))
+	handler := placedelivery.NewHandler(placeusecase.NewService(repo), nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/categories", nil)
 	rec := httptest.NewRecorder()
@@ -174,7 +204,7 @@ func TestCategoriesHandlerReturnsCategories(t *testing.T) {
 
 func TestTagsHandlerReturnsTags(t *testing.T) {
 	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
-	handler := placedelivery.NewHandler(placeusecase.NewService(repo))
+	handler := placedelivery.NewHandler(placeusecase.NewService(repo), nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/tags", nil)
 	rec := httptest.NewRecorder()
@@ -199,7 +229,7 @@ func TestTagsHandlerReturnsTags(t *testing.T) {
 
 func TestCollectionsHandlers(t *testing.T) {
 	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
-	handler := placedelivery.NewHandler(placeusecase.NewService(repo))
+	handler := placedelivery.NewHandler(placeusecase.NewService(repo), nil)
 
 	t.Run("list collections", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/collections", nil)
@@ -250,7 +280,7 @@ func TestCollectionsHandlers(t *testing.T) {
 
 func TestSearchSuggestionsHandler(t *testing.T) {
 	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
-	handler := placedelivery.NewHandler(placeusecase.NewService(repo))
+	handler := placedelivery.NewHandler(placeusecase.NewService(repo), nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/search?query=рок&limit=5", nil)
 	rec := httptest.NewRecorder()
@@ -277,5 +307,62 @@ func TestSearchSuggestionsHandler(t *testing.T) {
 	http.HandlerFunc(handler.Search).ServeHTTP(badLimitRec, badLimitReq)
 	if badLimitRec.Code != http.StatusBadRequest {
 		t.Fatalf("bad limit status = %d, want %d body=%s", badLimitRec.Code, http.StatusBadRequest, badLimitRec.Body.String())
+	}
+}
+
+type namedFile struct {
+	name    string
+	content []byte
+}
+
+func newTestEventImageStorage(t *testing.T) (*media.LocalStorage, string) {
+	t.Helper()
+	dir := t.TempDir()
+	storage, err := media.NewLocalStorage(dir, "/uploads/events")
+	if err != nil {
+		t.Fatalf("create event image storage: %v", err)
+	}
+	return storage, dir
+}
+
+func mustMultipartEventBody(t *testing.T, fields map[string]string, fieldName string, files []namedFile) (*bytes.Buffer, string) {
+	t.Helper()
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	for key, value := range fields {
+		if err := writer.WriteField(key, value); err != nil {
+			t.Fatalf("write field %s: %v", key, err)
+		}
+	}
+
+	for _, file := range files {
+		part, err := writer.CreateFormFile(fieldName, file.name)
+		if err != nil {
+			t.Fatalf("create file %s: %v", file.name, err)
+		}
+		if _, err := part.Write(file.content); err != nil {
+			t.Fatalf("write file %s: %v", file.name, err)
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close multipart writer: %v", err)
+	}
+
+	return body, writer.FormDataContentType()
+}
+
+func tinyPNG() []byte {
+	return []byte{
+		0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+		0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+		0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
+		0xde, 0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41,
+		0x54, 0x08, 0x99, 0x63, 0xf8, 0xcf, 0xc0, 0x00,
+		0x00, 0x03, 0x01, 0x01, 0x00, 0xc9, 0xfe, 0x92,
+		0xef, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e,
+		0x44, 0xae, 0x42, 0x60, 0x82,
 	}
 }

@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +18,7 @@ import (
 	authusecase "cityhawk/backend/internal/auth/usecase"
 	authvalidation "cityhawk/backend/internal/auth/validation"
 	"cityhawk/backend/internal/platform/httpx"
+	"cityhawk/backend/internal/platform/media"
 	platformmiddleware "cityhawk/backend/internal/platform/middleware"
 	platformsecurity "cityhawk/backend/internal/platform/security"
 	userdelivery "cityhawk/backend/internal/user/delivery/http"
@@ -73,11 +77,50 @@ func findCookieByName(cookies []*http.Cookie, name string) *http.Cookie {
 	return nil
 }
 
+func newTestAvatarStorage(t *testing.T) (*media.LocalStorage, string) {
+	t.Helper()
+	dir := t.TempDir()
+	storage, err := media.NewLocalStorage(dir, "/uploads/avatars")
+	if err != nil {
+		t.Fatalf("create avatar storage: %v", err)
+	}
+	return storage, dir
+}
+
+func mustMultipartBody(t *testing.T, fields map[string]string, fieldName, filename string, content []byte) (*bytes.Buffer, string) {
+	t.Helper()
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	for key, value := range fields {
+		if err := writer.WriteField(key, value); err != nil {
+			t.Fatalf("write multipart field %s: %v", key, err)
+		}
+	}
+
+	if fieldName != "" {
+		part, err := writer.CreateFormFile(fieldName, filename)
+		if err != nil {
+			t.Fatalf("create multipart file: %v", err)
+		}
+		if _, err := part.Write(content); err != nil {
+			t.Fatalf("write multipart file: %v", err)
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close multipart writer: %v", err)
+	}
+
+	return body, writer.FormDataContentType()
+}
+
 func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	deps := newTestAuthDeps(t)
 	authFlowHandler := authdelivery.NewAuthHandler(deps.authFlowUC, deps.accessTTL, deps.refreshTTL)
 	authRefreshHandler := authdelivery.NewRefreshHandler(deps.authUsecase, deps.accessTTL, deps.refreshTTL)
-	meHandler := userdelivery.NewMeHandler(deps.store)
+	avatarStore, avatarDir := newTestAvatarStorage(t)
+	meHandler := userdelivery.NewMeHandler(deps.store, avatarStore)
 
 	registerReq := httptest.NewRequest(http.MethodPost, "/api/auth/register", mustJSONBody(t, map[string]any{
 		"email":       "Tester@example.com ",
@@ -147,12 +190,23 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 		t.Fatalf("unexpected me city: %+v", mePayload)
 	}
 
-	patchReq := httptest.NewRequest(http.MethodPatch, "/api/me", mustJSONBody(t, map[string]any{
+	patchBody, contentType := mustMultipartBody(t, map[string]string{
 		"username":    "patched_user",
 		"userSurname": "Петрова",
 		"birthday":    "2005-02-13",
-		"avatarUrl":   "https://example.com/avatar.jpg",
-	}))
+	}, "avatar", "avatar.png", []byte{
+		0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+		0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+		0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
+		0xde, 0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41,
+		0x54, 0x08, 0x99, 0x63, 0xf8, 0xcf, 0xc0, 0x00,
+		0x00, 0x03, 0x01, 0x01, 0x00, 0xc9, 0xfe, 0x92,
+		0xef, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e,
+		0x44, 0xae, 0x42, 0x60, 0x82,
+	})
+	patchReq := httptest.NewRequest(http.MethodPatch, "/api/me", patchBody)
+	patchReq.Header.Set("Content-Type", contentType)
 	patchReq.AddCookie(accessCookie)
 	patchRec := httptest.NewRecorder()
 	platformmiddleware.AuthMiddleware(
@@ -175,8 +229,26 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	if patchPayload["username"] != "patched_user" || patchPayload["userSurname"] != "Петрова" {
 		t.Fatalf("unexpected patch response: %+v", patchPayload)
 	}
-	if patchPayload["birthday"] != "2005-02-13" || patchPayload["avatarUrl"] != "https://example.com/avatar.jpg" {
+	avatarURL, ok := patchPayload["avatarUrl"].(string)
+	if !ok || !strings.HasPrefix(avatarURL, "/uploads/avatars/") {
 		t.Fatalf("unexpected patch fields: %+v", patchPayload)
+	}
+	if patchPayload["birthday"] != "2005-02-13" {
+		t.Fatalf("unexpected patch birthday: %+v", patchPayload)
+	}
+	entries, err := os.ReadDir(avatarDir)
+	if err != nil {
+		t.Fatalf("read avatar dir: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("avatar files = %d, want 1", len(entries))
+	}
+	storedAvatar, err := os.ReadFile(filepath.Join(avatarDir, entries[0].Name()))
+	if err != nil {
+		t.Fatalf("read stored avatar: %v", err)
+	}
+	if len(storedAvatar) == 0 {
+		t.Fatal("stored avatar is empty")
 	}
 
 	refreshReq := httptest.NewRequest(http.MethodPost, "/api/auth/refresh", nil)
@@ -245,7 +317,8 @@ func TestRegisterWithOnlyRequiredFields(t *testing.T) {
 func TestPatchMeValidation(t *testing.T) {
 	deps := newTestAuthDeps(t)
 	authFlowHandler := authdelivery.NewAuthHandler(deps.authFlowUC, deps.accessTTL, deps.refreshTTL)
-	meHandler := userdelivery.NewMeHandler(deps.store)
+	avatarStore, _ := newTestAvatarStorage(t)
+	meHandler := userdelivery.NewMeHandler(deps.store, avatarStore)
 
 	registerReq := httptest.NewRequest(http.MethodPost, "/api/auth/register", mustJSONBody(t, map[string]any{
 		"email":       "patchme@example.com",
@@ -321,6 +394,62 @@ func TestPatchMeValidation(t *testing.T) {
 				t.Fatalf("error = %q, want %q", got, tc.errMsg)
 			}
 		})
+	}
+}
+
+func TestPatchMeRejectsUnsupportedAvatar(t *testing.T) {
+	deps := newTestAuthDeps(t)
+	authFlowHandler := authdelivery.NewAuthHandler(deps.authFlowUC, deps.accessTTL, deps.refreshTTL)
+	avatarStore, _ := newTestAvatarStorage(t)
+	meHandler := userdelivery.NewMeHandler(deps.store, avatarStore)
+
+	registerReq := httptest.NewRequest(http.MethodPost, "/api/auth/register", mustJSONBody(t, map[string]any{
+		"email":       "avatar-invalid@example.com",
+		"password":    "verysecret",
+		"username":    "valid_user",
+		"userSurname": "Иванова",
+	}))
+	registerRec := httptest.NewRecorder()
+	http.HandlerFunc(authFlowHandler.Register).ServeHTTP(registerRec, registerReq)
+	if registerRec.Code != http.StatusCreated {
+		t.Fatalf("register status = %d, want %d, body=%s", registerRec.Code, http.StatusCreated, registerRec.Body.String())
+	}
+
+	accessCookie := findCookieByName(registerRec.Result().Cookies(), authdelivery.AccessCookieName)
+	if accessCookie == nil {
+		t.Fatal("missing access cookie")
+	}
+
+	body, contentType := mustMultipartBody(t, nil, "avatar", "avatar.txt", []byte("plain text"))
+	req := httptest.NewRequest(http.MethodPatch, "/api/me", body)
+	req.Header.Set("Content-Type", contentType)
+	req.AddCookie(accessCookie)
+	rec := httptest.NewRecorder()
+
+	platformmiddleware.AuthMiddleware(
+		http.HandlerFunc(meHandler.Me),
+		authdelivery.ReadAccessCookie,
+		func(token string) (string, string, error) {
+			claims, err := deps.tokenService.Parse(token)
+			if err != nil {
+				return "", "", err
+			}
+			return claims.Subject, claims.Type, nil
+		},
+		httpx.UserIDContextKey,
+	).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d, body=%s", rec.Code, http.StatusBadRequest, rec.Body.String())
+	}
+
+	payload := decodeJSONMap(t, rec.Body)
+	if payload["error"] != "Validation failed" {
+		t.Fatalf("unexpected error response: %+v", payload)
+	}
+	details, ok := payload["details"].(map[string]any)
+	if !ok || details["avatar"] == nil {
+		t.Fatalf("unexpected details: %+v", payload)
 	}
 }
 

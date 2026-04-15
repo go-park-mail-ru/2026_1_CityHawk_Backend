@@ -265,6 +265,27 @@ Cookie: access_token=<jwt>
   - `401`: `{"error":"unauthorized"}`
   - `401`: `{"error":"user not found"}`
 
+### `PATCH /api/me`
+
+Частично обновляет профиль текущего пользователя. Для загрузки аватарки используйте `multipart/form-data` и поле файла `avatar`.
+
+Пример:
+
+```text
+PATCH /api/me
+Cookie: access_token=<jwt>
+Content-Type: multipart/form-data
+
+username=Alice
+userSurname=Ivanova
+avatar=<binary file>
+```
+
+- Успешный ответ `200` возвращает обновленный профиль, а `avatarUrl` указывает на сохраненный файл вида `/uploads/avatars/...`.
+- Возможные ошибки:
+  - `400`: `{"error":"Validation failed"}`
+  - `401`: `{"error":"Unauthorized"}`
+
 ### `GET /api/events`
 
 Список всех карточек мероприятий.
@@ -296,6 +317,33 @@ Cookie: access_token=<jwt>
 - Возможные ошибки:
   - `400`: `{"error":"Validation failed"}`
   - `405`: `{"error":"method not allowed"}`
+
+### `POST /api/events`
+
+Создает событие. Для загрузки картинок можно использовать `multipart/form-data` и поле файлов `images`.
+Поля `categoryIds`, `tagIds`, `imageUrls`, `sessions` в этом случае передаются JSON-строками.
+
+```text
+POST /api/events
+Cookie: access_token=<jwt>
+Content-Type: multipart/form-data
+
+title=New Event
+shortDescription=Short text
+fullDescription=Long event description
+categoryIds=["music"]
+sessions=[{"placeId":"place-1","startAt":"2026-04-20T19:00:00Z","endAt":"2026-04-20T21:00:00Z","price":1200}]
+images=<binary file>
+images=<binary file>
+```
+
+- Успешный ответ `201`:
+```json
+{"id":"uuid"}
+```
+- Возможные ошибки:
+  - `400`: `{"error":"Validation failed"}`
+  - `401`: `{"error":"Unauthorized"}`
 
 ### `GET /api/events/{id}`
 

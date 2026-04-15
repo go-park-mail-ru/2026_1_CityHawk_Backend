@@ -2,12 +2,12 @@
 
 ## Общая информация
 
-API приложения CityHawk построено по REST-подходу и использует JSON.
+API приложения CityHawk построено по REST-подходу и использует JSON, а для загрузки файлов `multipart/form-data`.
 
 Основные принципы:
 
 - все endpoint'ы backend начинаются с префикса `/api`
-- все запросы и ответы используют `application/json`
+- большинство запросов и все ответы используют `application/json`
 - авторизация работает через cookie-сессию
 - frontend отправляет запросы с `credentials: "include"`
 - access token в теле ответа не используется
@@ -180,6 +180,23 @@ fetch("/api/events", {
 }
 ```
 
+Для загрузки картинок можно отправлять `multipart/form-data`. Поле файлов: `images`.
+Поля `categoryIds`, `tagIds`, `imageUrls`, `sessions` в multipart нужно передавать JSON-строками.
+
+```text
+Content-Type: multipart/form-data
+
+title=Rock concert
+shortDescription=Best rock night
+fullDescription=Long description
+categoryIds=["uuid"]
+tagIds=["uuid","uuid"]
+imageUrls=["https://example.com/1.jpg"]
+sessions=[{"placeId":"uuid","startAt":"2026-03-30T19:00:00Z","endAt":"2026-03-30T21:00:00Z","price":2000}]
+images=<binary file>
+images=<binary file>
+```
+
 ### Правила
 
 - `email`, `username`, `userSurname`, `password`, `birthday`, `cityId` обязательны
@@ -349,6 +366,8 @@ fetch("/api/events", {
 
 Все поля опциональны.
 
+Для обновления текстовых полей можно отправлять `application/json`:
+
 ```json
 {
   "username": "Alice",
@@ -357,6 +376,18 @@ fetch("/api/events", {
   "cityId": "uuid",
   "avatarUrl": "https://example.com/avatar.jpg"
 }
+```
+
+Для загрузки файла аватарки нужно отправлять `multipart/form-data`. Поле файла: `avatar`.
+
+```text
+Content-Type: multipart/form-data
+
+username=Alice
+userSurname=Ivanova
+birthday=2004-01-12
+cityId=uuid
+avatar=<binary file>
 ```
 
 ### Успешный ответ
@@ -368,7 +399,7 @@ fetch("/api/events", {
   "username": "Alice",
   "userSurname": "Ivanova",
   "birthday": "2004-01-12",
-  "avatarUrl": "https://example.com/avatar.jpg",
+  "avatarUrl": "/uploads/avatars/user-avatar.png",
   "updatedAt": "2026-03-23T12:00:00Z"
 }
 ```
@@ -564,6 +595,7 @@ GET /api/events?query=rock&categoryId=uuid&sort=dateAsc&limit=12&offset=0
 - событие можно создать полностью вручную, без `sourceUrl`
 - если `sourceUrl` передан, backend сохраняет его как ссылку на первоисточник, но не требует обязательного импорта данных по ссылке
 - `tagIds` и `imageUrls` могут быть пустыми массивами
+- загруженные через `images` файлы сохраняются локально, а их пути вида `/uploads/...` автоматически добавляются в `imageUrls`
 - `categoryIds` и `tagIds` полностью описывают связи many-to-many
 - каждая запись в `sessions` создаёт отдельную сессию мероприятия
 
@@ -606,6 +638,7 @@ GET /api/events?query=rock&categoryId=uuid&sort=dateAsc&limit=12&offset=0
 ### Тело запроса
 
 Допускает частичное обновление. Можно передавать любое подмножество полей из `POST /api/events`.
+Для загрузки новых файлов картинок можно использовать `multipart/form-data` с полем `images`.
 
 ### Семантика обновления
 
@@ -613,6 +646,7 @@ GET /api/events?query=rock&categoryId=uuid&sort=dateAsc&limit=12&offset=0
 - `sourceUrl` можно добавить, изменить или очистить
 - `categoryIds`, `tagIds`, `imageUrls`, `sessions` при передаче заменяют соответствующий набор целиком
 - пустой массив означает очистку соответствующего набора
+- если в `PATCH` переданы файлы `images`, они тоже входят в новый набор картинок события
 
 ### Возможные ошибки
 

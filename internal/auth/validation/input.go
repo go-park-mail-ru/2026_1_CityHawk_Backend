@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"cityhawk/backend/internal/platform/media"
 )
 
 const (
@@ -246,8 +248,8 @@ func normalizeAndValidateAvatarURL(raw string) (string, error) {
 	if utf8.RuneCountInString(value) > 2048 {
 		return "", errors.New("avatarUrl is too long")
 	}
-	if !strings.HasPrefix(value, "http://") && !strings.HasPrefix(value, "https://") {
-		return "", errors.New("avatarUrl must start with http:// or https://")
+	if !media.IsFileReference(value) {
+		return "", errors.New("avatarUrl must be an http(s) URL or /uploads path")
 	}
 	return value, nil
 }

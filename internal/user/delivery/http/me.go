@@ -4,11 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"mime/multipart"
 	"net/http"
+	"strings"
 
 	authvalidation "cityhawk/backend/internal/auth/validation"
 	platformerrors "cityhawk/backend/internal/platform/errors"
 	"cityhawk/backend/internal/platform/httpx"
+	"cityhawk/backend/internal/platform/media"
 	platformmiddleware "cityhawk/backend/internal/platform/middleware"
 	usermodel "cityhawk/backend/internal/user/model"
 )
@@ -19,11 +23,12 @@ type UserReader interface {
 }
 
 type MeHandler struct {
-	users UserReader
+	users   UserReader
+	avatars media.Storage
 }
 
-func NewMeHandler(users UserReader) *MeHandler {
-	return &MeHandler{users: users}
+func NewMeHandler(users UserReader, avatars media.Storage) *MeHandler {
+	return &MeHandler{users: users, avatars: avatars}
 }
 
 func (h *MeHandler) Me(w http.ResponseWriter, r *http.Request) {
@@ -60,12 +65,9 @@ func (h *MeHandler) handlePatch(w http.ResponseWriter, r *http.Request) error {
 		return httpx.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
-	var req patchMeRequest
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&req); err != nil {
-		httpx.WriteJSON(w, http.StatusBadRequest, httpx.NewErrorResponse("invalid json", nil))
-		return nil
+	req, avatarHeader, err := decodePatchMeRequest(r)
+	if err != nil {
+		return err
 	}
 
 	username, userSurname, birthday, cityID, avatarURL, err := authvalidation.ValidateProfilePatch(
@@ -100,6 +102,28 @@ func (h *MeHandler) handlePatch(w http.ResponseWriter, r *http.Request) error {
 	if req.AvatarURL != nil {
 		patch.AvatarURL = &avatarURL
 	}
+	if avatarHeader != nil {
+		if h.avatars == nil {
+			return fmt.Errorf("avatar storage is not configured")
+		}
+
+		publicPath, err := h.avatars.Save(userID, avatarHeader)
+		if err != nil {
+			switch {
+			case errors.Is(err, media.ErrImageEmpty),
+				errors.Is(err, media.ErrImageTooLarge),
+				errors.Is(err, media.ErrUnsupportedImageType):
+				httpx.WriteJSON(w, http.StatusBadRequest, httpx.NewErrorResponse("Validation failed", map[string]string{
+					"avatar": err.Error(),
+				}))
+				return nil
+			default:
+				return err
+			}
+		}
+
+		patch.AvatarURL = &publicPath
+	}
 
 	u, ok, err := h.users.UpdateProfile(r.Context(), userID, patch)
 	if err != nil {
@@ -118,6 +142,59 @@ func (h *MeHandler) handlePatch(w http.ResponseWriter, r *http.Request) error {
 
 	httpx.WriteJSON(w, http.StatusOK, makePatchMeResponse(u))
 	return nil
+}
+
+func decodePatchMeRequest(r *http.Request) (patchMeRequest, *multipart.FileHeader, error) {
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		return decodeMultipartPatchMeRequest(r)
+	}
+
+	var req patchMeRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		return patchMeRequest{}, nil, httpx.NewHTTPError(http.StatusBadRequest, "invalid json")
+	}
+
+	return req, nil, nil
+}
+
+func decodeMultipartPatchMeRequest(r *http.Request) (patchMeRequest, *multipart.FileHeader, error) {
+	if err := r.ParseMultipartForm(media.MaxImageSize * 2); err != nil {
+		return patchMeRequest{}, nil, httpx.NewHTTPError(http.StatusBadRequest, "invalid multipart form")
+	}
+
+	req := patchMeRequest{
+		Username:    multipartValue(r.MultipartForm, "username"),
+		UserSurname: multipartValue(r.MultipartForm, "userSurname"),
+		Birthday:    multipartValue(r.MultipartForm, "birthday"),
+		CityID:      multipartValue(r.MultipartForm, "cityId"),
+		AvatarURL:   multipartValue(r.MultipartForm, "avatarUrl"),
+	}
+
+	var avatarHeader *multipart.FileHeader
+	if r.MultipartForm != nil && r.MultipartForm.File != nil {
+		files := r.MultipartForm.File["avatar"]
+		if len(files) > 0 {
+			avatarHeader = files[0]
+		}
+	}
+
+	return req, avatarHeader, nil
+}
+
+func multipartValue(form *multipart.Form, key string) *string {
+	if form == nil || form.Value == nil {
+		return nil
+	}
+
+	values, ok := form.Value[key]
+	if !ok || len(values) == 0 {
+		return nil
+	}
+
+	value := values[0]
+	return &value
 }
 
 func makeMeResponse(u usermodel.User) meResponse {

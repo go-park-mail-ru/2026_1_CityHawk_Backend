@@ -20,6 +20,7 @@ import (
 	placerepo "cityhawk/backend/internal/place/repository"
 	placeusecase "cityhawk/backend/internal/place/usecase"
 	"cityhawk/backend/internal/platform/httpx"
+	"cityhawk/backend/internal/platform/media"
 	platformmiddleware "cityhawk/backend/internal/platform/middleware"
 	platformpostgres "cityhawk/backend/internal/platform/postgres"
 	platformsecurity "cityhawk/backend/internal/platform/security"
@@ -70,10 +71,20 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		store,
 		platformsecurity.NewBcryptPasswordService(),
 	)
-	placeHandler := placedelivery.NewHandler(placeUC)
+	eventImageStore, err := media.NewLocalStorage("uploads/events", "/uploads/events")
+	if err != nil {
+		pool.Close()
+		return nil, nil, err
+	}
+	placeHandler := placedelivery.NewHandler(placeUC, eventImageStore)
 	authFlowHandler := authdelivery.NewAuthHandler(authFlowUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL)
 	authRefreshHandler := authdelivery.NewRefreshHandler(authUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL)
-	meHandler := userdelivery.NewMeHandler(store)
+	avatarStore, err := media.NewLocalStorage("uploads/avatars", "/uploads/avatars")
+	if err != nil {
+		pool.Close()
+		return nil, nil, err
+	}
+	meHandler := userdelivery.NewMeHandler(store, avatarStore)
 	vkOAuthCfg, err := gatewayvk.NewOAuthConfig(cfg.OAuth.VK)
 	if err != nil {
 		log.Printf("vk oauth disabled: %v", err)
@@ -146,6 +157,8 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		return nil
 	})
 	mux.HandleFunc("GET /api/health", healthHandler)
+	mux.Handle("GET /uploads/events/", media.NewLocalFileHandler(eventImageStore.Dir(), "/uploads/events"))
+	mux.Handle("GET /uploads/avatars/", media.NewLocalFileHandler(avatarStore.Dir(), "/uploads/avatars"))
 	mux.HandleFunc("POST /api/auth/register", authFlowHandler.Register)
 	mux.HandleFunc("POST /api/auth/login", authFlowHandler.Login)
 	if vkOAuthCfg != nil {
