@@ -26,7 +26,7 @@ type homeFeaturedEventRow struct {
 	CoverImageURL string
 	TagIDs        []string
 	TagNames      []string
-	StartAt       time.Time
+	StartAt       *time.Time
 	PlaceName     string
 	AddressLine   string
 }
@@ -1132,18 +1132,23 @@ func toHomeFeaturedEvent(row homeFeaturedEventRow) placemodel.HomeFeaturedEvent 
 		tags = append(tags, placemodel.HomeTag{ID: id, Name: name, Slug: tagSlugify(name)})
 	}
 
+	nextSession := placemodel.HomeNextSession{}
+	if row.StartAt != nil {
+		nextSession = placemodel.HomeNextSession{
+			StartAt: row.StartAt.UTC(),
+			Place: placemodel.HomeNextSessionPlace{
+				Name:        row.PlaceName,
+				AddressLine: row.AddressLine,
+			},
+		}
+	}
+
 	return placemodel.HomeFeaturedEvent{
 		ID:            row.ID,
 		Title:         row.Title,
 		CoverImageURL: row.CoverImageURL,
 		Tags:          tags,
-		NextSession: placemodel.HomeNextSession{
-			StartAt: row.StartAt,
-			Place: placemodel.HomeNextSessionPlace{
-				Name:        row.PlaceName,
-				AddressLine: row.AddressLine,
-			},
-		},
+		NextSession:   nextSession,
 	}
 }
 
