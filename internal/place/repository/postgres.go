@@ -386,21 +386,21 @@ func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string
 				e.title AS name,
 				similarity(lower(e.title), lower($1)) AS rank
 			FROM event e
-			WHERE lower(e.title) LIKE lower($1) || '%'
+			WHERE lower(e.title) LIKE '%' || lower($1) || '%'
 			   OR e.title % $1
 			UNION ALL
 			SELECT
 				c.name AS name,
 				similarity(lower(c.name), lower($1)) AS rank
 			FROM category c
-			WHERE lower(c.name) LIKE lower($1) || '%'
+			WHERE lower(c.name) LIKE '%' || lower($1) || '%'
 			   OR c.name % $1
 			UNION ALL
 			SELECT
 				t.name AS name,
 				similarity(lower(t.name), lower($1)) AS rank
 			FROM tag t
-			WHERE lower(t.name) LIKE lower($1) || '%'
+			WHERE lower(t.name) LIKE '%' || lower($1) || '%'
 			   OR t.name % $1
 			UNION ALL
 			SELECT
@@ -409,7 +409,7 @@ func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string
 			FROM collection col
 			WHERE col.is_public = TRUE
 			  AND (
-					lower(col.title) LIKE lower($1) || '%'
+					lower(col.title) LIKE '%' || lower($1) || '%'
 					OR col.title % $1
 			  )
 		),

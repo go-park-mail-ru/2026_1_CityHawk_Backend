@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	authdelivery "cityhawk/backend/internal/auth/delivery/http"
@@ -13,6 +14,8 @@ import (
 	authrepo "cityhawk/backend/internal/auth/repository"
 	authusecase "cityhawk/backend/internal/auth/usecase"
 	appconfig "cityhawk/backend/internal/config"
+	kudagointegration "cityhawk/backend/internal/integration/kudago"
+	photonintegration "cityhawk/backend/internal/integration/photon"
 	placedelivery "cityhawk/backend/internal/place/delivery/http"
 	placerepo "cityhawk/backend/internal/place/repository"
 	placeusecase "cityhawk/backend/internal/place/usecase"
@@ -34,10 +37,27 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		pool.Close()
 		return nil, nil, err
 	}
+	syncCtx, syncCancel := context.WithCancel(context.Background())
+	var syncWG sync.WaitGroup
 
 	store := userrepo.NewPostgresUserRepository(pool)
 	placeRepo := placerepo.NewPostgresRepository(pool)
 	placeUC := placeusecase.NewService(placeRepo)
+	var placeLookupHandler *placedelivery.PlaceLookupHandler
+	if cfg.Photon.Enabled {
+		photonClient := photonintegration.NewClient(photonintegration.ClientConfig{
+			BaseURL:        cfg.Photon.BaseURL,
+			RequestTimeout: cfg.Photon.RequestTimeout,
+		})
+		placeLookupUC := placeusecase.NewPlaceLookupService(
+			photonClient,
+			placeRepo,
+			[]byte(cfg.Auth.JWTSecret),
+			cfg.Photon.DefaultCountry,
+			cfg.Photon.DefaultTimezone,
+		)
+		placeLookupHandler = placedelivery.NewPlaceLookupHandler(placeLookupUC)
+	}
 	refreshRepo := authrepo.NewPostgresRefreshRepository(pool)
 	tokenService := platformsecurity.NewJWTTokenService([]byte(cfg.Auth.JWTSecret))
 	authUC := authusecase.NewService(cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL, store, refreshRepo, tokenService)
@@ -70,6 +90,26 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	yandexGateway := gatewayyandex.NewGateway(yandexOAuthCfg)
 	vkGateway := gatewayvk.NewGateway(vkOAuthCfg)
 	oauthLoginUC := authusecase.NewOAuthLoginService(googleGateway, yandexGateway, vkGateway, oauthUsers, authUC)
+	if cfg.KudaGo.Enabled {
+		kudagoClient := kudagointegration.NewClient(kudagointegration.ClientConfig{
+			BaseURL:        cfg.KudaGo.BaseURL,
+			Location:       cfg.KudaGo.Location,
+			PageSize:       cfg.KudaGo.PageSize,
+			RequestTimeout: cfg.KudaGo.RequestTimeout,
+		})
+		kudagoSyncer := kudagointegration.NewSyncer(kudagointegration.SyncConfig{
+			Enabled:      cfg.KudaGo.Enabled,
+			Location:     cfg.KudaGo.Location,
+			SyncInterval: cfg.KudaGo.SyncInterval,
+		}, kudagoClient, pool)
+
+		syncWG.Add(1)
+		go func() {
+			defer syncWG.Done()
+			log.Printf("kudago sync started location=%s interval=%s", cfg.KudaGo.Location, cfg.KudaGo.SyncInterval)
+			kudagoSyncer.Start(syncCtx)
+		}()
+	}
 	parseAccessToken := func(token string) (string, string, error) {
 		claims, err := tokenService.Parse(token)
 		if err != nil {
@@ -132,11 +172,17 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	mux.HandleFunc("GET /api/collections", placeHandler.Collections)
 	mux.HandleFunc("GET /api/collections/", placeHandler.CollectionByID)
 	mux.HandleFunc("GET /api/search", placeHandler.Search)
+	if placeLookupHandler != nil {
+		mux.HandleFunc("GET /api/place-suggestions", placeLookupHandler.Suggestions)
+		mux.Handle("POST /api/places/resolve", withAuth(placeLookupHandler.Resolve))
+	}
 	mux.Handle("GET /api/events/", withOptionalAuth(placeHandler.EventByID))
 	mux.Handle("PATCH /api/events/", withAuth(placeHandler.EventByID))
 	mux.Handle("DELETE /api/events/", withAuth(placeHandler.EventByID))
 
 	cleanup := func() {
+		syncCancel()
+		syncWG.Wait()
 		pool.Close()
 	}
 
