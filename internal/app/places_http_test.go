@@ -226,6 +226,51 @@ func TestEventsHandlers(t *testing.T) {
 			t.Fatalf("shortDescription not escaped: %+v", payload)
 		}
 	})
+
+	t.Run("create without sessions", func(t *testing.T) {
+		events := http.HandlerFunc(handler.Events)
+		eventByID := http.HandlerFunc(handler.EventByID)
+
+		createReq := httptest.NewRequest(http.MethodPost, "/api/events", mustJSONBody(t, map[string]any{
+			"title":            "Event without sessions",
+			"shortDescription": "Short text",
+			"fullDescription":  "Long event description",
+			"categoryIds":      []string{"music"},
+			"tagIds":           []string{"rock"},
+			"imageUrls":        []string{"https://example.com/image.jpg"},
+		}))
+		createReq.AddCookie(&http.Cookie{Name: "csrf_token", Value: "test-csrf"})
+		createReq.Header.Set(httpx.CSRFHeader, "test-csrf")
+		createReq = createReq.WithContext(context.WithValue(createReq.Context(), httpx.UserIDContextKey, "user-1"))
+		createRec := httptest.NewRecorder()
+		platformmiddleware.CSRFMiddleware(events, func(r *http.Request) string {
+			c, err := r.Cookie("csrf_token")
+			if err != nil {
+				return ""
+			}
+			return c.Value
+		}).ServeHTTP(createRec, createReq)
+		if createRec.Code != http.StatusCreated {
+			t.Fatalf("create without sessions status = %d, want %d body=%s", createRec.Code, http.StatusCreated, createRec.Body.String())
+		}
+
+		eventID := decodeJSONMap(t, createRec.Body)["id"].(string)
+		detailsReq := httptest.NewRequest(http.MethodGet, "/api/events/"+eventID, nil)
+		detailsRec := httptest.NewRecorder()
+		eventByID.ServeHTTP(detailsRec, detailsReq)
+		if detailsRec.Code != http.StatusOK {
+			t.Fatalf("details status = %d, want %d body=%s", detailsRec.Code, http.StatusOK, detailsRec.Body.String())
+		}
+
+		payload := decodeJSONMap(t, detailsRec.Body)
+		sessions, ok := payload["sessions"].([]any)
+		if !ok {
+			t.Fatalf("missing sessions field in details: %+v", payload)
+		}
+		if len(sessions) != 0 {
+			t.Fatalf("sessions len = %d, want 0", len(sessions))
+		}
+	})
 }
 
 func TestHomeHandlerReturnsHomePayload(t *testing.T) {

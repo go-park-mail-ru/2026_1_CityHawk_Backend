@@ -361,7 +361,8 @@ title=New Event
 shortDescription=Short text
 fullDescription=Long event description
 categoryIds=["music"]
-sessions=[{"placeId":"place-1","startAt":"2026-04-20T19:00:00Z","endAt":"2026-04-20T21:00:00Z","price":1200}]
+# sessions опционален
+# sessions=[{"placeId":"place-1","startAt":"2026-04-20T19:00:00Z","endAt":"2026-04-20T21:00:00Z","price":1200}]
 images=<binary file>
 images=<binary file>
 ```

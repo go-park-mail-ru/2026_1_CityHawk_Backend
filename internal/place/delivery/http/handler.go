@@ -652,9 +652,6 @@ func validateCreateEventRequest(req createEventRequest, userID string) (placemod
 	for key, value := range sessionErrs {
 		details[key] = value
 	}
-	if len(req.Sessions) == 0 {
-		details["sessions"] = "sessions is required"
-	}
 
 	var ageLimit int
 	if req.AgeLimit != nil {

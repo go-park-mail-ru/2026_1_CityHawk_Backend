@@ -534,7 +534,7 @@ Query параметры:
 
 ### Правила
 
-- `title`, `shortDescription`, `fullDescription`, `categoryIds` и `sessions` обязательны
+- `title`, `shortDescription`, `fullDescription` и `categoryIds` обязательны
 - `shortDescription` используется как описание местоположения (`locationDescription`)
 - `sourceUrl` опционален и может использоваться как ссылка на внешний источник события
 - событие можно создать полностью вручную, без `sourceUrl`
@@ -542,7 +542,7 @@ Query параметры:
 - `tagIds` и `imageUrls` могут быть пустыми массивами
 - загруженные через `images` файлы сохраняются локально, а их пути вида `/uploads/...` автоматически добавляются в `imageUrls`
 - `categoryIds` и `tagIds` полностью описывают связи many-to-many
-- каждая запись в `sessions` создаёт отдельную сессию мероприятия
+- `sessions` опционален; если передан, каждая запись создаёт отдельную сессию мероприятия
 
 ### Успешный ответ
 
