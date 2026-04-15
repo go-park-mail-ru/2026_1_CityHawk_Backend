@@ -73,33 +73,6 @@ func (h *Handler) Tags(w http.ResponseWriter, r *http.Request) {
 	}).ServeHTTP(w, r)
 }
 
-func (h *Handler) EventsByTag(w http.ResponseWriter, r *http.Request) {
-	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
-		if r.Method != http.MethodGet {
-			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
-		}
-
-		tagID := strings.TrimSpace(r.PathValue("id"))
-		if tagID == "" {
-			return httpx.NewHTTPError(http.StatusNotFound, "Tag not found")
-		}
-
-		filter, err := parseEventListFilter(r)
-		if err != nil {
-			return err
-		}
-		filter.TagID = tagID
-
-		items, total, err := h.events.ListEvents(r.Context(), filter)
-		if err != nil {
-			return err
-		}
-
-		httpx.WriteJSON(w, http.StatusOK, toEventListResponse(items, total, filter.Limit, filter.Offset))
-		return nil
-	}).ServeHTTP(w, r)
-}
-
 func (h *Handler) Collections(w http.ResponseWriter, r *http.Request) {
 	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
 		if r.Method != http.MethodGet {

@@ -55,6 +55,9 @@ services:
       - PHOTON_DEFAULT_COUNTRY=${PHOTON_DEFAULT_COUNTRY:-Russia}
       - PHOTON_DEFAULT_TIMEZONE=${PHOTON_DEFAULT_TIMEZONE:-Europe/Moscow}
       #  - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost}  # only for local development
+    volumes:
+      - uploads_data:/app/uploads
+    user: "0:0"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:8080/api/health"]
@@ -65,3 +68,4 @@ services:
 volumes:
   postgres_data:
   photon_data:
+  uploads_data:

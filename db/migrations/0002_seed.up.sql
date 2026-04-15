@@ -96,7 +96,7 @@ generated_events AS (
             'Сидовое событие номер %s. Создано для наполнения базы 100 полноценными карточками с категориями, тегами, картинкой, сессией, коллекциями и избранным.',
             lpad(gs::text, 3, '0')
         ) AS full_description,
-        ARRAY[0, 6, 12, 16, 18][((gs - 1) % 5) + 1] AS age_limit,
+        (ARRAY[0, 6, 12, 16, 18])[((gs - 1) % 5) + 1] AS age_limit,
         format('https://seed.cityhawk.local/events/%s', lpad(gs::text, 3, '0')) AS source_url
     FROM generate_series(1, 100) AS gs
 )
