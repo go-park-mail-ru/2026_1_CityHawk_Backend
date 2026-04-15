@@ -9,6 +9,7 @@ import (
 	authvalidation "cityhawk/backend/internal/auth/validation"
 	platformerrors "cityhawk/backend/internal/platform/errors"
 	"cityhawk/backend/internal/platform/httpx"
+	"cityhawk/backend/internal/platform/safety"
 )
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -41,9 +42,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	SetRefreshCookie(w, resp.Tokens.RefreshToken, h.refreshTTL)
 	SetAccessCookie(w, resp.Tokens.AccessToken, h.accessTTL)
+	csrfToken, err := IssueCSRFToken()
+	if err != nil {
+		httpx.WriteJSON(w, http.StatusInternalServerError, httpx.NewErrorResponse("failed to issue csrf token", nil))
+		return
+	}
+	SetCSRFCookie(w, csrfToken, h.refreshTTL)
 	httpx.WriteJSON(w, http.StatusOK, loginResponse{
 		ID:       resp.User.ID,
 		Email:    resp.User.Email,
-		Username: resp.User.Username,
+		Username: safety.EscapeText(resp.User.Username),
 	})
 }

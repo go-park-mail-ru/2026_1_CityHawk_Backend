@@ -77,6 +77,31 @@ func findCookieByName(cookies []*http.Cookie, name string) *http.Cookie {
 	return nil
 }
 
+func requireCookie(t *testing.T, cookies []*http.Cookie, name string) *http.Cookie {
+	t.Helper()
+	cookie := findCookieByName(cookies, name)
+	if cookie == nil || cookie.Value == "" {
+		t.Fatalf("missing cookie %s: %+v", name, cookies)
+	}
+	return cookie
+}
+
+func withAuthAndCSRF(t *testing.T, deps *testAuthDeps, next http.HandlerFunc) http.Handler {
+	t.Helper()
+	return platformmiddleware.AuthMiddleware(
+		platformmiddleware.CSRFMiddleware(http.HandlerFunc(next), authdelivery.ReadCSRFCookie),
+		authdelivery.ReadAccessCookie,
+		func(token string) (string, string, error) {
+			claims, err := deps.tokenService.Parse(token)
+			if err != nil {
+				return "", "", err
+			}
+			return claims.Subject, claims.Type, nil
+		},
+		httpx.UserIDContextKey,
+	)
+}
+
 func newTestAvatarStorage(t *testing.T) (*media.LocalStorage, string) {
 	t.Helper()
 	dir := t.TempDir()
@@ -146,13 +171,11 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	}
 
 	registerCookies := registerRec.Result().Cookies()
-	accessCookie := findCookieByName(registerCookies, authdelivery.AccessCookieName)
-	refreshCookie := findCookieByName(registerCookies, authdelivery.RefreshCookieName)
-	if accessCookie == nil || accessCookie.Value == "" {
-		t.Fatalf("access cookie not set: %+v", registerCookies)
-	}
-	if refreshCookie == nil || refreshCookie.Value == "" {
-		t.Fatalf("refresh cookie not set: %+v", registerCookies)
+	accessCookie := requireCookie(t, registerCookies, authdelivery.AccessCookieName)
+	refreshCookie := requireCookie(t, registerCookies, authdelivery.RefreshCookieName)
+	csrfCookie := requireCookie(t, registerCookies, authdelivery.CSRFCookieName)
+	if registerRec.Result().Header.Get(httpx.CSRFHeader) == "" {
+		t.Fatal("missing csrf header")
 	}
 
 	meReq := httptest.NewRequest(http.MethodGet, "/api/me", nil)
@@ -207,20 +230,11 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	})
 	patchReq := httptest.NewRequest(http.MethodPatch, "/api/me", patchBody)
 	patchReq.Header.Set("Content-Type", contentType)
+	patchReq.Header.Set(httpx.CSRFHeader, csrfCookie.Value)
 	patchReq.AddCookie(accessCookie)
+	patchReq.AddCookie(csrfCookie)
 	patchRec := httptest.NewRecorder()
-	platformmiddleware.AuthMiddleware(
-		http.HandlerFunc(meHandler.Me),
-		authdelivery.ReadAccessCookie,
-		func(token string) (string, string, error) {
-			claims, err := deps.tokenService.Parse(token)
-			if err != nil {
-				return "", "", err
-			}
-			return claims.Subject, claims.Type, nil
-		},
-		httpx.UserIDContextKey,
-	).ServeHTTP(patchRec, patchReq)
+	withAuthAndCSRF(t, deps, meHandler.Me).ServeHTTP(patchRec, patchReq)
 	if patchRec.Code != http.StatusOK {
 		t.Fatalf("patch me status = %d, want %d, body=%s", patchRec.Code, http.StatusOK, patchRec.Body.String())
 	}
@@ -253,8 +267,10 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 
 	refreshReq := httptest.NewRequest(http.MethodPost, "/api/auth/refresh", nil)
 	refreshReq.AddCookie(refreshCookie)
+	refreshReq.AddCookie(csrfCookie)
+	refreshReq.Header.Set(httpx.CSRFHeader, csrfCookie.Value)
 	refreshRec := httptest.NewRecorder()
-	http.HandlerFunc(authRefreshHandler.Refresh).ServeHTTP(refreshRec, refreshReq)
+	platformmiddleware.CSRFMiddleware(http.HandlerFunc(authRefreshHandler.Refresh), authdelivery.ReadCSRFCookie).ServeHTTP(refreshRec, refreshReq)
 	if refreshRec.Code != http.StatusOK {
 		t.Fatalf("refresh status = %d, want %d, body=%s", refreshRec.Code, http.StatusOK, refreshRec.Body.String())
 	}
@@ -262,12 +278,15 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	if refreshPayload["ok"] != true {
 		t.Fatalf("unexpected refresh response: %+v", refreshPayload)
 	}
+	refreshedCSRFCookie := requireCookie(t, refreshRec.Result().Cookies(), authdelivery.CSRFCookieName)
 
-	logoutCookie := refreshRec.Result().Cookies()[0]
+	logoutCookie := requireCookie(t, refreshRec.Result().Cookies(), authdelivery.RefreshCookieName)
 	logoutReq := httptest.NewRequest(http.MethodPost, "/api/auth/logout", nil)
 	logoutReq.AddCookie(logoutCookie)
+	logoutReq.AddCookie(refreshedCSRFCookie)
+	logoutReq.Header.Set(httpx.CSRFHeader, refreshedCSRFCookie.Value)
 	logoutRec := httptest.NewRecorder()
-	http.HandlerFunc(authRefreshHandler.Logout).ServeHTTP(logoutRec, logoutReq)
+	platformmiddleware.CSRFMiddleware(http.HandlerFunc(authRefreshHandler.Logout), authdelivery.ReadCSRFCookie).ServeHTTP(logoutRec, logoutReq)
 	if logoutRec.Code != http.StatusOK {
 		t.Fatalf("logout status = %d, want %d, body=%s", logoutRec.Code, http.StatusOK, logoutRec.Body.String())
 	}
@@ -338,6 +357,7 @@ func TestPatchMeValidation(t *testing.T) {
 	if accessCookie == nil {
 		t.Fatal("missing access cookie")
 	}
+	csrfCookie := requireCookie(t, registerRec.Result().Cookies(), authdelivery.CSRFCookieName)
 
 	tests := []struct {
 		name   string
@@ -369,20 +389,11 @@ func TestPatchMeValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPatch, "/api/me", strings.NewReader(tc.body))
 			req.AddCookie(accessCookie)
+			req.AddCookie(csrfCookie)
+			req.Header.Set(httpx.CSRFHeader, csrfCookie.Value)
 			rec := httptest.NewRecorder()
 
-			platformmiddleware.AuthMiddleware(
-				http.HandlerFunc(meHandler.Me),
-				authdelivery.ReadAccessCookie,
-				func(token string) (string, string, error) {
-					claims, err := deps.tokenService.Parse(token)
-					if err != nil {
-						return "", "", err
-					}
-					return claims.Subject, claims.Type, nil
-				},
-				httpx.UserIDContextKey,
-			).ServeHTTP(rec, req)
+			withAuthAndCSRF(t, deps, meHandler.Me).ServeHTTP(rec, req)
 
 			if rec.Code != tc.status {
 				t.Fatalf("status = %d, want %d, body=%s", rec.Code, tc.status, rec.Body.String())
@@ -419,25 +430,17 @@ func TestPatchMeRejectsUnsupportedAvatar(t *testing.T) {
 	if accessCookie == nil {
 		t.Fatal("missing access cookie")
 	}
+	csrfCookie := requireCookie(t, registerRec.Result().Cookies(), authdelivery.CSRFCookieName)
 
 	body, contentType := mustMultipartBody(t, nil, "avatar", "avatar.txt", []byte("plain text"))
 	req := httptest.NewRequest(http.MethodPatch, "/api/me", body)
 	req.Header.Set("Content-Type", contentType)
+	req.Header.Set(httpx.CSRFHeader, csrfCookie.Value)
 	req.AddCookie(accessCookie)
+	req.AddCookie(csrfCookie)
 	rec := httptest.NewRecorder()
 
-	platformmiddleware.AuthMiddleware(
-		http.HandlerFunc(meHandler.Me),
-		authdelivery.ReadAccessCookie,
-		func(token string) (string, string, error) {
-			claims, err := deps.tokenService.Parse(token)
-			if err != nil {
-				return "", "", err
-			}
-			return claims.Subject, claims.Type, nil
-		},
-		httpx.UserIDContextKey,
-	).ServeHTTP(rec, req)
+	withAuthAndCSRF(t, deps, meHandler.Me).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want %d, body=%s", rec.Code, http.StatusBadRequest, rec.Body.String())
@@ -450,6 +453,40 @@ func TestPatchMeRejectsUnsupportedAvatar(t *testing.T) {
 	details, ok := payload["details"].(map[string]any)
 	if !ok || details["avatar"] == nil {
 		t.Fatalf("unexpected details: %+v", payload)
+	}
+}
+
+func TestCSRFMiddlewareRejectsMissingToken(t *testing.T) {
+	deps := newTestAuthDeps(t)
+	authFlowHandler := authdelivery.NewAuthHandler(deps.authFlowUC, deps.accessTTL, deps.refreshTTL)
+	avatarStore, _ := newTestAvatarStorage(t)
+	meHandler := userdelivery.NewMeHandler(deps.store, avatarStore)
+
+	registerReq := httptest.NewRequest(http.MethodPost, "/api/auth/register", mustJSONBody(t, map[string]any{
+		"email":       "csrf@example.com",
+		"password":    "verysecret",
+		"username":    "valid_user",
+		"userSurname": "Иванова",
+	}))
+	registerRec := httptest.NewRecorder()
+	http.HandlerFunc(authFlowHandler.Register).ServeHTTP(registerRec, registerReq)
+	if registerRec.Code != http.StatusCreated {
+		t.Fatalf("register status = %d, want %d, body=%s", registerRec.Code, http.StatusCreated, registerRec.Body.String())
+	}
+
+	accessCookie := requireCookie(t, registerRec.Result().Cookies(), authdelivery.AccessCookieName)
+	req := httptest.NewRequest(http.MethodPatch, "/api/me", mustJSONBody(t, map[string]any{"username": "patched_user"}))
+	req.AddCookie(accessCookie)
+	rec := httptest.NewRecorder()
+
+	withAuthAndCSRF(t, deps, meHandler.Me).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d, body=%s", rec.Code, http.StatusForbidden, rec.Body.String())
+	}
+	payload := decodeJSONMap(t, rec.Body)
+	if payload["error"] != "CSRF token mismatch" {
+		t.Fatalf("unexpected csrf error: %+v", payload)
 	}
 }
 

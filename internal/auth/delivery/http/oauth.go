@@ -149,6 +149,11 @@ func newOAuthCallbackHandler(accessTTL, refreshTTL time.Duration, cfg oauthCallb
 
 		SetRefreshCookie(w, resp.RefreshToken, refreshTTL)
 		SetAccessCookie(w, resp.AccessToken, accessTTL)
+		csrfToken, err := IssueCSRFToken()
+		if err != nil {
+			return httpx.NewHTTPError(http.StatusInternalServerError, "failed to issue csrf token")
+		}
+		SetCSRFCookie(w, csrfToken, refreshTTL)
 		httpx.WriteJSON(w, http.StatusOK, messageResponse{Message: cfg.successMessage})
 		return nil
 	})

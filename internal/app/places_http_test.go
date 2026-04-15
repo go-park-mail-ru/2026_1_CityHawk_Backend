@@ -15,6 +15,7 @@ import (
 	placeusecase "cityhawk/backend/internal/place/usecase"
 	"cityhawk/backend/internal/platform/httpx"
 	"cityhawk/backend/internal/platform/media"
+	platformmiddleware "cityhawk/backend/internal/platform/middleware"
 )
 
 func TestEventsHandlers(t *testing.T) {
@@ -90,9 +91,17 @@ func TestEventsHandlers(t *testing.T) {
 		}, "images", []namedFile{{name: "cover.png", content: tinyPNG()}})
 		createReq := httptest.NewRequest(http.MethodPost, "/api/events", createBody)
 		createReq.Header.Set("Content-Type", createContentType)
+		createReq.AddCookie(&http.Cookie{Name: "csrf_token", Value: "test-csrf"})
+		createReq.Header.Set(httpx.CSRFHeader, "test-csrf")
 		createReq = createReq.WithContext(context.WithValue(createReq.Context(), httpx.UserIDContextKey, "user-1"))
 		createRec := httptest.NewRecorder()
-		events.ServeHTTP(createRec, createReq)
+		platformmiddleware.CSRFMiddleware(events, func(r *http.Request) string {
+			c, err := r.Cookie("csrf_token")
+			if err != nil {
+				return ""
+			}
+			return c.Value
+		}).ServeHTTP(createRec, createReq)
 		if createRec.Code != http.StatusCreated {
 			t.Fatalf("create status = %d, want %d body=%s", createRec.Code, http.StatusCreated, createRec.Body.String())
 		}
@@ -122,9 +131,17 @@ func TestEventsHandlers(t *testing.T) {
 		}, "images", []namedFile{{name: "updated.png", content: tinyPNG()}})
 		patchReq := httptest.NewRequest(http.MethodPatch, "/api/events/"+eventID, patchBody)
 		patchReq.Header.Set("Content-Type", patchContentType)
+		patchReq.AddCookie(&http.Cookie{Name: "csrf_token", Value: "test-csrf"})
+		patchReq.Header.Set(httpx.CSRFHeader, "test-csrf")
 		patchReq = patchReq.WithContext(context.WithValue(patchReq.Context(), httpx.UserIDContextKey, "user-1"))
 		patchRec := httptest.NewRecorder()
-		eventByID.ServeHTTP(patchRec, patchReq)
+		platformmiddleware.CSRFMiddleware(eventByID, func(r *http.Request) string {
+			c, err := r.Cookie("csrf_token")
+			if err != nil {
+				return ""
+			}
+			return c.Value
+		}).ServeHTTP(patchRec, patchReq)
 		if patchRec.Code != http.StatusOK {
 			t.Fatalf("patch status = %d, want %d body=%s", patchRec.Code, http.StatusOK, patchRec.Body.String())
 		}
@@ -145,11 +162,68 @@ func TestEventsHandlers(t *testing.T) {
 		}
 
 		deleteReq := httptest.NewRequest(http.MethodDelete, "/api/events/"+eventID, nil)
+		deleteReq.AddCookie(&http.Cookie{Name: "csrf_token", Value: "test-csrf"})
+		deleteReq.Header.Set(httpx.CSRFHeader, "test-csrf")
 		deleteReq = deleteReq.WithContext(context.WithValue(deleteReq.Context(), httpx.UserIDContextKey, "user-1"))
 		deleteRec := httptest.NewRecorder()
-		eventByID.ServeHTTP(deleteRec, deleteReq)
+		platformmiddleware.CSRFMiddleware(eventByID, func(r *http.Request) string {
+			c, err := r.Cookie("csrf_token")
+			if err != nil {
+				return ""
+			}
+			return c.Value
+		}).ServeHTTP(deleteRec, deleteReq)
 		if deleteRec.Code != http.StatusOK {
 			t.Fatalf("delete status = %d, want %d body=%s", deleteRec.Code, http.StatusOK, deleteRec.Body.String())
+		}
+	})
+
+	t.Run("details escape html", func(t *testing.T) {
+		events := http.HandlerFunc(handler.Events)
+		eventByID := http.HandlerFunc(handler.EventByID)
+
+		createReq := httptest.NewRequest(http.MethodPost, "/api/events", mustJSONBody(t, map[string]any{
+			"title":            `<script>alert(1)</script>`,
+			"shortDescription": `<b>bold</b>`,
+			"fullDescription":  `<img src=x onerror=alert(1)>`,
+			"categoryIds":      []string{"music"},
+			"sessions": []map[string]any{
+				{
+					"placeId": "place-1",
+					"startAt": "2026-04-20T19:00:00Z",
+					"endAt":   "2026-04-20T21:00:00Z",
+					"price":   1200,
+				},
+			},
+		}))
+		createReq.AddCookie(&http.Cookie{Name: "csrf_token", Value: "test-csrf"})
+		createReq.Header.Set(httpx.CSRFHeader, "test-csrf")
+		createReq = createReq.WithContext(context.WithValue(createReq.Context(), httpx.UserIDContextKey, "user-1"))
+		createRec := httptest.NewRecorder()
+		platformmiddleware.CSRFMiddleware(events, func(r *http.Request) string {
+			c, err := r.Cookie("csrf_token")
+			if err != nil {
+				return ""
+			}
+			return c.Value
+		}).ServeHTTP(createRec, createReq)
+		if createRec.Code != http.StatusCreated {
+			t.Fatalf("create status = %d, want %d body=%s", createRec.Code, http.StatusCreated, createRec.Body.String())
+		}
+
+		eventID := decodeJSONMap(t, createRec.Body)["id"].(string)
+		detailsReq := httptest.NewRequest(http.MethodGet, "/api/events/"+eventID, nil)
+		detailsRec := httptest.NewRecorder()
+		eventByID.ServeHTTP(detailsRec, detailsReq)
+		if detailsRec.Code != http.StatusOK {
+			t.Fatalf("details status = %d, want %d body=%s", detailsRec.Code, http.StatusOK, detailsRec.Body.String())
+		}
+		payload := decodeJSONMap(t, detailsRec.Body)
+		if payload["title"] != "&lt;script&gt;alert(1)&lt;/script&gt;" {
+			t.Fatalf("title not escaped: %+v", payload)
+		}
+		if payload["shortDescription"] != "&lt;b&gt;bold&lt;/b&gt;" {
+			t.Fatalf("shortDescription not escaped: %+v", payload)
 		}
 	})
 }

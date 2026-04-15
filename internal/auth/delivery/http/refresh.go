@@ -21,5 +21,11 @@ func (h *RefreshHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	SetRefreshCookie(w, resp.RefreshToken, h.refreshTTL)
 	SetAccessCookie(w, resp.AccessToken, h.accessTTL)
+	csrfToken, err := IssueCSRFToken()
+	if err != nil {
+		httpx.WriteJSON(w, http.StatusInternalServerError, httpx.NewErrorResponse("failed to issue csrf token", nil))
+		return
+	}
+	SetCSRFCookie(w, csrfToken, h.refreshTTL)
 	httpx.WriteJSON(w, http.StatusOK, okResponse{OK: true})
 }

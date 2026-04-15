@@ -34,9 +34,9 @@ func CorsMiddleware(next http.Handler) http.Handler {
 		if isAllowedOrigin(origin, allowedOrigins) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, "+httpx.RequestIDHeader)
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, "+httpx.RequestIDHeader+", "+httpx.CSRFHeader)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Expose-Headers", httpx.RequestIDHeader)
+			w.Header().Set("Access-Control-Expose-Headers", httpx.RequestIDHeader+", "+httpx.CSRFHeader)
 			w.Header().Add("Vary", "Origin")
 		}
 
@@ -47,6 +47,58 @@ func CorsMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func CSRFMiddleware(next http.Handler, readCSRFToken func(*http.Request) string) http.Handler {
+	allowedOrigins := parseAllowedOrigins(os.Getenv("FRONTEND_ORIGIN"))
+	if len(allowedOrigins) == 0 {
+		allowedOrigins = []string{
+			"http://cityhawk.ru",
+			"http://localhost:3000",
+			"http://localhost:5173",
+			"http://127.0.0.1:3000",
+			"http://127.0.0.1:5173",
+		}
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !isUnsafeMethod(r.Method) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if origin := strings.TrimSpace(r.Header.Get("Origin")); origin != "" && !isAllowedOrigin(origin, allowedOrigins) {
+			httpx.WriteJSON(w, http.StatusForbidden, httpx.NewErrorResponse("Invalid origin", nil))
+			return
+		}
+
+		cookieToken := strings.TrimSpace(readCSRFToken(r))
+		headerToken := strings.TrimSpace(r.Header.Get(httpx.CSRFHeader))
+		if cookieToken == "" || headerToken == "" || cookieToken != headerToken {
+			httpx.WriteJSON(w, http.StatusForbidden, httpx.NewErrorResponse("CSRF token mismatch", nil))
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func CSRFTokenHeaderMiddleware(next http.Handler, readCSRFToken func(*http.Request) string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if token := strings.TrimSpace(readCSRFToken(r)); token != "" {
+			w.Header().Set(httpx.CSRFHeader, token)
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func isUnsafeMethod(method string) bool {
+	switch method {
+	case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+		return true
+	default:
+		return false
+	}
 }
 
 func parseAllowedOrigins(raw string) []string {

@@ -19,5 +19,6 @@ func (h *RefreshHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	ClearRefreshCookie(w)
 	ClearAccessCookie(w)
+	ClearCSRFCookie(w)
 	httpx.WriteJSON(w, http.StatusOK, okResponse{OK: true})
 }
