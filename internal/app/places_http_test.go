@@ -50,6 +50,45 @@ func TestEventsHandlers(t *testing.T) {
 		}
 	})
 
+	t.Run("list by tag id", func(t *testing.T) {
+		mux := http.NewServeMux()
+		mux.Handle("GET /api/tags/{id}/events", http.HandlerFunc(handler.EventsByTag))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/tags/item/events?limit=12&offset=0", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("list by tag status = %d, want %d body=%s", rec.Code, http.StatusOK, rec.Body.String())
+		}
+
+		payload := decodeJSONMap(t, rec.Body)
+		items, ok := payload["items"].([]any)
+		if !ok || len(items) == 0 {
+			t.Fatalf("events by tag response has no items: %+v", payload)
+		}
+		for _, raw := range items {
+			item, ok := raw.(map[string]any)
+			if !ok {
+				t.Fatalf("unexpected item type: %#v", raw)
+			}
+			tags, ok := item["tags"].([]any)
+			if !ok {
+				t.Fatalf("missing tags in item: %+v", item)
+			}
+			found := false
+			for _, rawTag := range tags {
+				tag, ok := rawTag.(map[string]any)
+				if ok && tag["id"] == "item" {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Fatalf("item does not contain requested tag: %+v", item)
+			}
+		}
+	})
+
 	t.Run("details get", func(t *testing.T) {
 		h := http.HandlerFunc(handler.EventByID)
 
