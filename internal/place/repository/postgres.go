@@ -144,7 +144,7 @@ func (r *PostgresRepository) ListTags(ctx context.Context) []placemodel.HomeTag 
 		items = append(items, placemodel.HomeTag{
 			ID:   id,
 			Name: name,
-			Slug: slugify(name),
+			Slug: tagSlugify(name),
 		})
 	}
 	if rows.Err() != nil {
@@ -854,7 +854,7 @@ func fetchTaxonomy(ctx context.Context, db queryable, query, eventID string) ([]
 		if err := rows.Scan(&id, &name); err != nil {
 			return nil, err
 		}
-		items = append(items, placemodel.EventTaxonomyItem{ID: id, Name: name, Slug: slugify(name)})
+		items = append(items, placemodel.EventTaxonomyItem{ID: id, Name: name, Slug: tagSlugify(name)})
 	}
 	return items, rows.Err()
 }
@@ -1029,7 +1029,7 @@ func toEventCard(row eventListRow) placemodel.EventCardView {
 		tags = append(tags, placemodel.EventTaxonomyItem{
 			ID:   id,
 			Name: name,
-			Slug: slugify(name),
+			Slug: tagSlugify(name),
 		})
 	}
 
@@ -1129,7 +1129,7 @@ func toHomeFeaturedEvent(row homeFeaturedEventRow) placemodel.HomeFeaturedEvent 
 		if i < len(row.TagIDs) {
 			id = row.TagIDs[i]
 		}
-		tags = append(tags, placemodel.HomeTag{ID: id, Name: name, Slug: slugify(name)})
+		tags = append(tags, placemodel.HomeTag{ID: id, Name: name, Slug: tagSlugify(name)})
 	}
 
 	return placemodel.HomeFeaturedEvent{
@@ -1172,4 +1172,8 @@ func slugify(s string) string {
 		return "item"
 	}
 	return s
+}
+
+func tagSlugify(s string) string {
+	return strings.ReplaceAll(slugify(s), "-", "")
 }

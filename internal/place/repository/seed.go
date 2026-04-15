@@ -68,7 +68,7 @@ func taxonomyFromNames(names []string) []placemodel.EventTaxonomyItem {
 		items = append(items, placemodel.EventTaxonomyItem{
 			ID:   slugify(name),
 			Name: name,
-			Slug: slugify(name),
+			Slug: tagSlugify(name),
 		})
 	}
 	return items

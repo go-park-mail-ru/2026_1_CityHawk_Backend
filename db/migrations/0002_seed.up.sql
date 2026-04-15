@@ -28,7 +28,9 @@ VALUES
     ('Музей'),
     ('Музыка'),
     ('Квест'),
-    ('Фото')
+    ('Фото'),
+    ('Лекция'),
+    ('Фестиваль')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO tag (name)
@@ -41,7 +43,10 @@ VALUES
     ('Искусство'),
     ('Рок'),
     ('Ретро'),
-    ('Квест')
+    ('Квест'),
+    ('На воздухе'),
+    ('Ночное'),
+    ('Образовательное')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO place (city_id, name, address_line, latitude, longitude, description)
@@ -56,13 +61,15 @@ FROM city c
 CROSS JOIN (
     VALUES
         ('ВДНХ', 'Москва, проспект Мира, 119', 55.829834::numeric, 37.633096::numeric, 'Крупный выставочный и прогулочный комплекс в Москве.'),
-        ('Navka Arena', 'Москва, Navka arena', 55.804196::numeric, 37.531361::numeric, 'Современная площадка для шоу и спортивно-развлекательных событий.'),
-        ('Live Арена', 'Москва, Live Арена', 55.728246::numeric, 37.378809::numeric, 'Большая концертная площадка для массовых мероприятий.'),
-        ('Большой театр', 'Москва, Большой театр', 55.760186::numeric, 37.618711::numeric, 'Историческая театральная сцена в центре Москвы.'),
-        ('Третьяковская галерея', 'Москва, Третьяковская галерея', 55.741389::numeric, 37.620556::numeric, 'Одна из ключевых музейных площадок столицы.'),
-        ('Атмосфера', 'Москва, Атмосфера', 55.751244::numeric, 37.618423::numeric, 'Концертная площадка с вечерними музыкальными программами.'),
-        ('Лужники', 'Москва, Лужники', 55.715765::numeric, 37.553322::numeric, 'Крупный спортивно-концертный кластер.'),
-        ('Квест на Пруд-Ключики', 'Москва, улица Пруд-Ключики, 5', 55.747161::numeric, 37.736518::numeric, 'Локация для иммерсивных и командных квестов.')
+        ('Navka Arena', 'Москва, улица Автозаводская, 23А', 55.704987::numeric, 37.644521::numeric, 'Современная площадка для шоу и спортивно-развлекательных событий.'),
+        ('Live Арена', 'Московская область, Новоивановское, Западная улица, 145', 55.728246::numeric, 37.378809::numeric, 'Большая концертная площадка для массовых мероприятий.'),
+        ('Большой театр', 'Москва, Театральная площадь, 1', 55.760186::numeric, 37.618711::numeric, 'Историческая театральная сцена в центре Москвы.'),
+        ('Третьяковская галерея', 'Москва, Лаврушинский переулок, 10', 55.741389::numeric, 37.620556::numeric, 'Одна из ключевых музейных площадок столицы.'),
+        ('Атмосфера', 'Москва, Шмитовский проезд, 32А', 55.751244::numeric, 37.618423::numeric, 'Концертная площадка с вечерними музыкальными программами.'),
+        ('Лужники', 'Москва, улица Лужники, 24', 55.715765::numeric, 37.553322::numeric, 'Крупный спортивно-концертный кластер.'),
+        ('Квест на Пруд-Ключики', 'Москва, улица Пруд-Ключики, 5', 55.747161::numeric, 37.736518::numeric, 'Локация для иммерсивных и командных квестов.'),
+        ('Дизайн завод', 'Москва, улица Большая Новодмитровская, 36', 55.804441::numeric, 37.585773::numeric, 'Креативное пространство для фестивалей, лекций и выставок.'),
+        ('Сад Эрмитаж', 'Москва, улица Каретный Ряд, 3', 55.770779::numeric, 37.608984::numeric, 'Городской сад для семейных и открытых мероприятий.')
 ) AS v(name, address_line, latitude, longitude, description)
 WHERE c.country_name = 'Россия'
   AND c.name = 'Москва'
@@ -72,182 +79,221 @@ WHERE c.country_name = 'Россия'
       WHERE p.name = v.name AND p.address_line = v.address_line
   );
 
+WITH seed_author AS (
+    SELECT u.id
+    FROM user_account u
+    WHERE u.email = 'seed.author@cityhawk.local'
+),
+generated_events AS (
+    SELECT
+        gs AS n,
+        format('Seed Event %s', lpad(gs::text, 3, '0')) AS title,
+        format(
+            'Подборка событий CityHawk: карточка %s для наполнения каталога, тестов фильтрации и проверки списков.',
+            lpad(gs::text, 3, '0')
+        ) AS location_description,
+        format(
+            'Сидовое событие номер %s. Создано для наполнения базы 100 полноценными карточками с категориями, тегами, картинкой, сессией, коллекциями и избранным.',
+            lpad(gs::text, 3, '0')
+        ) AS full_description,
+        ARRAY[0, 6, 12, 16, 18][((gs - 1) % 5) + 1] AS age_limit,
+        format('https://seed.cityhawk.local/events/%s', lpad(gs::text, 3, '0')) AS source_url
+    FROM generate_series(1, 100) AS gs
+)
 INSERT INTO event (author_user_id, title, location_description, full_description, age_limit, source_url)
 SELECT
-    u.id,
-    v.title,
-    v.location_description,
-    v.full_description,
-    v.age_limit,
-    v.source_url
-FROM user_account u
-CROSS JOIN (
-    VALUES
-        ('Futurione', 'ВДНХ, Москва', 'Иммерсивная выставка Futurione на территории ВДНХ с мультимедийными инсталляциями и интерактивными зонами. Подходит для посещения с друзьями и семьей.', 0, 'https://cityhawk.local/events/futurione'),
-        ('Ледовое шоу Татьяны Навки', '10 февраля - 21 марта, Navka arena, Москва', 'Большое ледовое шоу с постановочными номерами и театральной драматургией. Формат подходит для вечернего досуга и семейного похода.', 6, 'https://cityhawk.local/events/navka-show'),
-        ('Женский стендап', '27 марта, Live Арена, Москва', 'Концертный стендап-формат с выступлениями резидентов и актуальными монологами. Подойдет для компании друзей и насыщенного вечернего досуга.', 18, 'https://cityhawk.local/events/womens-standup'),
-        ('Балет Щелкунчик', '14 марта, Большой театр, Москва', 'Классическая постановка балета на исторической сцене Большого театра. Подходит для романтического вечера и культурного маршрута.', 6, 'https://cityhawk.local/events/nutcracker'),
-        ('Искусство XX века', '10–24 марта, Третьяковская галерея, Москва', 'Выставочный проект об искусстве XX века с работами ключевых авторов и тематическими залами. Хороший выбор для вдумчивого культурного посещения.', 0, 'https://cityhawk.local/events/art-xx'),
-        ('Рок-концерт', '20 марта, Атмосфера, Москва', 'Большой рок-концерт с живым звуком и вечерней программой. Подходит для любителей концертного формата и активного отдыха.', 12, 'https://cityhawk.local/events/rock-concert'),
-        ('Руки Вверх', '17 марта, Лужники, Москва', 'Концерт группы Руки Вверх на большой площадке с ретро-хитами и масштабным шоу. Формат рассчитан на вечерний досуг и большую компанию.', 12, 'https://cityhawk.local/events/ruki-vverh'),
-        ('Квест Искупление', 'улица Пруд-Ключики, 5, Москва', 'Атмосферный квест с сюжетными загадками и командным прохождением. Подходит для небольших групп и вечернего досуга.', 16, 'https://cityhawk.local/events/quest-iskuplenie')
-) AS v(title, location_description, full_description, age_limit, source_url)
-WHERE u.email = 'seed.author@cityhawk.local'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM event e
-      WHERE e.title = v.title AND e.source_url = v.source_url
-  );
+    sa.id,
+    ge.title,
+    ge.location_description,
+    ge.full_description,
+    ge.age_limit,
+    ge.source_url
+FROM generated_events ge
+CROSS JOIN seed_author sa
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM event e
+    WHERE e.source_url = ge.source_url
+);
 
+WITH place_map AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY p.name, p.id) AS idx,
+        p.id,
+        p.name
+    FROM place p
+    JOIN city c ON c.id = p.city_id
+    WHERE c.country_name = 'Россия'
+      AND c.name = 'Москва'
+),
+generated_sessions AS (
+    SELECT
+        gs AS n,
+        format('https://seed.cityhawk.local/events/%s', lpad(gs::text, 3, '0')) AS source_url,
+        ((gs - 1) % 10) + 1 AS place_idx,
+        ('2026-05-01 10:00:00+03'::timestamptz + ((gs - 1) * interval '4 hours')) AS start_at,
+        ('2026-05-01 10:00:00+03'::timestamptz + ((gs - 1) * interval '4 hours') + interval '2 hours') AS end_at,
+        (500 + (((gs - 1) % 9) * 250))::integer AS price
+    FROM generate_series(1, 100) AS gs
+)
 INSERT INTO event_session (event_id, place_id, start_at, end_at, price)
 SELECT
     e.id,
-    p.id,
-    v.start_at,
-    v.end_at,
-    v.price
-FROM (
-    VALUES
-        ('Futurione', 'ВДНХ', '2026-04-02 10:00:00+03'::timestamptz, '2026-04-02 22:00:00+03'::timestamptz, 1200),
-        ('Ледовое шоу Татьяны Навки', 'Navka Arena', '2026-04-03 19:00:00+03'::timestamptz, '2026-04-03 21:30:00+03'::timestamptz, 2500),
-        ('Женский стендап', 'Live Арена', '2026-04-04 20:00:00+03'::timestamptz, '2026-04-04 22:00:00+03'::timestamptz, 1800),
-        ('Балет Щелкунчик', 'Большой театр', '2026-04-05 18:00:00+03'::timestamptz, '2026-04-05 20:30:00+03'::timestamptz, 3000),
-        ('Искусство XX века', 'Третьяковская галерея', '2026-04-06 11:00:00+03'::timestamptz, '2026-04-06 20:00:00+03'::timestamptz, 900),
-        ('Рок-концерт', 'Атмосфера', '2026-04-07 19:30:00+03'::timestamptz, '2026-04-07 22:30:00+03'::timestamptz, 2200),
-        ('Руки Вверх', 'Лужники', '2026-04-08 19:00:00+03'::timestamptz, '2026-04-08 22:00:00+03'::timestamptz, 3500),
-        ('Квест Искупление', 'Квест на Пруд-Ключики', '2026-04-09 18:30:00+03'::timestamptz, '2026-04-09 20:00:00+03'::timestamptz, 1500)
-) AS v(event_title, place_name, start_at, end_at, price)
-JOIN event e ON e.title = v.event_title
-JOIN place p ON p.name = v.place_name
+    pm.id,
+    gs.start_at,
+    gs.end_at,
+    gs.price
+FROM generated_sessions gs
+JOIN event e ON e.source_url = gs.source_url
+JOIN place_map pm ON pm.idx = gs.place_idx
 WHERE NOT EXISTS (
     SELECT 1
     FROM event_session es
     WHERE es.event_id = e.id
-      AND es.place_id = p.id
-      AND es.start_at = v.start_at
-      AND es.end_at = v.end_at
+      AND es.place_id = pm.id
+      AND es.start_at = gs.start_at
+      AND es.end_at = gs.end_at
 );
 
+WITH generated_images AS (
+    SELECT
+        gs AS n,
+        format('https://seed.cityhawk.local/events/%s', lpad(gs::text, 3, '0')) AS source_url,
+        format('https://picsum.photos/seed/cityhawk-event-%s/1200/800', lpad(gs::text, 3, '0')) AS image_url
+    FROM generate_series(1, 100) AS gs
+)
 INSERT INTO event_image (event_id, image_url)
 SELECT
     e.id,
-    v.image_url
-FROM (
-    VALUES
-        ('Futurione', 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80'),
-        ('Ледовое шоу Татьяны Навки', 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80'),
-        ('Женский стендап', 'https://images.unsplash.com/photo-1527224538127-2104bb71c51b?auto=format&fit=crop&w=1200&q=80'),
-        ('Балет Щелкунчик', 'https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=1200&q=80'),
-        ('Искусство XX века', 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80'),
-        ('Рок-концерт', 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=80'),
-        ('Руки Вверх', 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=1200&q=80'),
-        ('Квест Искупление', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80')
-) AS v(event_title, image_url)
-JOIN event e ON e.title = v.event_title
+    gi.image_url
+FROM generated_images gi
+JOIN event e ON e.source_url = gi.source_url
 WHERE NOT EXISTS (
     SELECT 1
     FROM event_image ei
-    WHERE ei.event_id = e.id AND ei.image_url = v.image_url
+    WHERE ei.event_id = e.id
+      AND ei.image_url = gi.image_url
 );
 
+WITH category_map AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY c.name, c.id) AS idx,
+        c.id
+    FROM category c
+),
+generated_event_categories AS (
+    SELECT
+        format('https://seed.cityhawk.local/events/%s', lpad(gs::text, 3, '0')) AS source_url,
+        ((gs - 1) % 12) + 1 AS category_idx
+    FROM generate_series(1, 100) AS gs
+    UNION
+    SELECT
+        format('https://seed.cityhawk.local/events/%s', lpad(gs::text, 3, '0')) AS source_url,
+        ((gs + 4) % 12) + 1 AS category_idx
+    FROM generate_series(1, 100) AS gs
+)
 INSERT INTO event_category (event_id, category_id)
 SELECT
     e.id,
-    c.id
-FROM (
-    VALUES
-        ('Futurione', 'Парк'),
-        ('Futurione', 'Выставка'),
-        ('Futurione', 'Семья'),
-        ('Ледовое шоу Татьяны Навки', 'Шоу'),
-        ('Ледовое шоу Татьяны Навки', 'Семья'),
-        ('Женский стендап', 'Шоу'),
-        ('Женский стендап', 'Стендап'),
-        ('Балет Щелкунчик', 'Театр'),
-        ('Искусство XX века', 'Музей'),
-        ('Искусство XX века', 'Фото'),
-        ('Рок-концерт', 'Музыка'),
-        ('Руки Вверх', 'Музыка'),
-        ('Квест Искупление', 'Квест')
-) AS v(event_title, category_name)
-JOIN event e ON e.title = v.event_title
-JOIN category c ON c.name = v.category_name
+    cm.id
+FROM generated_event_categories gec
+JOIN event e ON e.source_url = gec.source_url
+JOIN category_map cm ON cm.idx = gec.category_idx
 ON CONFLICT (event_id, category_id) DO NOTHING;
 
+WITH tag_map AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY t.name, t.id) AS idx,
+        t.id
+    FROM tag t
+),
+generated_event_tags AS (
+    SELECT
+        format('https://seed.cityhawk.local/events/%s', lpad(gs::text, 3, '0')) AS source_url,
+        ((gs - 1) % 12) + 1 AS tag_idx
+    FROM generate_series(1, 100) AS gs
+    UNION
+    SELECT
+        format('https://seed.cityhawk.local/events/%s', lpad(gs::text, 3, '0')) AS source_url,
+        ((gs + 6) % 12) + 1 AS tag_idx
+    FROM generate_series(1, 100) AS gs
+)
 INSERT INTO event_tag (event_id, tag_id)
 SELECT
     e.id,
-    t.id
-FROM (
-    VALUES
-        ('Futurione', 'Иммерсивное'),
-        ('Futurione', 'Семейное'),
-        ('Ледовое шоу Татьяны Навки', 'Ледовое шоу'),
-        ('Ледовое шоу Татьяны Навки', 'Семейное'),
-        ('Женский стендап', 'Стендап'),
-        ('Балет Щелкунчик', 'Балет'),
-        ('Искусство XX века', 'Искусство'),
-        ('Рок-концерт', 'Рок'),
-        ('Руки Вверх', 'Ретро'),
-        ('Квест Искупление', 'Квест')
-) AS v(event_title, tag_name)
-JOIN event e ON e.title = v.event_title
-JOIN tag t ON t.name = v.tag_name
+    tm.id
+FROM generated_event_tags getg
+JOIN event e ON e.source_url = getg.source_url
+JOIN tag_map tm ON tm.idx = getg.tag_idx
 ON CONFLICT (event_id, tag_id) DO NOTHING;
 
+WITH seed_author AS (
+    SELECT u.id
+    FROM user_account u
+    WHERE u.email = 'seed.author@cityhawk.local'
+)
 INSERT INTO collection (author_user_id, title, description, is_public)
 SELECT
-    u.id,
-    'Выбор на выходные',
-    'Подборка лучших событий на выходные',
+    sa.id,
+    v.title,
+    v.description,
     TRUE
-FROM user_account u
-WHERE u.email = 'seed.author@cityhawk.local'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM collection c
-      WHERE c.title = 'Выбор на выходные' AND c.author_user_id = u.id
-  );
+FROM seed_author sa
+CROSS JOIN (
+    VALUES
+        ('Seed Collection Weekend', 'Подборка сидовых событий для главной страницы и списков.'),
+        ('Seed Collection Family', 'Подборка семейных и дневных сидовых событий.'),
+        ('Seed Collection Music', 'Подборка музыкальных и вечерних сидовых событий.')
+) AS v(title, description)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM collection c
+    WHERE c.title = v.title
+      AND c.author_user_id = sa.id
+);
 
 INSERT INTO collection_image (collection_id, image_url)
 SELECT
     c.id,
-    'https://example.com/collection.jpg'
+    format('https://picsum.photos/seed/%s/1200/800', replace(lower(c.title), ' ', '-'))
 FROM collection c
-WHERE c.title = 'Выбор на выходные'
+WHERE c.title IN ('Seed Collection Weekend', 'Seed Collection Family', 'Seed Collection Music')
   AND NOT EXISTS (
       SELECT 1
       FROM collection_image ci
       WHERE ci.collection_id = c.id
-        AND ci.image_url = 'https://example.com/collection.jpg'
   );
 
+WITH generated_collection_events AS (
+    SELECT 'Seed Collection Weekend' AS collection_title, format('https://seed.cityhawk.local/events/%s', lpad(gs::text, 3, '0')) AS source_url
+    FROM generate_series(1, 12) AS gs
+    UNION ALL
+    SELECT 'Seed Collection Family', format('https://seed.cityhawk.local/events/%s', lpad(gs::text, 3, '0'))
+    FROM generate_series(13, 24) AS gs
+    UNION ALL
+    SELECT 'Seed Collection Music', format('https://seed.cityhawk.local/events/%s', lpad(gs::text, 3, '0'))
+    FROM generate_series(25, 36) AS gs
+)
 INSERT INTO collection_event (collection_id, event_id)
 SELECT
     c.id,
     e.id
-FROM (
-    VALUES
-        ('Выбор на выходные', 'Futurione'),
-        ('Выбор на выходные', 'Рок-концерт'),
-        ('Выбор на выходные', 'Ледовое шоу Татьяны Навки')
-) AS v(collection_title, event_title)
-JOIN collection c ON c.title = v.collection_title
-JOIN event e ON e.title = v.event_title
+FROM generated_collection_events gce
+JOIN collection c ON c.title = gce.collection_title
+JOIN event e ON e.source_url = gce.source_url
 ON CONFLICT (collection_id, event_id) DO NOTHING;
 
+WITH generated_favorites AS (
+    SELECT format('https://seed.cityhawk.local/events/%s', lpad(gs::text, 3, '0')) AS source_url
+    FROM generate_series(1, 10) AS gs
+)
 INSERT INTO favorite_event (user_id, event_id)
 SELECT
     u.id,
     e.id
-FROM (
-    VALUES
-        ('seed.author@cityhawk.local', 'Futurione'),
-        ('seed.author@cityhawk.local', 'Ледовое шоу Татьяны Навки'),
-        ('seed.author@cityhawk.local', 'Женский стендап')
-) AS v(user_email, event_title)
-JOIN user_account u ON u.email = v.user_email
-JOIN event e ON e.title = v.event_title
+FROM generated_favorites gf
+JOIN user_account u ON u.email = 'seed.author@cityhawk.local'
+JOIN event e ON e.source_url = gf.source_url
 ON CONFLICT (user_id, event_id) DO NOTHING;
 
 COMMIT;
