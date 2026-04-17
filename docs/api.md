@@ -260,7 +260,7 @@ UI для просмотра OpenAPI.
 Успешный callback:
 
 - выставляет `access_token`, `refresh_token`, `csrf_token`
-- возвращает JSON с сообщением об успешном логине
+- перенаправляет пользователя на главную страницу фронтенда из `FRONTEND_ORIGIN`
 
 ## Profile API
 

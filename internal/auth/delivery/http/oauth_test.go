@@ -56,6 +56,7 @@ func TestGoogleLoginHandlerRedirects(t *testing.T) {
 
 func TestGoogleCallbackHandlerSuccessAndErrors(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
+		t.Setenv("FRONTEND_ORIGIN", "http://frontend.local")
 		state := "state-1"
 		req := httptest.NewRequest(http.MethodGet, "/callback?state="+state+"&code=code-1", nil)
 		req.AddCookie(&http.Cookie{Name: gatewaygoogle.StateCookieName, Value: state})
@@ -68,8 +69,11 @@ func TestGoogleCallbackHandlerSuccessAndErrors(t *testing.T) {
 		}
 		GoogleCallbackHandler(uc, time.Minute, time.Hour).ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d body=%s", rec.Code, http.StatusOK, rec.Body.String())
+		if rec.Code != http.StatusFound {
+			t.Fatalf("status = %d, want %d body=%s", rec.Code, http.StatusFound, rec.Body.String())
+		}
+		if location := rec.Header().Get("Location"); location != "http://frontend.local/" {
+			t.Fatalf("Location = %q, want frontend home", location)
 		}
 		if rec.Header().Get("X-CSRF-Token") == "" {
 			t.Fatal("missing csrf header")

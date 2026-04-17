@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -154,7 +156,28 @@ func newOAuthCallbackHandler(accessTTL, refreshTTL time.Duration, cfg oauthCallb
 			return httpx.NewHTTPError(http.StatusInternalServerError, "failed to issue csrf token")
 		}
 		SetCSRFCookie(w, csrfToken, refreshTTL)
-		httpx.WriteJSON(w, http.StatusOK, messageResponse{Message: cfg.successMessage})
+		http.Redirect(w, r, oauthSuccessRedirectURL(), http.StatusFound)
 		return nil
 	})
+}
+
+func oauthSuccessRedirectURL() string {
+	origin := strings.TrimSpace(os.Getenv("FRONTEND_ORIGIN"))
+	if origin == "" {
+		return "http://cityhawk.ru/"
+	}
+
+	if strings.Contains(origin, ",") {
+		origin = strings.TrimSpace(strings.Split(origin, ",")[0])
+	}
+
+	u, err := url.Parse(origin)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return "http://cityhawk.ru/"
+	}
+	u.Path = "/"
+	u.RawPath = ""
+	u.RawQuery = ""
+	u.Fragment = ""
+	return u.String()
 }

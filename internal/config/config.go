@@ -84,17 +84,17 @@ func LoadFromEnv() Config {
 			Google: OAuthProviderConfig{
 				ClientID:     getEnv("GOOGLE_OAUTH_CLIENT_ID", ""),
 				ClientSecret: getEnv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
-				RedirectURL:  getEnv("GOOGLE_OAUTH_REDIRECT_URL", ""),
+				RedirectURL:  normalizeOAuthRedirectURL(getEnv("GOOGLE_OAUTH_REDIRECT_URL", "")),
 			},
 			VK: OAuthProviderConfig{
 				ClientID:     getEnv("VK_OAUTH_CLIENT_ID", ""),
 				ClientSecret: getEnv("VK_OAUTH_CLIENT_SECRET", ""),
-				RedirectURL:  getEnv("VK_OAUTH_REDIRECT_URL", ""),
+				RedirectURL:  normalizeOAuthRedirectURL(getEnv("VK_OAUTH_REDIRECT_URL", "")),
 			},
 			Yandex: OAuthProviderConfig{
 				ClientID:     getEnv("YANDEX_OAUTH_CLIENT_ID", ""),
 				ClientSecret: getEnv("YANDEX_OAUTH_CLIENT_SECRET", ""),
-				RedirectURL:  getEnv("YANDEX_OAUTH_REDIRECT_URL", ""),
+				RedirectURL:  normalizeOAuthRedirectURL(getEnv("YANDEX_OAUTH_REDIRECT_URL", "")),
 			},
 		},
 		Database: DatabaseConfig{
@@ -113,6 +113,23 @@ func LoadFromEnv() Config {
 			DefaultTimezone: getEnv("PHOTON_DEFAULT_TIMEZONE", "UTC"),
 		},
 	}
+}
+
+func normalizeOAuthRedirectURL(raw string) string {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return ""
+	}
+
+	u, err := url.Parse(value)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return value
+	}
+	if strings.HasPrefix(u.Path, "/auth/") {
+		u.Path = "/api" + u.Path
+		u.RawPath = ""
+	}
+	return u.String()
 }
 
 func (c DatabaseConfig) DSN() string {

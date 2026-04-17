@@ -120,12 +120,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
-          description: Google login successful
-          content:
-            application/json:
+        "302":
+          description: Redirect to frontend home page
+          headers:
+            Location:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                type: string
         "400":
           description: Missing oauth code
           content:
@@ -173,12 +173,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
-          description: Yandex login successful
-          content:
-            application/json:
+        "302":
+          description: Redirect to frontend home page
+          headers:
+            Location:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                type: string
         "400":
           description: Missing oauth code
           content:
@@ -231,12 +231,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
-          description: VK login successful
-          content:
-            application/json:
+        "302":
+          description: Redirect to frontend home page
+          headers:
+            Location:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                type: string
         "400":
           description: Missing oauth code
           content:
