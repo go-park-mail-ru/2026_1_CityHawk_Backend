@@ -94,6 +94,10 @@ type EventListFilter struct {
 	UserID     string
 }
 
+type HomeFilter struct {
+	City string
+}
+
 type EventSessionInput struct {
 	PlaceID string
 	StartAt time.Time

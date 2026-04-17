@@ -35,4 +35,13 @@ func TestReferencePredicates(t *testing.T) {
 			t.Fatal("IsFileReference() = true for plain file name, want false")
 		}
 	})
+
+	t.Run("public url", func(t *testing.T) {
+		if got := PublicURL("/uploads/avatars/image.jpg"); got != "http://cityhawk.ru:8080/uploads/avatars/image.jpg" {
+			t.Fatalf("PublicURL() = %q, want absolute cityhawk uploads URL", got)
+		}
+		if got := PublicURL("https://example.com/image.jpg"); got != "https://example.com/image.jpg" {
+			t.Fatalf("PublicURL() changed external URL: %q", got)
+		}
+	})
 }

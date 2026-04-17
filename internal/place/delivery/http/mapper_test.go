@@ -34,6 +34,7 @@ func TestResponseMappers(t *testing.T) {
 	now := time.Date(2026, time.April, 15, 10, 0, 0, 0, time.UTC)
 	sourceURL := "https://events.example.com"
 	avatarURL := "/uploads/avatar.png"
+	publicAvatarURL := "http://cityhawk.ru:8080/uploads/avatar.png"
 
 	details := placemodel.EventDetailsView{
 		ID:               "event-1",
@@ -88,8 +89,11 @@ func TestResponseMappers(t *testing.T) {
 		if resp.Title == details.Title {
 			t.Fatalf("Title was not escaped: %q", resp.Title)
 		}
-		if resp.Author.AvatarURL == nil || *resp.Author.AvatarURL != avatarURL {
+		if resp.Author.AvatarURL == nil || *resp.Author.AvatarURL != publicAvatarURL {
 			t.Fatalf("unexpected author avatar: %+v", resp.Author.AvatarURL)
+		}
+		if len(resp.Images) != 1 || resp.Images[0].ImageURL != "http://cityhawk.ru:8080/uploads/event.png" {
+			t.Fatalf("unexpected image URLs: %+v", resp.Images)
 		}
 		if len(resp.Sessions) != 1 || resp.Sessions[0].Place.City.Timezone != "Europe/Moscow" {
 			t.Fatalf("unexpected sessions response: %+v", resp.Sessions)
@@ -124,6 +128,9 @@ func TestResponseMappers(t *testing.T) {
 		if listResp.Items[0].Title == card.Title || listResp.Items[0].NextSession == nil {
 			t.Fatalf("unexpected event card response: %+v", listResp.Items[0])
 		}
+		if listResp.Items[0].CoverImageURL != "http://cityhawk.ru:8080/uploads/cover.png" {
+			t.Fatalf("unexpected event cover URL: %q", listResp.Items[0].CoverImageURL)
+		}
 
 		collectionResp := toCollectionDetailsResponse(placemodel.CollectionDetailsView{
 			ID:          "collection-1",
@@ -135,6 +142,9 @@ func TestResponseMappers(t *testing.T) {
 		})
 		if collectionResp.Title == `Weekend <Picks>` || len(collectionResp.Events) != 1 {
 			t.Fatalf("unexpected collection response: %+v", collectionResp)
+		}
+		if collectionResp.ImageURL != "http://cityhawk.ru:8080/uploads/collection.png" {
+			t.Fatalf("unexpected collection image URL: %q", collectionResp.ImageURL)
 		}
 	})
 
@@ -186,6 +196,9 @@ func TestResponseMappers(t *testing.T) {
 		}
 		if homeResp.FeaturedEvents[0].Title == `Concert <main>` || homeResp.Collections[0].Title == `Weekend <Picks>` {
 			t.Fatalf("home payload was not escaped: %+v", homeResp)
+		}
+		if homeResp.FeaturedEvents[0].CoverImageURL != "http://cityhawk.ru:8080/uploads/cover.png" || homeResp.Collections[0].ImageURL != "http://cityhawk.ru:8080/uploads/collection.png" {
+			t.Fatalf("unexpected home image URLs: %+v", homeResp)
 		}
 	})
 }

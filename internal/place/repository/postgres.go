@@ -72,29 +72,30 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
-func (r *PostgresRepository) HomePayload(ctx context.Context) placemodel.HomePayload {
+func (r *PostgresRepository) HomePayload(ctx context.Context, filter placemodel.HomeFilter) placemodel.HomePayload {
 	var (
 		featuredEvents []placemodel.HomeFeaturedEvent
 		categories     []placemodel.HomeCategory
 		collections    []placemodel.HomeCollection
 		wg             sync.WaitGroup
 	)
+	city := strings.TrimSpace(filter.City)
 
 	wg.Add(3)
 
 	go func() {
 		defer wg.Done()
-		featuredEvents = r.ListFeaturedEvents(ctx, 8)
+		featuredEvents = r.ListFeaturedEvents(ctx, 8, city)
 	}()
 
 	go func() {
 		defer wg.Done()
-		categories = r.ListHomeCategories(ctx, 8)
+		categories = r.ListHomeCategories(ctx, 8, city)
 	}()
 
 	go func() {
 		defer wg.Done()
-		collections = r.ListHomeCollections(ctx, 8)
+		collections = r.ListHomeCollections(ctx, 8, city)
 	}()
 
 	wg.Wait()
@@ -153,10 +154,32 @@ func (r *PostgresRepository) ListTags(ctx context.Context) []placemodel.HomeTag 
 	return items
 }
 
-func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int) []placemodel.HomeFeaturedEvent {
+func (r *PostgresRepository) ListCities(ctx context.Context) []placemodel.City {
+	rows, err := r.pool.Query(ctx, `SELECT c.id::text, c.name, c.country_name, c.timezone FROM city c ORDER BY c.name ASC, c.id ASC`)
+	if err != nil {
+		return []placemodel.City{}
+	}
+	defer rows.Close()
+
+	items := make([]placemodel.City, 0)
+	for rows.Next() {
+		var item placemodel.City
+		if err := rows.Scan(&item.ID, &item.Name, &item.CountryName, &item.Timezone); err != nil {
+			return []placemodel.City{}
+		}
+		items = append(items, item)
+	}
+	if rows.Err() != nil {
+		return []placemodel.City{}
+	}
+	return items
+}
+
+func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int, city string) []placemodel.HomeFeaturedEvent {
 	if limit <= 0 {
 		limit = 8
 	}
+	city = strings.TrimSpace(city)
 
 	const query = `
 		WITH first_image AS (
@@ -174,6 +197,8 @@ func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int) 
 				p.address_line
 			FROM event_session es
 			JOIN place p ON p.id = es.place_id
+			JOIN city c ON c.id = p.city_id
+			WHERE ($2 = '' OR c.id::text = $2 OR lower(c.name) = lower($2))
 			ORDER BY es.event_id, es.start_at ASC, es.id ASC
 		),
 		tags AS (
@@ -198,11 +223,22 @@ func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int) 
 		LEFT JOIN first_image fi ON fi.event_id = e.id
 		LEFT JOIN next_session ns ON ns.event_id = e.id
 		LEFT JOIN tags ON tags.event_id = e.id
+		WHERE (
+			$2 = ''
+			OR EXISTS (
+				SELECT 1
+				FROM event_session es_filter
+				JOIN place p_filter ON p_filter.id = es_filter.place_id
+				JOIN city c_filter ON c_filter.id = p_filter.city_id
+				WHERE es_filter.event_id = e.id
+					AND (c_filter.id::text = $2 OR lower(c_filter.name) = lower($2))
+			)
+		)
 		ORDER BY e.created_at DESC, e.id ASC
 		LIMIT $1
 	`
 
-	rows, err := r.pool.Query(ctx, query, limit)
+	rows, err := r.pool.Query(ctx, query, limit, city)
 	if err != nil {
 		return []placemodel.HomeFeaturedEvent{}
 	}
@@ -222,12 +258,31 @@ func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int) 
 	return items
 }
 
-func (r *PostgresRepository) ListHomeCategories(ctx context.Context, limit int) []placemodel.HomeCategory {
+func (r *PostgresRepository) ListHomeCategories(ctx context.Context, limit int, city string) []placemodel.HomeCategory {
 	if limit <= 0 {
 		limit = 8
 	}
+	city = strings.TrimSpace(city)
 
-	rows, err := r.pool.Query(ctx, `SELECT c.id::text, c.name FROM category c ORDER BY c.name ASC, c.id ASC LIMIT $1`, limit)
+	const query = `
+		SELECT c.id::text, c.name
+		FROM category c
+		WHERE (
+			$2 = ''
+			OR EXISTS (
+				SELECT 1
+				FROM event_category ec
+				JOIN event_session es ON es.event_id = ec.event_id
+				JOIN place p ON p.id = es.place_id
+				JOIN city city_filter ON city_filter.id = p.city_id
+				WHERE ec.category_id = c.id
+					AND (city_filter.id::text = $2 OR lower(city_filter.name) = lower($2))
+			)
+		)
+		ORDER BY c.name ASC, c.id ASC
+		LIMIT $1
+	`
+	rows, err := r.pool.Query(ctx, query, limit, city)
 	if err != nil {
 		return []placemodel.HomeCategory{}
 	}
@@ -247,10 +302,11 @@ func (r *PostgresRepository) ListHomeCategories(ctx context.Context, limit int) 
 	return items
 }
 
-func (r *PostgresRepository) ListHomeCollections(ctx context.Context, limit int) []placemodel.HomeCollection {
+func (r *PostgresRepository) ListHomeCollections(ctx context.Context, limit int, city string) []placemodel.HomeCollection {
 	if limit <= 0 {
 		limit = 8
 	}
+	city = strings.TrimSpace(city)
 
 	const query = `
 		WITH first_image AS (
@@ -267,11 +323,23 @@ func (r *PostgresRepository) ListHomeCollections(ctx context.Context, limit int)
 			COALESCE(fi.image_url, '') AS image_url
 		FROM collection c
 		LEFT JOIN first_image fi ON fi.collection_id = c.id
+		WHERE (
+			$2 = ''
+			OR EXISTS (
+				SELECT 1
+				FROM collection_event ce
+				JOIN event_session es ON es.event_id = ce.event_id
+				JOIN place p ON p.id = es.place_id
+				JOIN city city_filter ON city_filter.id = p.city_id
+				WHERE ce.collection_id = c.id
+					AND (city_filter.id::text = $2 OR lower(city_filter.name) = lower($2))
+			)
+		)
 		ORDER BY c.created_at DESC, c.id ASC
 		LIMIT $1
 	`
 
-	rows, err := r.pool.Query(ctx, query, limit)
+	rows, err := r.pool.Query(ctx, query, limit, city)
 	if err != nil {
 		return []placemodel.HomeCollection{}
 	}

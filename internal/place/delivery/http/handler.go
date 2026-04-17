@@ -21,9 +21,10 @@ import (
 )
 
 type EventsUsecase interface {
-	HomePayload(ctx context.Context) placemodel.HomePayload
+	HomePayload(ctx context.Context, filter placemodel.HomeFilter) placemodel.HomePayload
 	ListCategories(ctx context.Context) []placemodel.HomeCategory
 	ListTags(ctx context.Context) []placemodel.HomeTag
+	ListCities(ctx context.Context) []placemodel.City
 	ListCollections(ctx context.Context) ([]placemodel.CollectionCardView, error)
 	GetCollectionByID(ctx context.Context, id string) (placemodel.CollectionDetailsView, bool, error)
 	SearchSuggestions(ctx context.Context, query string, limit int) ([]placemodel.SearchSuggestion, error)
@@ -48,7 +49,10 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
 		}
-		httpx.WriteJSON(w, http.StatusOK, toHomePayloadResponse(h.events.HomePayload(r.Context())))
+		filter := placemodel.HomeFilter{
+			City: strings.TrimSpace(r.URL.Query().Get("city")),
+		}
+		httpx.WriteJSON(w, http.StatusOK, toHomePayloadResponse(h.events.HomePayload(r.Context(), filter)))
 		return nil
 	}).ServeHTTP(w, r)
 }
@@ -69,6 +73,16 @@ func (h *Handler) Tags(w http.ResponseWriter, r *http.Request) {
 			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
 		}
 		httpx.WriteJSON(w, http.StatusOK, toTagsResponse(h.events.ListTags(r.Context())))
+		return nil
+	}).ServeHTTP(w, r)
+}
+
+func (h *Handler) Cities(w http.ResponseWriter, r *http.Request) {
+	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodGet {
+			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
+		}
+		httpx.WriteJSON(w, http.StatusOK, toCitiesResponse(h.events.ListCities(r.Context())))
 		return nil
 	}).ServeHTTP(w, r)
 }
@@ -648,9 +662,15 @@ func validateCreateEventRequest(req createEventRequest, userID string) (placemod
 		details["categoryIds"] = "categoryIds is required"
 	}
 
-	sessions, sessionErrs := validateSessions(req.Sessions)
-	for key, value := range sessionErrs {
-		details[key] = value
+	sessions := []placemodel.EventSessionInput{}
+	if len(req.Sessions) == 0 {
+		details["sessions"] = "sessions is required"
+	} else {
+		parsedSessions, sessionErrs := validateSessions(req.Sessions)
+		for key, value := range sessionErrs {
+			details[key] = value
+		}
+		sessions = parsedSessions
 	}
 
 	var ageLimit int

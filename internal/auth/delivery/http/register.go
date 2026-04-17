@@ -9,6 +9,7 @@ import (
 	authvalidation "cityhawk/backend/internal/auth/validation"
 	platformerrors "cityhawk/backend/internal/platform/errors"
 	"cityhawk/backend/internal/platform/httpx"
+	"cityhawk/backend/internal/platform/media"
 	"cityhawk/backend/internal/platform/safety"
 )
 
@@ -59,7 +60,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Email:       resp.User.Email,
 		Username:    safety.EscapeText(resp.User.Username),
 		UserSurname: safety.EscapeText(resp.User.UserSurname),
-		AvatarURL:   resp.User.AvatarURL,
+		AvatarURL:   media.PublicURLPtr(resp.User.AvatarURL),
 		CreatedAt:   resp.User.CreatedAt.UTC(),
 	})
 }

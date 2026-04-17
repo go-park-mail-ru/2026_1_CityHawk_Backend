@@ -56,17 +56,21 @@ func TestValidateLoginValidationError(t *testing.T) {
 }
 
 func TestValidateProfilePatchAcceptsUploadPath(t *testing.T) {
+	email := " USER@Example.COM "
 	username := " user-1 "
 	surname := " Петров "
 	birthday := "2001-02-03"
 	cityID := "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"
 	avatarURL := "/uploads/avatars/file.png"
 
-	gotUsername, gotSurname, gotBirthday, gotCityID, gotAvatarURL, err := ValidateProfilePatch(
-		&username, &surname, &birthday, &cityID, &avatarURL,
+	gotEmail, gotUsername, gotSurname, gotBirthday, gotCityID, gotAvatarURL, err := ValidateProfilePatch(
+		&email, &username, &surname, &birthday, &cityID, &avatarURL,
 	)
 	if err != nil {
 		t.Fatalf("ValidateProfilePatch() error = %v", err)
+	}
+	if gotEmail != "user@example.com" {
+		t.Fatalf("email = %q, want normalized value", gotEmail)
 	}
 	if gotUsername != "user-1" || gotSurname != "Петров" {
 		t.Fatalf("unexpected normalized names: %q %q", gotUsername, gotSurname)
@@ -83,18 +87,19 @@ func TestValidateProfilePatchAcceptsUploadPath(t *testing.T) {
 }
 
 func TestValidateProfilePatchValidationError(t *testing.T) {
+	email := "bad"
 	username := "!"
 	surname := ""
 	birthday := "bad"
 	cityID := "bad"
 	avatarURL := "file.png"
 
-	_, _, _, _, _, err := ValidateProfilePatch(&username, &surname, &birthday, &cityID, &avatarURL)
+	_, _, _, _, _, _, err := ValidateProfilePatch(&email, &username, &surname, &birthday, &cityID, &avatarURL)
 	validationErr, ok := err.(ValidationError)
 	if !ok {
 		t.Fatalf("error type = %T, want ValidationError", err)
 	}
-	for _, key := range []string{"username", "userSurname", "birthday", "cityId", "avatarUrl"} {
+	for _, key := range []string{"email", "username", "userSurname", "birthday", "cityId", "avatarUrl"} {
 		if _, exists := validationErr.Details[key]; !exists {
 			t.Fatalf("missing validation detail for %q: %+v", key, validationErr.Details)
 		}

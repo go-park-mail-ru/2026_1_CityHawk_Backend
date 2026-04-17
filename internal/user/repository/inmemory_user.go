@@ -84,6 +84,13 @@ func (r *InMemoryUserRepository) UpdateProfile(_ context.Context, id string, pat
 		return usermodel.User{}, false, nil
 	}
 
+	if patch.Email != nil && *patch.Email != u.Email {
+		if existing, exists := r.byEmail[*patch.Email]; exists && existing.ID != id {
+			return usermodel.User{}, false, platformerrors.ErrEmailExists
+		}
+		delete(r.byEmail, u.Email)
+		u.Email = *patch.Email
+	}
 	if patch.Username != nil {
 		u.Username = *patch.Username
 	}

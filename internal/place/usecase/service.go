@@ -10,9 +10,10 @@ const DefaultEventsLimit = 12
 const DefaultHomeLimit = 8
 
 type Repository interface {
-	HomePayload(ctx context.Context) placemodel.HomePayload
+	HomePayload(ctx context.Context, filter placemodel.HomeFilter) placemodel.HomePayload
 	ListCategories(ctx context.Context) []placemodel.HomeCategory
 	ListTags(ctx context.Context) []placemodel.HomeTag
+	ListCities(ctx context.Context) []placemodel.City
 	ListCollections(ctx context.Context) ([]placemodel.CollectionCardView, error)
 	GetCollectionByID(ctx context.Context, id string) (placemodel.CollectionDetailsView, bool, error)
 	SearchSuggestions(ctx context.Context, query string, limit int) ([]placemodel.SearchSuggestion, error)
@@ -31,8 +32,8 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) HomePayload(ctx context.Context) placemodel.HomePayload {
-	return s.repo.HomePayload(ctx)
+func (s *Service) HomePayload(ctx context.Context, filter placemodel.HomeFilter) placemodel.HomePayload {
+	return s.repo.HomePayload(ctx, filter)
 }
 
 func (s *Service) ListCategories(ctx context.Context) []placemodel.HomeCategory {
@@ -41,6 +42,10 @@ func (s *Service) ListCategories(ctx context.Context) []placemodel.HomeCategory 
 
 func (s *Service) ListTags(ctx context.Context) []placemodel.HomeTag {
 	return s.repo.ListTags(ctx)
+}
+
+func (s *Service) ListCities(ctx context.Context) []placemodel.City {
+	return s.repo.ListCities(ctx)
 }
 
 func (s *Service) ListCollections(ctx context.Context) ([]placemodel.CollectionCardView, error) {

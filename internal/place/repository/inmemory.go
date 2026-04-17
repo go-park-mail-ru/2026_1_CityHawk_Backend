@@ -35,15 +35,20 @@ func NewInMemoryRepository(events []placemodel.EventDetailsView) *InMemoryReposi
 	return r
 }
 
-func (r *InMemoryRepository) HomePayload(_ context.Context) placemodel.HomePayload {
+func (r *InMemoryRepository) HomePayload(_ context.Context, filter placemodel.HomeFilter) placemodel.HomePayload {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	featured := make([]placemodel.HomeFeaturedEvent, 0, len(r.order))
 	categoriesSet := map[string]placemodel.HomeCategory{}
-	for i, id := range r.order {
+	filteredEvents := make([]placemodel.EventDetailsView, 0, len(r.order))
+	for _, id := range r.order {
 		event := r.byID[id]
-		if i < 8 {
+		if !matchesHomeCityFilter(event, filter.City) {
+			continue
+		}
+		filteredEvents = append(filteredEvents, event)
+		if len(featured) < 8 {
 			nextSession := placemodel.HomeNextSession{}
 			if len(event.Sessions) > 0 {
 				nextSession = placemodel.HomeNextSession{
@@ -75,9 +80,7 @@ func (r *InMemoryRepository) HomePayload(_ context.Context) placemodel.HomePaylo
 	return placemodel.HomePayload{
 		FeaturedEvents: featured,
 		Categories:     categories,
-		Collections: []placemodel.HomeCollection{
-			{ID: "weekend-picks", Title: "Weekend Picks", Description: "Best events for weekend", ImageURL: "https://example.com/collection.jpg"},
-		},
+		Collections:    homeCollectionsForEvents(filteredEvents),
 	}
 }
 
@@ -124,6 +127,40 @@ func (r *InMemoryRepository) ListTags(_ context.Context) []placemodel.HomeTag {
 	for _, tag := range tagsSet {
 		items = append(items, tag)
 	}
+	return items
+}
+
+func (r *InMemoryRepository) ListCities(_ context.Context) []placemodel.City {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	citiesSet := map[string]placemodel.City{}
+	for _, id := range r.order {
+		event := r.byID[id]
+		for _, session := range event.Sessions {
+			city := session.Place.City
+			if city.ID == "" {
+				continue
+			}
+			citiesSet[city.ID] = placemodel.City{
+				ID:          city.ID,
+				Name:        city.Name,
+				CountryName: city.CountryName,
+				Timezone:    city.Timezone,
+			}
+		}
+	}
+
+	items := make([]placemodel.City, 0, len(citiesSet))
+	for _, city := range citiesSet {
+		items = append(items, city)
+	}
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].Name == items[j].Name {
+			return items[i].ID < items[j].ID
+		}
+		return items[i].Name < items[j].Name
+	})
 	return items
 }
 
@@ -423,6 +460,15 @@ func toHomeTags(tags []placemodel.EventTaxonomyItem) []placemodel.HomeTag {
 	return items
 }
 
+func homeCollectionsForEvents(events []placemodel.EventDetailsView) []placemodel.HomeCollection {
+	if len(events) == 0 {
+		return nil
+	}
+	return []placemodel.HomeCollection{
+		{ID: "weekend-picks", Title: "Weekend Picks", Description: "Best events for weekend", ImageURL: "https://example.com/collection.jpg"},
+	}
+}
+
 func toCard(event placemodel.EventDetailsView) placemodel.EventCardView {
 	var nextSession *placemodel.EventCardNextSession
 	if len(event.Sessions) > 0 {
@@ -464,6 +510,20 @@ func matchesFilter(event placemodel.EventDetailsView, filter placemodel.EventLis
 		return false
 	}
 	return true
+}
+
+func matchesHomeCityFilter(event placemodel.EventDetailsView, city string) bool {
+	city = strings.ToLower(strings.TrimSpace(city))
+	if city == "" {
+		return true
+	}
+	for _, session := range event.Sessions {
+		sessionCity := session.Place.City
+		if strings.ToLower(sessionCity.ID) == city || strings.ToLower(sessionCity.Name) == city {
+			return true
+		}
+	}
+	return false
 }
 
 func hasTaxonomyID(items []placemodel.EventTaxonomyItem, id string) bool {
