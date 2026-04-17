@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+const publicBaseURL = "http://cityhawk.ru:8080/"
+
 func IsHTTPURL(value string) bool {
 	return strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://")
 }
@@ -20,4 +22,20 @@ func IsUploadPath(value string) bool {
 
 func IsFileReference(value string) bool {
 	return IsHTTPURL(value) || IsUploadPath(value)
+}
+
+func PublicURL(value string) string {
+	if IsUploadPath(value) {
+		return publicBaseURL + strings.TrimPrefix(value, "/")
+	}
+	return value
+}
+
+func PublicURLPtr(value *string) *string {
+	if value == nil {
+		return nil
+	}
+
+	publicURL := PublicURL(*value)
+	return &publicURL
 }

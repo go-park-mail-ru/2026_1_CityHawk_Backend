@@ -97,6 +97,17 @@ type tagsResponse struct {
 	Items []taxonomyItemResponse `json:"items"`
 }
 
+type cityResponse struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	CountryName string `json:"countryName"`
+	Timezone    string `json:"timezone"`
+}
+
+type citiesResponse struct {
+	Items []cityResponse `json:"items"`
+}
+
 type collectionCardResponse struct {
 	ID          string `json:"id"`
 	Title       string `json:"title"`

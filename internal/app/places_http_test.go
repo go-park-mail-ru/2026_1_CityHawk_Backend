@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	placedelivery "cityhawk/backend/internal/place/delivery/http"
@@ -85,8 +86,8 @@ func TestEventsHandlers(t *testing.T) {
 			"shortDescription": "Short text",
 			"fullDescription":  "Long event description",
 			"categoryIds":      `["music"]`,
-			"tagIds":           `["rock"]`,
-			"imageUrls":        `["https://example.com/new.jpg"]`,
+			"tagIds":           `[]`,
+			"imageUrls":        `[]`,
 			"sessions":         `[{"placeId":"place-1","startAt":"2026-04-20T19:00:00Z","endAt":"2026-04-20T21:00:00Z","price":1200}]`,
 		}, "images", []namedFile{{name: "cover.png", content: tinyPNG()}})
 		createReq := httptest.NewRequest(http.MethodPost, "/api/events", createBody)
@@ -120,8 +121,13 @@ func TestEventsHandlers(t *testing.T) {
 		}
 		detailsPayload := decodeJSONMap(t, detailsRec.Body)
 		images, ok := detailsPayload["images"].([]any)
-		if !ok || len(images) != 2 {
+		if !ok || len(images) != 1 {
 			t.Fatalf("unexpected created images: %+v", detailsPayload)
+		}
+		firstImage, ok := images[0].(map[string]any)
+		imageURL, _ := firstImage["imageUrl"].(string)
+		if !ok || !strings.HasPrefix(imageURL, "http://cityhawk.ru:8080/uploads/events/") {
+			t.Fatalf("uploaded image URL was not added to response: %+v", detailsPayload)
 		}
 
 		patchBody, patchContentType := mustMultipartEventBody(t, map[string]string{
@@ -227,9 +233,8 @@ func TestEventsHandlers(t *testing.T) {
 		}
 	})
 
-	t.Run("create without sessions", func(t *testing.T) {
+	t.Run("create requires sessions", func(t *testing.T) {
 		events := http.HandlerFunc(handler.Events)
-		eventByID := http.HandlerFunc(handler.EventByID)
 
 		createReq := httptest.NewRequest(http.MethodPost, "/api/events", mustJSONBody(t, map[string]any{
 			"title":            "Event without sessions",
@@ -250,25 +255,14 @@ func TestEventsHandlers(t *testing.T) {
 			}
 			return c.Value
 		}).ServeHTTP(createRec, createReq)
-		if createRec.Code != http.StatusCreated {
-			t.Fatalf("create without sessions status = %d, want %d body=%s", createRec.Code, http.StatusCreated, createRec.Body.String())
+		if createRec.Code != http.StatusBadRequest {
+			t.Fatalf("create without sessions status = %d, want %d body=%s", createRec.Code, http.StatusBadRequest, createRec.Body.String())
 		}
 
-		eventID := decodeJSONMap(t, createRec.Body)["id"].(string)
-		detailsReq := httptest.NewRequest(http.MethodGet, "/api/events/"+eventID, nil)
-		detailsRec := httptest.NewRecorder()
-		eventByID.ServeHTTP(detailsRec, detailsReq)
-		if detailsRec.Code != http.StatusOK {
-			t.Fatalf("details status = %d, want %d body=%s", detailsRec.Code, http.StatusOK, detailsRec.Body.String())
-		}
-
-		payload := decodeJSONMap(t, detailsRec.Body)
-		sessions, ok := payload["sessions"].([]any)
-		if !ok {
-			t.Fatalf("missing sessions field in details: %+v", payload)
-		}
-		if len(sessions) != 0 {
-			t.Fatalf("sessions len = %d, want 0", len(sessions))
+		payload := decodeJSONMap(t, createRec.Body)
+		details, ok := payload["details"].(map[string]any)
+		if !ok || details["sessions"] != "sessions is required" {
+			t.Fatalf("unexpected create validation response: %+v", payload)
 		}
 	})
 }
@@ -293,6 +287,30 @@ func TestHomeHandlerReturnsHomePayload(t *testing.T) {
 	}
 	if _, ok := payload["collections"].([]any); !ok {
 		t.Fatalf("home payload missing collections: %+v", payload)
+	}
+
+	cityReq := httptest.NewRequest(http.MethodGet, "/api/home?city=Москва", nil)
+	cityRec := httptest.NewRecorder()
+	http.HandlerFunc(handler.Home).ServeHTTP(cityRec, cityReq)
+	if cityRec.Code != http.StatusOK {
+		t.Fatalf("home city status = %d, want %d", cityRec.Code, http.StatusOK)
+	}
+	cityPayload := decodeJSONMap(t, cityRec.Body)
+	cityEvents, ok := cityPayload["featuredEvents"].([]any)
+	if !ok || len(cityEvents) == 0 {
+		t.Fatalf("home city payload missing featuredEvents: %+v", cityPayload)
+	}
+
+	unknownCityReq := httptest.NewRequest(http.MethodGet, "/api/home?city=Unknown", nil)
+	unknownCityRec := httptest.NewRecorder()
+	http.HandlerFunc(handler.Home).ServeHTTP(unknownCityRec, unknownCityReq)
+	if unknownCityRec.Code != http.StatusOK {
+		t.Fatalf("home unknown city status = %d, want %d", unknownCityRec.Code, http.StatusOK)
+	}
+	unknownCityPayload := decodeJSONMap(t, unknownCityRec.Body)
+	unknownCityEvents, ok := unknownCityPayload["featuredEvents"].([]any)
+	if !ok || len(unknownCityEvents) != 0 {
+		t.Fatalf("unexpected unknown city featuredEvents: %+v", unknownCityPayload)
 	}
 }
 
@@ -341,6 +359,35 @@ func TestTagsHandlerReturnsTags(t *testing.T) {
 	badReq := httptest.NewRequest(http.MethodPost, "/api/tags", nil)
 	badRec := httptest.NewRecorder()
 	http.HandlerFunc(handler.Tags).ServeHTTP(badRec, badReq)
+	if badRec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("bad method status = %d, want %d", badRec.Code, http.StatusMethodNotAllowed)
+	}
+}
+
+func TestCitiesHandlerReturnsCities(t *testing.T) {
+	repo := placerepo.NewInMemoryRepository(placerepo.SeedPlaces())
+	handler := placedelivery.NewHandler(placeusecase.NewService(repo), nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/cities", nil)
+	rec := httptest.NewRecorder()
+	http.HandlerFunc(handler.Cities).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("cities status = %d, want %d body=%s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	payload := decodeJSONMap(t, rec.Body)
+	items, ok := payload["items"].([]any)
+	if !ok || len(items) == 0 {
+		t.Fatalf("cities payload missing items: %+v", payload)
+	}
+	first, ok := items[0].(map[string]any)
+	if !ok || first["id"] == "" || first["name"] == "" || first["countryName"] == "" || first["timezone"] == "" {
+		t.Fatalf("unexpected city item: %+v", first)
+	}
+
+	badReq := httptest.NewRequest(http.MethodPost, "/api/cities", nil)
+	badRec := httptest.NewRecorder()
+	http.HandlerFunc(handler.Cities).ServeHTTP(badRec, badReq)
 	if badRec.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("bad method status = %d, want %d", badRec.Code, http.StatusMethodNotAllowed)
 	}

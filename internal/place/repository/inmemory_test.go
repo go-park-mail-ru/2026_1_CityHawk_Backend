@@ -16,9 +16,18 @@ func TestInMemoryRepositoryReadOperations(t *testing.T) {
 		testEventDetails("event-2", "author-2", "Art Expo", "art", "expo"),
 	})
 
-	home := repo.HomePayload(context.Background())
+	home := repo.HomePayload(context.Background(), placemodel.HomeFilter{})
 	if len(home.FeaturedEvents) != 2 || len(home.Categories) != 2 {
 		t.Fatalf("unexpected home payload: %+v", home)
+	}
+
+	filteredHome := repo.HomePayload(context.Background(), placemodel.HomeFilter{City: "Moscow"})
+	if len(filteredHome.FeaturedEvents) != 2 {
+		t.Fatalf("unexpected city-filtered home payload: %+v", filteredHome)
+	}
+	emptyHome := repo.HomePayload(context.Background(), placemodel.HomeFilter{City: "Unknown"})
+	if len(emptyHome.FeaturedEvents) != 0 || len(emptyHome.Categories) != 0 || len(emptyHome.Collections) != 0 {
+		t.Fatalf("unexpected empty city-filtered home payload: %+v", emptyHome)
 	}
 
 	categories := repo.ListCategories(context.Background())

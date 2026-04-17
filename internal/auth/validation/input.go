@@ -102,8 +102,18 @@ func ValidateLogin(email, password string) (string, string, error) {
 	return normalizedEmail, normalizedPassword, nil
 }
 
-func ValidateProfilePatch(username, userSurname, birthday, cityID, avatarURL *string) (string, string, *time.Time, string, string, error) {
+func ValidateProfilePatch(email, username, userSurname, birthday, cityID, avatarURL *string) (string, string, string, *time.Time, string, string, error) {
 	details := make(map[string]string)
+
+	var normalizedEmail string
+	if email != nil {
+		value, err := normalizeAndValidateEmail(*email)
+		if err != nil {
+			details["email"] = err.Error()
+		} else {
+			normalizedEmail = value
+		}
+	}
 
 	var normalizedUsername string
 	if username != nil {
@@ -156,10 +166,10 @@ func ValidateProfilePatch(username, userSurname, birthday, cityID, avatarURL *st
 	}
 
 	if len(details) > 0 {
-		return "", "", nil, "", "", ValidationError{Details: details}
+		return "", "", "", nil, "", "", ValidationError{Details: details}
 	}
 
-	return normalizedUsername, normalizedSurname, normalizedBirthday, normalizedCityID, normalizedAvatarURL, nil
+	return normalizedEmail, normalizedUsername, normalizedSurname, normalizedBirthday, normalizedCityID, normalizedAvatarURL, nil
 }
 
 func normalizeAndValidateEmail(raw string) (string, error) {

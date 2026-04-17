@@ -550,6 +550,12 @@ paths:
     get:
       tags: [Events]
       summary: Get home payload
+      parameters:
+        - in: query
+          name: city
+          schema:
+            type: string
+          description: City id or city name
       responses:
         "200":
           description: Home page payload
@@ -591,6 +597,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TagsResponse'
+        "405":
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/cities:
+    get:
+      tags: [Cities]
+      summary: Get cities
+      responses:
+        "200":
+          description: Cities list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CitiesResponse'
         "405":
           description: Method not allowed
           content:
@@ -792,6 +815,9 @@ components:
     PatchMeRequest:
       type: object
       properties:
+        email:
+          type: string
+          format: email
         username:
           type: string
         userSurname:
@@ -806,6 +832,9 @@ components:
     PatchMeMultipartRequest:
       type: object
       properties:
+        email:
+          type: string
+          format: email
         username:
           type: string
         userSurname:
@@ -1166,6 +1195,24 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/EventTaxonomyItem'
+    CityItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        countryName:
+          type: string
+        timezone:
+          type: string
+    CitiesResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CityItem'
     CollectionCard:
       type: object
       properties:

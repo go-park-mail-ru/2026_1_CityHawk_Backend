@@ -214,6 +214,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	}
 
 	patchBody, contentType := mustMultipartBody(t, map[string]string{
+		"email":       " Patched@example.COM ",
 		"username":    "patched_user",
 		"userSurname": "Петрова",
 		"birthday":    "2005-02-13",
@@ -240,11 +241,17 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	}
 
 	patchPayload := decodeJSONMap(t, patchRec.Body)
-	if patchPayload["username"] != "patched_user" || patchPayload["userSurname"] != "Петрова" {
+	if patchPayload["email"] != "patched@example.com" || patchPayload["username"] != "patched_user" || patchPayload["userSurname"] != "Петрова" {
 		t.Fatalf("unexpected patch response: %+v", patchPayload)
 	}
+	if _, ok := deps.store.GetByEmail(context.Background(), "tester@example.com"); ok {
+		t.Fatal("old email still resolves after patch")
+	}
+	if _, ok := deps.store.GetByEmail(context.Background(), "patched@example.com"); !ok {
+		t.Fatal("new email does not resolve after patch")
+	}
 	avatarURL, ok := patchPayload["avatarUrl"].(string)
-	if !ok || !strings.HasPrefix(avatarURL, "/uploads/avatars/") {
+	if !ok || !strings.HasPrefix(avatarURL, "http://cityhawk.ru:8080/uploads/avatars/") {
 		t.Fatalf("unexpected patch fields: %+v", patchPayload)
 	}
 	if patchPayload["birthday"] != "2005-02-13" {
@@ -359,6 +366,18 @@ func TestPatchMeValidation(t *testing.T) {
 	}
 	csrfCookie := requireCookie(t, registerRec.Result().Cookies(), authdelivery.CSRFCookieName)
 
+	takenEmailReq := httptest.NewRequest(http.MethodPost, "/api/auth/register", mustJSONBody(t, map[string]any{
+		"email":       "taken@example.com",
+		"password":    "verysecret",
+		"username":    "taken_user",
+		"userSurname": "Петров",
+	}))
+	takenEmailRec := httptest.NewRecorder()
+	http.HandlerFunc(authFlowHandler.Register).ServeHTTP(takenEmailRec, takenEmailReq)
+	if takenEmailRec.Code != http.StatusCreated {
+		t.Fatalf("taken email register status = %d, want %d, body=%s", takenEmailRec.Code, http.StatusCreated, takenEmailRec.Body.String())
+	}
+
 	tests := []struct {
 		name   string
 		body   string
@@ -370,6 +389,18 @@ func TestPatchMeValidation(t *testing.T) {
 			body:   `{"username":"next_user","extra":"value"}`,
 			status: http.StatusBadRequest,
 			errMsg: "invalid json",
+		},
+		{
+			name:   "bad email",
+			body:   `{"email":"wrong"}`,
+			status: http.StatusBadRequest,
+			errMsg: "Validation failed",
+		},
+		{
+			name:   "email already exists",
+			body:   `{"email":"taken@example.com"}`,
+			status: http.StatusConflict,
+			errMsg: "email already exists",
 		},
 		{
 			name:   "bad avatar url",

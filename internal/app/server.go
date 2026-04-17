@@ -168,6 +168,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	mux.HandleFunc("GET /api/home", placeHandler.Home)
 	mux.HandleFunc("GET /api/categories", placeHandler.Categories)
 	mux.HandleFunc("GET /api/tags", placeHandler.Tags)
+	mux.HandleFunc("GET /api/cities", placeHandler.Cities)
 	mux.HandleFunc("GET /api/collections", placeHandler.Collections)
 	mux.HandleFunc("GET /api/collections/", placeHandler.CollectionByID)
 	mux.HandleFunc("GET /api/search", placeHandler.Search)

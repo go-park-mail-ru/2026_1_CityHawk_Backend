@@ -119,10 +119,15 @@ func (r *PostgresUserRepository) GetByID(ctx context.Context, id string) (usermo
 }
 
 func (r *PostgresUserRepository) UpdateProfile(ctx context.Context, id string, patch usermodel.ProfilePatch) (usermodel.User, bool, error) {
-	setClauses := make([]string, 0, 5)
-	args := make([]any, 0, 6)
+	setClauses := make([]string, 0, 6)
+	args := make([]any, 0, 7)
 	argPos := 1
 
+	if patch.Email != nil {
+		setClauses = append(setClauses, fmt.Sprintf("email = $%d", argPos))
+		args = append(args, *patch.Email)
+		argPos++
+	}
 	if patch.Username != nil {
 		setClauses = append(setClauses, fmt.Sprintf("username = $%d", argPos))
 		args = append(args, *patch.Username)
@@ -163,8 +168,13 @@ func (r *PostgresUserRepository) UpdateProfile(ctx context.Context, id string, p
 
 	if _, err := r.pool.Exec(ctx, query, args...); err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23503" {
-			return usermodel.User{}, false, platformerrors.ErrInvalidCity
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "23503":
+				return usermodel.User{}, false, platformerrors.ErrInvalidCity
+			case "23505":
+				return usermodel.User{}, false, platformerrors.ErrEmailExists
+			}
 		}
 		return usermodel.User{}, false, err
 	}

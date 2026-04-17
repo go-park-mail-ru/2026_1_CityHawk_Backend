@@ -2,6 +2,7 @@ package http
 
 import (
 	placemodel "cityhawk/backend/internal/place/model"
+	"cityhawk/backend/internal/platform/media"
 	"cityhawk/backend/internal/platform/safety"
 )
 
@@ -42,7 +43,7 @@ func toEventDetailsResponse(item placemodel.EventDetailsView) eventDetailsRespon
 	for _, image := range item.Images {
 		images = append(images, eventImageResponse{
 			ID:       image.ID,
-			ImageURL: image.ImageURL,
+			ImageURL: media.PublicURL(image.ImageURL),
 		})
 	}
 
@@ -79,7 +80,7 @@ func toEventDetailsResponse(item placemodel.EventDetailsView) eventDetailsRespon
 		Author: eventAuthorResponse{
 			ID:        item.Author.ID,
 			Username:  safety.EscapeText(item.Author.Username),
-			AvatarURL: item.Author.AvatarURL,
+			AvatarURL: media.PublicURLPtr(item.Author.AvatarURL),
 		},
 		Categories: categories,
 		Tags:       tags,
@@ -116,6 +117,19 @@ func toTagsResponse(items []placemodel.HomeTag) tagsResponse {
 	return tagsResponse{Items: respItems}
 }
 
+func toCitiesResponse(items []placemodel.City) citiesResponse {
+	respItems := make([]cityResponse, 0, len(items))
+	for _, item := range items {
+		respItems = append(respItems, cityResponse{
+			ID:          item.ID,
+			Name:        safety.EscapeText(item.Name),
+			CountryName: safety.EscapeText(item.CountryName),
+			Timezone:    item.Timezone,
+		})
+	}
+	return citiesResponse{Items: respItems}
+}
+
 func toCollectionsResponse(items []placemodel.CollectionCardView) collectionsResponse {
 	respItems := make([]collectionCardResponse, 0, len(items))
 	for _, item := range items {
@@ -123,7 +137,7 @@ func toCollectionsResponse(items []placemodel.CollectionCardView) collectionsRes
 			ID:          item.ID,
 			Title:       safety.EscapeText(item.Title),
 			Description: safety.EscapeText(item.Description),
-			ImageURL:    item.ImageURL,
+			ImageURL:    media.PublicURL(item.ImageURL),
 			IsPublic:    item.IsPublic,
 		})
 	}
@@ -140,7 +154,7 @@ func toCollectionDetailsResponse(item placemodel.CollectionDetailsView) collecti
 		ID:          item.ID,
 		Title:       safety.EscapeText(item.Title),
 		Description: safety.EscapeText(item.Description),
-		ImageURL:    item.ImageURL,
+		ImageURL:    media.PublicURL(item.ImageURL),
 		IsPublic:    item.IsPublic,
 		Events:      events,
 	}
@@ -169,7 +183,7 @@ func toHomePayloadResponse(p placemodel.HomePayload) homePayloadResponse {
 		featuredEvents = append(featuredEvents, homeFeaturedEventResponse{
 			ID:            item.ID,
 			Title:         safety.EscapeText(item.Title),
-			CoverImageURL: item.CoverImageURL,
+			CoverImageURL: media.PublicURL(item.CoverImageURL),
 			Tags:          tags,
 			NextSession: homeNextSessionResponse{
 				StartAt: item.NextSession.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
@@ -196,7 +210,7 @@ func toHomePayloadResponse(p placemodel.HomePayload) homePayloadResponse {
 			ID:          item.ID,
 			Title:       safety.EscapeText(item.Title),
 			Description: safety.EscapeText(item.Description),
-			ImageURL:    item.ImageURL,
+			ImageURL:    media.PublicURL(item.ImageURL),
 		})
 	}
 
@@ -232,7 +246,7 @@ func toEventCardResponse(item placemodel.EventCardView) eventCardResponse {
 		ID:               item.ID,
 		Title:            safety.EscapeText(item.Title),
 		ShortDescription: safety.EscapeText(item.ShortDescription),
-		CoverImageURL:    item.CoverImageURL,
+		CoverImageURL:    media.PublicURL(item.CoverImageURL),
 		Tags:             tags,
 		NextSession:      nextSession,
 	}

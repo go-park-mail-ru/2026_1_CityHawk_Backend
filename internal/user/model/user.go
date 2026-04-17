@@ -24,6 +24,7 @@ type User struct {
 }
 
 type ProfilePatch struct {
+	Email       *string
 	Username    *string
 	UserSurname *string
 	Birthday    *time.Time

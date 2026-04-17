@@ -71,7 +71,8 @@ func (h *MeHandler) handlePatch(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	username, userSurname, birthday, cityID, avatarURL, err := authvalidation.ValidateProfilePatch(
+	email, username, userSurname, birthday, cityID, avatarURL, err := authvalidation.ValidateProfilePatch(
+		req.Email,
 		req.Username,
 		req.UserSurname,
 		req.Birthday,
@@ -88,6 +89,9 @@ func (h *MeHandler) handlePatch(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	patch := usermodel.ProfilePatch{}
+	if req.Email != nil {
+		patch.Email = &email
+	}
 	if req.Username != nil {
 		patch.Username = &username
 	}
@@ -129,6 +133,8 @@ func (h *MeHandler) handlePatch(w http.ResponseWriter, r *http.Request) error {
 	u, ok, err := h.users.UpdateProfile(r.Context(), userID, patch)
 	if err != nil {
 		switch {
+		case errors.Is(err, platformerrors.ErrEmailExists):
+			return httpx.NewHTTPError(http.StatusConflict, "email already exists")
 		case errors.Is(err, platformerrors.ErrInvalidCity):
 			return httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{
 				"cityId": "cityId references unknown city",
@@ -166,6 +172,7 @@ func decodeMultipartPatchMeRequest(r *http.Request) (patchMeRequest, *multipart.
 	}
 
 	req := patchMeRequest{
+		Email:       multipartValue(r.MultipartForm, "email"),
 		Username:    multipartValue(r.MultipartForm, "username"),
 		UserSurname: multipartValue(r.MultipartForm, "userSurname"),
 		Birthday:    multipartValue(r.MultipartForm, "birthday"),
@@ -221,7 +228,7 @@ func makeMeResponse(u usermodel.User) meResponse {
 		Username:    safety.EscapeText(u.Username),
 		UserSurname: safety.EscapeText(u.UserSurname),
 		Birthday:    birthday,
-		AvatarURL:   u.AvatarURL,
+		AvatarURL:   media.PublicURLPtr(u.AvatarURL),
 		City:        city,
 		CreatedAt:   u.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
@@ -240,7 +247,7 @@ func makePatchMeResponse(u usermodel.User) patchMeResponse {
 		Username:    safety.EscapeText(u.Username),
 		UserSurname: safety.EscapeText(u.UserSurname),
 		Birthday:    birthday,
-		AvatarURL:   u.AvatarURL,
+		AvatarURL:   media.PublicURLPtr(u.AvatarURL),
 		UpdatedAt:   u.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
 }
