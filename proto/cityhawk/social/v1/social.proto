@@ -3,7 +3,6 @@ syntax = "proto3";
 package cityhawk.social.v1;
 
 import "cityhawk/common/v1/common.proto";
-import "cityhawk/events/v1/events.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "cityhawk/backend/pkg/pb/social/v1;socialv1";
@@ -37,8 +36,13 @@ message ListFavoriteEventsRequest {
 }
 
 message ListFavoriteEventsResponse {
-  repeated cityhawk.events.v1.EventCard items = 1;
+  repeated FavoriteEvent items = 1;
   cityhawk.common.v1.PageResponse page = 2;
+}
+
+message FavoriteEvent {
+  string event_id = 1;
+  google.protobuf.Timestamp created_at = 2;
 }
 
 message IsFavoriteRequest {
@@ -73,8 +77,14 @@ message ListFollowingRequest {
 }
 
 message ListUsersResponse {
-  repeated cityhawk.common.v1.UserSummary items = 1;
+  repeated UserFollow items = 1;
   cityhawk.common.v1.PageResponse page = 2;
+}
+
+message UserFollow {
+  string user_id = 1;
+  bool is_following = 2;
+  google.protobuf.Timestamp created_at = 3;
 }
 
 message IsFollowingRequest {
@@ -108,4 +118,3 @@ message SocialFlagsResponse {
   repeated EventFavoriteFlag favorite_events = 1;
   repeated UserFollowingFlag following_users = 2;
 }
-

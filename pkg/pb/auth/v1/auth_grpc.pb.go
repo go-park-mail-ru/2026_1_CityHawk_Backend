@@ -26,9 +26,6 @@ const (
 	AuthService_Refresh_FullMethodName             = "/cityhawk.auth.v1.AuthService/Refresh"
 	AuthService_Logout_FullMethodName              = "/cityhawk.auth.v1.AuthService/Logout"
 	AuthService_ValidateAccessToken_FullMethodName = "/cityhawk.auth.v1.AuthService/ValidateAccessToken"
-	AuthService_GetMe_FullMethodName               = "/cityhawk.auth.v1.AuthService/GetMe"
-	AuthService_UpdateMe_FullMethodName            = "/cityhawk.auth.v1.AuthService/UpdateMe"
-	AuthService_GetUser_FullMethodName             = "/cityhawk.auth.v1.AuthService/GetUser"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -41,9 +38,6 @@ type AuthServiceClient interface {
 	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*SessionResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*v1.BoolResponse, error)
 	ValidateAccessToken(ctx context.Context, in *ValidateAccessTokenRequest, opts ...grpc.CallOption) (*ValidateAccessTokenResponse, error)
-	GetMe(ctx context.Context, in *GetMeRequest, opts ...grpc.CallOption) (*UserProfile, error)
-	UpdateMe(ctx context.Context, in *UpdateMeRequest, opts ...grpc.CallOption) (*UserProfile, error)
-	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*UserProfile, error)
 }
 
 type authServiceClient struct {
@@ -114,36 +108,6 @@ func (c *authServiceClient) ValidateAccessToken(ctx context.Context, in *Validat
 	return out, nil
 }
 
-func (c *authServiceClient) GetMe(ctx context.Context, in *GetMeRequest, opts ...grpc.CallOption) (*UserProfile, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UserProfile)
-	err := c.cc.Invoke(ctx, AuthService_GetMe_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authServiceClient) UpdateMe(ctx context.Context, in *UpdateMeRequest, opts ...grpc.CallOption) (*UserProfile, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UserProfile)
-	err := c.cc.Invoke(ctx, AuthService_UpdateMe_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authServiceClient) GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*UserProfile, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UserProfile)
-	err := c.cc.Invoke(ctx, AuthService_GetUser_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -154,9 +118,6 @@ type AuthServiceServer interface {
 	Refresh(context.Context, *RefreshRequest) (*SessionResponse, error)
 	Logout(context.Context, *LogoutRequest) (*v1.BoolResponse, error)
 	ValidateAccessToken(context.Context, *ValidateAccessTokenRequest) (*ValidateAccessTokenResponse, error)
-	GetMe(context.Context, *GetMeRequest) (*UserProfile, error)
-	UpdateMe(context.Context, *UpdateMeRequest) (*UserProfile, error)
-	GetUser(context.Context, *GetUserRequest) (*UserProfile, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -184,15 +145,6 @@ func (UnimplementedAuthServiceServer) Logout(context.Context, *LogoutRequest) (*
 }
 func (UnimplementedAuthServiceServer) ValidateAccessToken(context.Context, *ValidateAccessTokenRequest) (*ValidateAccessTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ValidateAccessToken not implemented")
-}
-func (UnimplementedAuthServiceServer) GetMe(context.Context, *GetMeRequest) (*UserProfile, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetMe not implemented")
-}
-func (UnimplementedAuthServiceServer) UpdateMe(context.Context, *UpdateMeRequest) (*UserProfile, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpdateMe not implemented")
-}
-func (UnimplementedAuthServiceServer) GetUser(context.Context, *GetUserRequest) (*UserProfile, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetUser not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -323,60 +275,6 @@ func _AuthService_ValidateAccessToken_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_GetMe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetMeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).GetMe(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_GetMe_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).GetMe(ctx, req.(*GetMeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AuthService_UpdateMe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateMeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).UpdateMe(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_UpdateMe_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).UpdateMe(ctx, req.(*UpdateMeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AuthService_GetUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetUserRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).GetUser(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_GetUser_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).GetUser(ctx, req.(*GetUserRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -407,18 +305,6 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ValidateAccessToken",
 			Handler:    _AuthService_ValidateAccessToken_Handler,
-		},
-		{
-			MethodName: "GetMe",
-			Handler:    _AuthService_GetMe_Handler,
-		},
-		{
-			MethodName: "UpdateMe",
-			Handler:    _AuthService_UpdateMe_Handler,
-		},
-		{
-			MethodName: "GetUser",
-			Handler:    _AuthService_GetUser_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

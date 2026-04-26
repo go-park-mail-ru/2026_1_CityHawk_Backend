@@ -128,4 +128,3 @@ message TicketStats {
   int32 in_progress_total = 5;
   int32 closed_total = 6;
 }
-

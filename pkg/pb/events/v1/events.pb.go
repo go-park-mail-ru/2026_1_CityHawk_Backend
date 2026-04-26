@@ -23,18 +23,306 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type Coordinates struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Latitude      float64                `protobuf:"fixed64,1,opt,name=latitude,proto3" json:"latitude,omitempty"`
+	Longitude     float64                `protobuf:"fixed64,2,opt,name=longitude,proto3" json:"longitude,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Coordinates) Reset() {
+	*x = Coordinates{}
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Coordinates) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Coordinates) ProtoMessage() {}
+
+func (x *Coordinates) ProtoReflect() protoreflect.Message {
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Coordinates.ProtoReflect.Descriptor instead.
+func (*Coordinates) Descriptor() ([]byte, []int) {
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Coordinates) GetLatitude() float64 {
+	if x != nil {
+		return x.Latitude
+	}
+	return 0
+}
+
+func (x *Coordinates) GetLongitude() float64 {
+	if x != nil {
+		return x.Longitude
+	}
+	return 0
+}
+
+type City struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	CountryName   string                 `protobuf:"bytes,3,opt,name=country_name,json=countryName,proto3" json:"country_name,omitempty"`
+	Timezone      string                 `protobuf:"bytes,4,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *City) Reset() {
+	*x = City{}
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *City) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*City) ProtoMessage() {}
+
+func (x *City) ProtoReflect() protoreflect.Message {
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use City.ProtoReflect.Descriptor instead.
+func (*City) Descriptor() ([]byte, []int) {
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *City) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *City) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *City) GetCountryName() string {
+	if x != nil {
+		return x.CountryName
+	}
+	return ""
+}
+
+func (x *City) GetTimezone() string {
+	if x != nil {
+		return x.Timezone
+	}
+	return ""
+}
+
+type Place struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	CityId        string                 `protobuf:"bytes,2,opt,name=city_id,json=cityId,proto3" json:"city_id,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	AddressLine   string                 `protobuf:"bytes,4,opt,name=address_line,json=addressLine,proto3" json:"address_line,omitempty"`
+	Coordinates   *Coordinates           `protobuf:"bytes,5,opt,name=coordinates,proto3" json:"coordinates,omitempty"`
+	Description   string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
+	City          *City                  `protobuf:"bytes,7,opt,name=city,proto3" json:"city,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Place) Reset() {
+	*x = Place{}
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Place) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Place) ProtoMessage() {}
+
+func (x *Place) ProtoReflect() protoreflect.Message {
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Place.ProtoReflect.Descriptor instead.
+func (*Place) Descriptor() ([]byte, []int) {
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Place) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Place) GetCityId() string {
+	if x != nil {
+		return x.CityId
+	}
+	return ""
+}
+
+func (x *Place) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Place) GetAddressLine() string {
+	if x != nil {
+		return x.AddressLine
+	}
+	return ""
+}
+
+func (x *Place) GetCoordinates() *Coordinates {
+	if x != nil {
+		return x.Coordinates
+	}
+	return nil
+}
+
+func (x *Place) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *Place) GetCity() *City {
+	if x != nil {
+		return x.City
+	}
+	return nil
+}
+
+func (x *Place) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *Place) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+type TaxonomyItem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Slug          string                 `protobuf:"bytes,3,opt,name=slug,proto3" json:"slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaxonomyItem) Reset() {
+	*x = TaxonomyItem{}
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaxonomyItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaxonomyItem) ProtoMessage() {}
+
+func (x *TaxonomyItem) ProtoReflect() protoreflect.Message {
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaxonomyItem.ProtoReflect.Descriptor instead.
+func (*TaxonomyItem) Descriptor() ([]byte, []int) {
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *TaxonomyItem) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TaxonomyItem) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *TaxonomyItem) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
 type EventCardNextSessionPlace struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	AddressLine   string                 `protobuf:"bytes,2,opt,name=address_line,json=addressLine,proto3" json:"address_line,omitempty"`
-	Coordinates   *v1.Coordinates        `protobuf:"bytes,3,opt,name=coordinates,proto3" json:"coordinates,omitempty"`
+	Coordinates   *Coordinates           `protobuf:"bytes,3,opt,name=coordinates,proto3" json:"coordinates,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *EventCardNextSessionPlace) Reset() {
 	*x = EventCardNextSessionPlace{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[0]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +334,7 @@ func (x *EventCardNextSessionPlace) String() string {
 func (*EventCardNextSessionPlace) ProtoMessage() {}
 
 func (x *EventCardNextSessionPlace) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[0]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +347,7 @@ func (x *EventCardNextSessionPlace) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventCardNextSessionPlace.ProtoReflect.Descriptor instead.
 func (*EventCardNextSessionPlace) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{0}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *EventCardNextSessionPlace) GetName() string {
@@ -76,7 +364,7 @@ func (x *EventCardNextSessionPlace) GetAddressLine() string {
 	return ""
 }
 
-func (x *EventCardNextSessionPlace) GetCoordinates() *v1.Coordinates {
+func (x *EventCardNextSessionPlace) GetCoordinates() *Coordinates {
 	if x != nil {
 		return x.Coordinates
 	}
@@ -93,7 +381,7 @@ type EventCardNextSession struct {
 
 func (x *EventCardNextSession) Reset() {
 	*x = EventCardNextSession{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[1]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -105,7 +393,7 @@ func (x *EventCardNextSession) String() string {
 func (*EventCardNextSession) ProtoMessage() {}
 
 func (x *EventCardNextSession) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[1]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -118,7 +406,7 @@ func (x *EventCardNextSession) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventCardNextSession.ProtoReflect.Descriptor instead.
 func (*EventCardNextSession) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{1}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *EventCardNextSession) GetStartAt() *timestamppb.Timestamp {
@@ -141,7 +429,7 @@ type EventCard struct {
 	Title            string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	ShortDescription string                 `protobuf:"bytes,3,opt,name=short_description,json=shortDescription,proto3" json:"short_description,omitempty"`
 	CoverImageUrl    string                 `protobuf:"bytes,4,opt,name=cover_image_url,json=coverImageUrl,proto3" json:"cover_image_url,omitempty"`
-	Tags             []*v1.TaxonomyItem     `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty"`
+	Tags             []*TaxonomyItem        `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty"`
 	NextSession      *EventCardNextSession  `protobuf:"bytes,6,opt,name=next_session,json=nextSession,proto3,oneof" json:"next_session,omitempty"`
 	IsFavorite       bool                   `protobuf:"varint,7,opt,name=is_favorite,json=isFavorite,proto3" json:"is_favorite,omitempty"`
 	DistanceKm       *float64               `protobuf:"fixed64,8,opt,name=distance_km,json=distanceKm,proto3,oneof" json:"distance_km,omitempty"`
@@ -151,7 +439,7 @@ type EventCard struct {
 
 func (x *EventCard) Reset() {
 	*x = EventCard{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[2]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -163,7 +451,7 @@ func (x *EventCard) String() string {
 func (*EventCard) ProtoMessage() {}
 
 func (x *EventCard) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[2]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -176,7 +464,7 @@ func (x *EventCard) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventCard.ProtoReflect.Descriptor instead.
 func (*EventCard) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{2}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *EventCard) GetId() string {
@@ -207,7 +495,7 @@ func (x *EventCard) GetCoverImageUrl() string {
 	return ""
 }
 
-func (x *EventCard) GetTags() []*v1.TaxonomyItem {
+func (x *EventCard) GetTags() []*TaxonomyItem {
 	if x != nil {
 		return x.Tags
 	}
@@ -247,7 +535,7 @@ type EventAuthor struct {
 
 func (x *EventAuthor) Reset() {
 	*x = EventAuthor{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[3]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -259,7 +547,7 @@ func (x *EventAuthor) String() string {
 func (*EventAuthor) ProtoMessage() {}
 
 func (x *EventAuthor) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[3]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -272,7 +560,7 @@ func (x *EventAuthor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventAuthor.ProtoReflect.Descriptor instead.
 func (*EventAuthor) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{3}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *EventAuthor) GetId() string {
@@ -313,7 +601,7 @@ type EventImage struct {
 
 func (x *EventImage) Reset() {
 	*x = EventImage{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[4]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -325,7 +613,7 @@ func (x *EventImage) String() string {
 func (*EventImage) ProtoMessage() {}
 
 func (x *EventImage) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[4]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -338,7 +626,7 @@ func (x *EventImage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventImage.ProtoReflect.Descriptor instead.
 func (*EventImage) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{4}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *EventImage) GetId() string {
@@ -361,14 +649,14 @@ type EventSession struct {
 	StartAt       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
 	EndAt         *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=end_at,json=endAt,proto3" json:"end_at,omitempty"`
 	Price         int32                  `protobuf:"varint,4,opt,name=price,proto3" json:"price,omitempty"`
-	Place         *v1.Place              `protobuf:"bytes,5,opt,name=place,proto3" json:"place,omitempty"`
+	Place         *Place                 `protobuf:"bytes,5,opt,name=place,proto3" json:"place,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *EventSession) Reset() {
 	*x = EventSession{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[5]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -380,7 +668,7 @@ func (x *EventSession) String() string {
 func (*EventSession) ProtoMessage() {}
 
 func (x *EventSession) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[5]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -393,7 +681,7 @@ func (x *EventSession) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventSession.ProtoReflect.Descriptor instead.
 func (*EventSession) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{5}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *EventSession) GetId() string {
@@ -424,7 +712,7 @@ func (x *EventSession) GetPrice() int32 {
 	return 0
 }
 
-func (x *EventSession) GetPlace() *v1.Place {
+func (x *EventSession) GetPlace() *Place {
 	if x != nil {
 		return x.Place
 	}
@@ -440,8 +728,8 @@ type EventDetails struct {
 	AgeLimit         int32                  `protobuf:"varint,5,opt,name=age_limit,json=ageLimit,proto3" json:"age_limit,omitempty"`
 	SourceUrl        *string                `protobuf:"bytes,6,opt,name=source_url,json=sourceUrl,proto3,oneof" json:"source_url,omitempty"`
 	Author           *EventAuthor           `protobuf:"bytes,7,opt,name=author,proto3" json:"author,omitempty"`
-	Categories       []*v1.TaxonomyItem     `protobuf:"bytes,8,rep,name=categories,proto3" json:"categories,omitempty"`
-	Tags             []*v1.TaxonomyItem     `protobuf:"bytes,9,rep,name=tags,proto3" json:"tags,omitempty"`
+	Categories       []*TaxonomyItem        `protobuf:"bytes,8,rep,name=categories,proto3" json:"categories,omitempty"`
+	Tags             []*TaxonomyItem        `protobuf:"bytes,9,rep,name=tags,proto3" json:"tags,omitempty"`
 	Images           []*EventImage          `protobuf:"bytes,10,rep,name=images,proto3" json:"images,omitempty"`
 	Sessions         []*EventSession        `protobuf:"bytes,11,rep,name=sessions,proto3" json:"sessions,omitempty"`
 	CreatedAt        *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
@@ -455,7 +743,7 @@ type EventDetails struct {
 
 func (x *EventDetails) Reset() {
 	*x = EventDetails{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[6]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -467,7 +755,7 @@ func (x *EventDetails) String() string {
 func (*EventDetails) ProtoMessage() {}
 
 func (x *EventDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[6]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -480,7 +768,7 @@ func (x *EventDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventDetails.ProtoReflect.Descriptor instead.
 func (*EventDetails) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{6}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *EventDetails) GetId() string {
@@ -532,14 +820,14 @@ func (x *EventDetails) GetAuthor() *EventAuthor {
 	return nil
 }
 
-func (x *EventDetails) GetCategories() []*v1.TaxonomyItem {
+func (x *EventDetails) GetCategories() []*TaxonomyItem {
 	if x != nil {
 		return x.Categories
 	}
 	return nil
 }
 
-func (x *EventDetails) GetTags() []*v1.TaxonomyItem {
+func (x *EventDetails) GetTags() []*TaxonomyItem {
 	if x != nil {
 		return x.Tags
 	}
@@ -607,7 +895,7 @@ type EventSessionInput struct {
 
 func (x *EventSessionInput) Reset() {
 	*x = EventSessionInput{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[7]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -619,7 +907,7 @@ func (x *EventSessionInput) String() string {
 func (*EventSessionInput) ProtoMessage() {}
 
 func (x *EventSessionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[7]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -632,7 +920,7 @@ func (x *EventSessionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventSessionInput.ProtoReflect.Descriptor instead.
 func (*EventSessionInput) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{7}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *EventSessionInput) GetPlaceId() string {
@@ -673,7 +961,7 @@ type GetHomeRequest struct {
 
 func (x *GetHomeRequest) Reset() {
 	*x = GetHomeRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[8]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -685,7 +973,7 @@ func (x *GetHomeRequest) String() string {
 func (*GetHomeRequest) ProtoMessage() {}
 
 func (x *GetHomeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[8]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -698,7 +986,7 @@ func (x *GetHomeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHomeRequest.ProtoReflect.Descriptor instead.
 func (*GetHomeRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{8}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetHomeRequest) GetCity() string {
@@ -720,7 +1008,7 @@ type HomeFeaturedEvent struct {
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	CoverImageUrl string                 `protobuf:"bytes,3,opt,name=cover_image_url,json=coverImageUrl,proto3" json:"cover_image_url,omitempty"`
-	Tags          []*v1.TaxonomyItem     `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
+	Tags          []*TaxonomyItem        `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
 	NextSession   *EventCardNextSession  `protobuf:"bytes,5,opt,name=next_session,json=nextSession,proto3" json:"next_session,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -728,7 +1016,7 @@ type HomeFeaturedEvent struct {
 
 func (x *HomeFeaturedEvent) Reset() {
 	*x = HomeFeaturedEvent{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[9]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -740,7 +1028,7 @@ func (x *HomeFeaturedEvent) String() string {
 func (*HomeFeaturedEvent) ProtoMessage() {}
 
 func (x *HomeFeaturedEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[9]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -753,7 +1041,7 @@ func (x *HomeFeaturedEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HomeFeaturedEvent.ProtoReflect.Descriptor instead.
 func (*HomeFeaturedEvent) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{9}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *HomeFeaturedEvent) GetId() string {
@@ -777,7 +1065,7 @@ func (x *HomeFeaturedEvent) GetCoverImageUrl() string {
 	return ""
 }
 
-func (x *HomeFeaturedEvent) GetTags() []*v1.TaxonomyItem {
+func (x *HomeFeaturedEvent) GetTags() []*TaxonomyItem {
 	if x != nil {
 		return x.Tags
 	}
@@ -803,7 +1091,7 @@ type HomeCollection struct {
 
 func (x *HomeCollection) Reset() {
 	*x = HomeCollection{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[10]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -815,7 +1103,7 @@ func (x *HomeCollection) String() string {
 func (*HomeCollection) ProtoMessage() {}
 
 func (x *HomeCollection) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[10]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -828,7 +1116,7 @@ func (x *HomeCollection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HomeCollection.ProtoReflect.Descriptor instead.
 func (*HomeCollection) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{10}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *HomeCollection) GetId() string {
@@ -862,7 +1150,7 @@ func (x *HomeCollection) GetImageUrl() string {
 type HomeResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	FeaturedEvents []*HomeFeaturedEvent   `protobuf:"bytes,1,rep,name=featured_events,json=featuredEvents,proto3" json:"featured_events,omitempty"`
-	Categories     []*v1.TaxonomyItem     `protobuf:"bytes,2,rep,name=categories,proto3" json:"categories,omitempty"`
+	Categories     []*TaxonomyItem        `protobuf:"bytes,2,rep,name=categories,proto3" json:"categories,omitempty"`
 	Collections    []*HomeCollection      `protobuf:"bytes,3,rep,name=collections,proto3" json:"collections,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -870,7 +1158,7 @@ type HomeResponse struct {
 
 func (x *HomeResponse) Reset() {
 	*x = HomeResponse{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[11]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -882,7 +1170,7 @@ func (x *HomeResponse) String() string {
 func (*HomeResponse) ProtoMessage() {}
 
 func (x *HomeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[11]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -895,7 +1183,7 @@ func (x *HomeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HomeResponse.ProtoReflect.Descriptor instead.
 func (*HomeResponse) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{11}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *HomeResponse) GetFeaturedEvents() []*HomeFeaturedEvent {
@@ -905,7 +1193,7 @@ func (x *HomeResponse) GetFeaturedEvents() []*HomeFeaturedEvent {
 	return nil
 }
 
-func (x *HomeResponse) GetCategories() []*v1.TaxonomyItem {
+func (x *HomeResponse) GetCategories() []*TaxonomyItem {
 	if x != nil {
 		return x.Categories
 	}
@@ -937,7 +1225,7 @@ type ListEventsRequest struct {
 
 func (x *ListEventsRequest) Reset() {
 	*x = ListEventsRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[12]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -949,7 +1237,7 @@ func (x *ListEventsRequest) String() string {
 func (*ListEventsRequest) ProtoMessage() {}
 
 func (x *ListEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[12]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -962,7 +1250,7 @@ func (x *ListEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListEventsRequest.ProtoReflect.Descriptor instead.
 func (*ListEventsRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{12}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListEventsRequest) GetViewerContext() *v1.UserContext {
@@ -1038,7 +1326,7 @@ func (x *ListEventsRequest) GetPage() *v1.PageRequest {
 type SearchEventsNearbyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ViewerContext *v1.UserContext        `protobuf:"bytes,1,opt,name=viewer_context,json=viewerContext,proto3,oneof" json:"viewer_context,omitempty"`
-	Center        *v1.Coordinates        `protobuf:"bytes,2,opt,name=center,proto3" json:"center,omitempty"`
+	Center        *Coordinates           `protobuf:"bytes,2,opt,name=center,proto3" json:"center,omitempty"`
 	RadiusKm      float64                `protobuf:"fixed64,3,opt,name=radius_km,json=radiusKm,proto3" json:"radius_km,omitempty"`
 	Sort          string                 `protobuf:"bytes,4,opt,name=sort,proto3" json:"sort,omitempty"`
 	Page          *v1.PageRequest        `protobuf:"bytes,5,opt,name=page,proto3" json:"page,omitempty"`
@@ -1053,7 +1341,7 @@ type SearchEventsNearbyRequest struct {
 
 func (x *SearchEventsNearbyRequest) Reset() {
 	*x = SearchEventsNearbyRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[13]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1065,7 +1353,7 @@ func (x *SearchEventsNearbyRequest) String() string {
 func (*SearchEventsNearbyRequest) ProtoMessage() {}
 
 func (x *SearchEventsNearbyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[13]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1078,7 +1366,7 @@ func (x *SearchEventsNearbyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchEventsNearbyRequest.ProtoReflect.Descriptor instead.
 func (*SearchEventsNearbyRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{13}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SearchEventsNearbyRequest) GetViewerContext() *v1.UserContext {
@@ -1088,7 +1376,7 @@ func (x *SearchEventsNearbyRequest) GetViewerContext() *v1.UserContext {
 	return nil
 }
 
-func (x *SearchEventsNearbyRequest) GetCenter() *v1.Coordinates {
+func (x *SearchEventsNearbyRequest) GetCenter() *Coordinates {
 	if x != nil {
 		return x.Center
 	}
@@ -1161,7 +1449,7 @@ type ListEventsResponse struct {
 
 func (x *ListEventsResponse) Reset() {
 	*x = ListEventsResponse{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[14]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1173,7 +1461,7 @@ func (x *ListEventsResponse) String() string {
 func (*ListEventsResponse) ProtoMessage() {}
 
 func (x *ListEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[14]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1186,7 +1474,7 @@ func (x *ListEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListEventsResponse.ProtoReflect.Descriptor instead.
 func (*ListEventsResponse) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{14}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ListEventsResponse) GetItems() []*EventCard {
@@ -1207,14 +1495,14 @@ type GetEventRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	EventId        string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	ViewerContext  *v1.UserContext        `protobuf:"bytes,2,opt,name=viewer_context,json=viewerContext,proto3,oneof" json:"viewer_context,omitempty"`
-	ViewerLocation *v1.Coordinates        `protobuf:"bytes,3,opt,name=viewer_location,json=viewerLocation,proto3,oneof" json:"viewer_location,omitempty"`
+	ViewerLocation *Coordinates           `protobuf:"bytes,3,opt,name=viewer_location,json=viewerLocation,proto3,oneof" json:"viewer_location,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetEventRequest) Reset() {
 	*x = GetEventRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[15]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1226,7 +1514,7 @@ func (x *GetEventRequest) String() string {
 func (*GetEventRequest) ProtoMessage() {}
 
 func (x *GetEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[15]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1239,7 +1527,7 @@ func (x *GetEventRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEventRequest.ProtoReflect.Descriptor instead.
 func (*GetEventRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{15}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetEventRequest) GetEventId() string {
@@ -1256,7 +1544,7 @@ func (x *GetEventRequest) GetViewerContext() *v1.UserContext {
 	return nil
 }
 
-func (x *GetEventRequest) GetViewerLocation() *v1.Coordinates {
+func (x *GetEventRequest) GetViewerLocation() *Coordinates {
 	if x != nil {
 		return x.ViewerLocation
 	}
@@ -1281,7 +1569,7 @@ type CreateEventRequest struct {
 
 func (x *CreateEventRequest) Reset() {
 	*x = CreateEventRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[16]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1293,7 +1581,7 @@ func (x *CreateEventRequest) String() string {
 func (*CreateEventRequest) ProtoMessage() {}
 
 func (x *CreateEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[16]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1306,7 +1594,7 @@ func (x *CreateEventRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateEventRequest.ProtoReflect.Descriptor instead.
 func (*CreateEventRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{16}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *CreateEventRequest) GetActor() *v1.UserContext {
@@ -1403,7 +1691,7 @@ type UpdateEventRequest struct {
 
 func (x *UpdateEventRequest) Reset() {
 	*x = UpdateEventRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[17]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1415,7 +1703,7 @@ func (x *UpdateEventRequest) String() string {
 func (*UpdateEventRequest) ProtoMessage() {}
 
 func (x *UpdateEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[17]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1428,7 +1716,7 @@ func (x *UpdateEventRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateEventRequest.ProtoReflect.Descriptor instead.
 func (*UpdateEventRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{17}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *UpdateEventRequest) GetActor() *v1.UserContext {
@@ -1553,7 +1841,7 @@ type DeleteEventRequest struct {
 
 func (x *DeleteEventRequest) Reset() {
 	*x = DeleteEventRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[18]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1565,7 +1853,7 @@ func (x *DeleteEventRequest) String() string {
 func (*DeleteEventRequest) ProtoMessage() {}
 
 func (x *DeleteEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[18]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1578,7 +1866,7 @@ func (x *DeleteEventRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteEventRequest.ProtoReflect.Descriptor instead.
 func (*DeleteEventRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{18}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *DeleteEventRequest) GetActor() *v1.UserContext {
@@ -1604,7 +1892,7 @@ type EventIDResponse struct {
 
 func (x *EventIDResponse) Reset() {
 	*x = EventIDResponse{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[19]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1616,7 +1904,7 @@ func (x *EventIDResponse) String() string {
 func (*EventIDResponse) ProtoMessage() {}
 
 func (x *EventIDResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[19]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1629,7 +1917,7 @@ func (x *EventIDResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventIDResponse.ProtoReflect.Descriptor instead.
 func (*EventIDResponse) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{19}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *EventIDResponse) GetId() string {
@@ -1647,7 +1935,7 @@ type ListTaxonomyRequest struct {
 
 func (x *ListTaxonomyRequest) Reset() {
 	*x = ListTaxonomyRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[20]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1659,7 +1947,7 @@ func (x *ListTaxonomyRequest) String() string {
 func (*ListTaxonomyRequest) ProtoMessage() {}
 
 func (x *ListTaxonomyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[20]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1672,19 +1960,19 @@ func (x *ListTaxonomyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTaxonomyRequest.ProtoReflect.Descriptor instead.
 func (*ListTaxonomyRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{20}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{24}
 }
 
 type ListTaxonomyResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Items         []*v1.TaxonomyItem     `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	Items         []*TaxonomyItem        `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListTaxonomyResponse) Reset() {
 	*x = ListTaxonomyResponse{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[21]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1696,7 +1984,7 @@ func (x *ListTaxonomyResponse) String() string {
 func (*ListTaxonomyResponse) ProtoMessage() {}
 
 func (x *ListTaxonomyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[21]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1709,10 +1997,10 @@ func (x *ListTaxonomyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTaxonomyResponse.ProtoReflect.Descriptor instead.
 func (*ListTaxonomyResponse) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{21}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{25}
 }
 
-func (x *ListTaxonomyResponse) GetItems() []*v1.TaxonomyItem {
+func (x *ListTaxonomyResponse) GetItems() []*TaxonomyItem {
 	if x != nil {
 		return x.Items
 	}
@@ -1727,7 +2015,7 @@ type ListCitiesRequest struct {
 
 func (x *ListCitiesRequest) Reset() {
 	*x = ListCitiesRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[22]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1739,7 +2027,7 @@ func (x *ListCitiesRequest) String() string {
 func (*ListCitiesRequest) ProtoMessage() {}
 
 func (x *ListCitiesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[22]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1752,19 +2040,19 @@ func (x *ListCitiesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCitiesRequest.ProtoReflect.Descriptor instead.
 func (*ListCitiesRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{22}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{26}
 }
 
 type ListCitiesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Items         []*v1.City             `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	Items         []*City                `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListCitiesResponse) Reset() {
 	*x = ListCitiesResponse{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[23]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1776,7 +2064,7 @@ func (x *ListCitiesResponse) String() string {
 func (*ListCitiesResponse) ProtoMessage() {}
 
 func (x *ListCitiesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[23]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1789,10 +2077,10 @@ func (x *ListCitiesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCitiesResponse.ProtoReflect.Descriptor instead.
 func (*ListCitiesResponse) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{23}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{27}
 }
 
-func (x *ListCitiesResponse) GetItems() []*v1.City {
+func (x *ListCitiesResponse) GetItems() []*City {
 	if x != nil {
 		return x.Items
 	}
@@ -1812,7 +2100,7 @@ type CollectionCard struct {
 
 func (x *CollectionCard) Reset() {
 	*x = CollectionCard{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[24]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1824,7 +2112,7 @@ func (x *CollectionCard) String() string {
 func (*CollectionCard) ProtoMessage() {}
 
 func (x *CollectionCard) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[24]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1837,7 +2125,7 @@ func (x *CollectionCard) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CollectionCard.ProtoReflect.Descriptor instead.
 func (*CollectionCard) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{24}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *CollectionCard) GetId() string {
@@ -1885,7 +2173,7 @@ type ListCollectionsRequest struct {
 
 func (x *ListCollectionsRequest) Reset() {
 	*x = ListCollectionsRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[25]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1897,7 +2185,7 @@ func (x *ListCollectionsRequest) String() string {
 func (*ListCollectionsRequest) ProtoMessage() {}
 
 func (x *ListCollectionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[25]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1910,7 +2198,7 @@ func (x *ListCollectionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCollectionsRequest.ProtoReflect.Descriptor instead.
 func (*ListCollectionsRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{25}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ListCollectionsRequest) GetViewerContext() *v1.UserContext {
@@ -1937,7 +2225,7 @@ type ListCollectionsResponse struct {
 
 func (x *ListCollectionsResponse) Reset() {
 	*x = ListCollectionsResponse{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[26]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1949,7 +2237,7 @@ func (x *ListCollectionsResponse) String() string {
 func (*ListCollectionsResponse) ProtoMessage() {}
 
 func (x *ListCollectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[26]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1962,7 +2250,7 @@ func (x *ListCollectionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCollectionsResponse.ProtoReflect.Descriptor instead.
 func (*ListCollectionsResponse) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{26}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ListCollectionsResponse) GetItems() []*CollectionCard {
@@ -1989,7 +2277,7 @@ type GetCollectionRequest struct {
 
 func (x *GetCollectionRequest) Reset() {
 	*x = GetCollectionRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[27]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2001,7 +2289,7 @@ func (x *GetCollectionRequest) String() string {
 func (*GetCollectionRequest) ProtoMessage() {}
 
 func (x *GetCollectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[27]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2014,7 +2302,7 @@ func (x *GetCollectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCollectionRequest.ProtoReflect.Descriptor instead.
 func (*GetCollectionRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{27}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *GetCollectionRequest) GetCollectionId() string {
@@ -2045,7 +2333,7 @@ type CollectionDetails struct {
 
 func (x *CollectionDetails) Reset() {
 	*x = CollectionDetails{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[28]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2057,7 +2345,7 @@ func (x *CollectionDetails) String() string {
 func (*CollectionDetails) ProtoMessage() {}
 
 func (x *CollectionDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[28]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2070,7 +2358,7 @@ func (x *CollectionDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CollectionDetails.ProtoReflect.Descriptor instead.
 func (*CollectionDetails) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{28}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *CollectionDetails) GetId() string {
@@ -2125,7 +2413,7 @@ type SearchSuggestionsRequest struct {
 
 func (x *SearchSuggestionsRequest) Reset() {
 	*x = SearchSuggestionsRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[29]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2137,7 +2425,7 @@ func (x *SearchSuggestionsRequest) String() string {
 func (*SearchSuggestionsRequest) ProtoMessage() {}
 
 func (x *SearchSuggestionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[29]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2150,7 +2438,7 @@ func (x *SearchSuggestionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchSuggestionsRequest.ProtoReflect.Descriptor instead.
 func (*SearchSuggestionsRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{29}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *SearchSuggestionsRequest) GetQuery() string {
@@ -2176,7 +2464,7 @@ type SearchSuggestionsResponse struct {
 
 func (x *SearchSuggestionsResponse) Reset() {
 	*x = SearchSuggestionsResponse{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[30]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2188,7 +2476,7 @@ func (x *SearchSuggestionsResponse) String() string {
 func (*SearchSuggestionsResponse) ProtoMessage() {}
 
 func (x *SearchSuggestionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[30]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2201,7 +2489,7 @@ func (x *SearchSuggestionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchSuggestionsResponse.ProtoReflect.Descriptor instead.
 func (*SearchSuggestionsResponse) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{30}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *SearchSuggestionsResponse) GetItems() []string {
@@ -2224,7 +2512,7 @@ type PlaceSuggestionSource struct {
 
 func (x *PlaceSuggestionSource) Reset() {
 	*x = PlaceSuggestionSource{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[31]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2236,7 +2524,7 @@ func (x *PlaceSuggestionSource) String() string {
 func (*PlaceSuggestionSource) ProtoMessage() {}
 
 func (x *PlaceSuggestionSource) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[31]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2249,7 +2537,7 @@ func (x *PlaceSuggestionSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlaceSuggestionSource.ProtoReflect.Descriptor instead.
 func (*PlaceSuggestionSource) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{31}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *PlaceSuggestionSource) GetProvider() string {
@@ -2296,7 +2584,7 @@ type PlaceSuggestion struct {
 	CityName      string                 `protobuf:"bytes,5,opt,name=city_name,json=cityName,proto3" json:"city_name,omitempty"`
 	CountryName   string                 `protobuf:"bytes,6,opt,name=country_name,json=countryName,proto3" json:"country_name,omitempty"`
 	Timezone      string                 `protobuf:"bytes,7,opt,name=timezone,proto3" json:"timezone,omitempty"`
-	Coordinates   *v1.Coordinates        `protobuf:"bytes,8,opt,name=coordinates,proto3" json:"coordinates,omitempty"`
+	Coordinates   *Coordinates           `protobuf:"bytes,8,opt,name=coordinates,proto3" json:"coordinates,omitempty"`
 	Postcode      string                 `protobuf:"bytes,9,opt,name=postcode,proto3" json:"postcode,omitempty"`
 	District      string                 `protobuf:"bytes,10,opt,name=district,proto3" json:"district,omitempty"`
 	Source        *PlaceSuggestionSource `protobuf:"bytes,11,opt,name=source,proto3" json:"source,omitempty"`
@@ -2306,7 +2594,7 @@ type PlaceSuggestion struct {
 
 func (x *PlaceSuggestion) Reset() {
 	*x = PlaceSuggestion{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[32]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2318,7 +2606,7 @@ func (x *PlaceSuggestion) String() string {
 func (*PlaceSuggestion) ProtoMessage() {}
 
 func (x *PlaceSuggestion) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[32]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2331,7 +2619,7 @@ func (x *PlaceSuggestion) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlaceSuggestion.ProtoReflect.Descriptor instead.
 func (*PlaceSuggestion) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{32}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *PlaceSuggestion) GetToken() string {
@@ -2383,7 +2671,7 @@ func (x *PlaceSuggestion) GetTimezone() string {
 	return ""
 }
 
-func (x *PlaceSuggestion) GetCoordinates() *v1.Coordinates {
+func (x *PlaceSuggestion) GetCoordinates() *Coordinates {
 	if x != nil {
 		return x.Coordinates
 	}
@@ -2421,7 +2709,7 @@ type SuggestPlacesRequest struct {
 
 func (x *SuggestPlacesRequest) Reset() {
 	*x = SuggestPlacesRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[33]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2433,7 +2721,7 @@ func (x *SuggestPlacesRequest) String() string {
 func (*SuggestPlacesRequest) ProtoMessage() {}
 
 func (x *SuggestPlacesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[33]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2446,7 +2734,7 @@ func (x *SuggestPlacesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SuggestPlacesRequest.ProtoReflect.Descriptor instead.
 func (*SuggestPlacesRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{33}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *SuggestPlacesRequest) GetQuery() string {
@@ -2472,7 +2760,7 @@ type SuggestPlacesResponse struct {
 
 func (x *SuggestPlacesResponse) Reset() {
 	*x = SuggestPlacesResponse{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[34]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2484,7 +2772,7 @@ func (x *SuggestPlacesResponse) String() string {
 func (*SuggestPlacesResponse) ProtoMessage() {}
 
 func (x *SuggestPlacesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[34]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2497,7 +2785,7 @@ func (x *SuggestPlacesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SuggestPlacesResponse.ProtoReflect.Descriptor instead.
 func (*SuggestPlacesResponse) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{34}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *SuggestPlacesResponse) GetItems() []*PlaceSuggestion {
@@ -2517,7 +2805,7 @@ type ResolvePlaceRequest struct {
 
 func (x *ResolvePlaceRequest) Reset() {
 	*x = ResolvePlaceRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[35]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2529,7 +2817,7 @@ func (x *ResolvePlaceRequest) String() string {
 func (*ResolvePlaceRequest) ProtoMessage() {}
 
 func (x *ResolvePlaceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[35]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2542,7 +2830,7 @@ func (x *ResolvePlaceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolvePlaceRequest.ProtoReflect.Descriptor instead.
 func (*ResolvePlaceRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{35}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ResolvePlaceRequest) GetActor() *v1.UserContext {
@@ -2565,7 +2853,7 @@ type CreatePlaceRequest struct {
 	CityId        string                 `protobuf:"bytes,2,opt,name=city_id,json=cityId,proto3" json:"city_id,omitempty"`
 	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	AddressLine   string                 `protobuf:"bytes,4,opt,name=address_line,json=addressLine,proto3" json:"address_line,omitempty"`
-	Coordinates   *v1.Coordinates        `protobuf:"bytes,5,opt,name=coordinates,proto3" json:"coordinates,omitempty"`
+	Coordinates   *Coordinates           `protobuf:"bytes,5,opt,name=coordinates,proto3" json:"coordinates,omitempty"`
 	Description   *string                `protobuf:"bytes,6,opt,name=description,proto3,oneof" json:"description,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2573,7 +2861,7 @@ type CreatePlaceRequest struct {
 
 func (x *CreatePlaceRequest) Reset() {
 	*x = CreatePlaceRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[36]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2585,7 +2873,7 @@ func (x *CreatePlaceRequest) String() string {
 func (*CreatePlaceRequest) ProtoMessage() {}
 
 func (x *CreatePlaceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[36]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2598,7 +2886,7 @@ func (x *CreatePlaceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePlaceRequest.ProtoReflect.Descriptor instead.
 func (*CreatePlaceRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{36}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *CreatePlaceRequest) GetActor() *v1.UserContext {
@@ -2629,7 +2917,7 @@ func (x *CreatePlaceRequest) GetAddressLine() string {
 	return ""
 }
 
-func (x *CreatePlaceRequest) GetCoordinates() *v1.Coordinates {
+func (x *CreatePlaceRequest) GetCoordinates() *Coordinates {
 	if x != nil {
 		return x.Coordinates
 	}
@@ -2650,7 +2938,7 @@ type UpdatePlaceRequest struct {
 	CityId           *string                `protobuf:"bytes,3,opt,name=city_id,json=cityId,proto3,oneof" json:"city_id,omitempty"`
 	Name             *string                `protobuf:"bytes,4,opt,name=name,proto3,oneof" json:"name,omitempty"`
 	AddressLine      *string                `protobuf:"bytes,5,opt,name=address_line,json=addressLine,proto3,oneof" json:"address_line,omitempty"`
-	Coordinates      *v1.Coordinates        `protobuf:"bytes,6,opt,name=coordinates,proto3,oneof" json:"coordinates,omitempty"`
+	Coordinates      *Coordinates           `protobuf:"bytes,6,opt,name=coordinates,proto3,oneof" json:"coordinates,omitempty"`
 	Description      *string                `protobuf:"bytes,7,opt,name=description,proto3,oneof" json:"description,omitempty"`
 	ClearDescription bool                   `protobuf:"varint,8,opt,name=clear_description,json=clearDescription,proto3" json:"clear_description,omitempty"`
 	unknownFields    protoimpl.UnknownFields
@@ -2659,7 +2947,7 @@ type UpdatePlaceRequest struct {
 
 func (x *UpdatePlaceRequest) Reset() {
 	*x = UpdatePlaceRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[37]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2671,7 +2959,7 @@ func (x *UpdatePlaceRequest) String() string {
 func (*UpdatePlaceRequest) ProtoMessage() {}
 
 func (x *UpdatePlaceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[37]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2684,7 +2972,7 @@ func (x *UpdatePlaceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePlaceRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePlaceRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{37}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *UpdatePlaceRequest) GetActor() *v1.UserContext {
@@ -2722,7 +3010,7 @@ func (x *UpdatePlaceRequest) GetAddressLine() string {
 	return ""
 }
 
-func (x *UpdatePlaceRequest) GetCoordinates() *v1.Coordinates {
+func (x *UpdatePlaceRequest) GetCoordinates() *Coordinates {
 	if x != nil {
 		return x.Coordinates
 	}
@@ -2757,7 +3045,7 @@ type GenerateCollectionDraftRequest struct {
 
 func (x *GenerateCollectionDraftRequest) Reset() {
 	*x = GenerateCollectionDraftRequest{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[38]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2769,7 +3057,7 @@ func (x *GenerateCollectionDraftRequest) String() string {
 func (*GenerateCollectionDraftRequest) ProtoMessage() {}
 
 func (x *GenerateCollectionDraftRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[38]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2782,7 +3070,7 @@ func (x *GenerateCollectionDraftRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateCollectionDraftRequest.ProtoReflect.Descriptor instead.
 func (*GenerateCollectionDraftRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{38}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *GenerateCollectionDraftRequest) GetActor() *v1.UserContext {
@@ -2839,7 +3127,7 @@ type GenerateCollectionDraftResponse struct {
 
 func (x *GenerateCollectionDraftResponse) Reset() {
 	*x = GenerateCollectionDraftResponse{}
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[39]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2851,7 +3139,7 @@ func (x *GenerateCollectionDraftResponse) String() string {
 func (*GenerateCollectionDraftResponse) ProtoMessage() {}
 
 func (x *GenerateCollectionDraftResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_events_v1_events_proto_msgTypes[39]
+	mi := &file_cityhawk_events_v1_events_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2864,7 +3152,7 @@ func (x *GenerateCollectionDraftResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateCollectionDraftResponse.ProtoReflect.Descriptor instead.
 func (*GenerateCollectionDraftResponse) Descriptor() ([]byte, []int) {
-	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{39}
+	return file_cityhawk_events_v1_events_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *GenerateCollectionDraftResponse) GetTitle() string {
@@ -2899,11 +3187,35 @@ var File_cityhawk_events_v1_events_proto protoreflect.FileDescriptor
 
 const file_cityhawk_events_v1_events_proto_rawDesc = "" +
 	"\n" +
-	"\x1fcityhawk/events/v1/events.proto\x12\x12cityhawk.events.v1\x1a\x1fcityhawk/common/v1/common.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x95\x01\n" +
+	"\x1fcityhawk/events/v1/events.proto\x12\x12cityhawk.events.v1\x1a\x1fcityhawk/common/v1/common.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"G\n" +
+	"\vCoordinates\x12\x1a\n" +
+	"\blatitude\x18\x01 \x01(\x01R\blatitude\x12\x1c\n" +
+	"\tlongitude\x18\x02 \x01(\x01R\tlongitude\"i\n" +
+	"\x04City\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
+	"\fcountry_name\x18\x03 \x01(\tR\vcountryName\x12\x1a\n" +
+	"\btimezone\x18\x04 \x01(\tR\btimezone\"\xf0\x02\n" +
+	"\x05Place\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\acity_id\x18\x02 \x01(\tR\x06cityId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12!\n" +
+	"\faddress_line\x18\x04 \x01(\tR\vaddressLine\x12A\n" +
+	"\vcoordinates\x18\x05 \x01(\v2\x1f.cityhawk.events.v1.CoordinatesR\vcoordinates\x12 \n" +
+	"\vdescription\x18\x06 \x01(\tR\vdescription\x12,\n" +
+	"\x04city\x18\a \x01(\v2\x18.cityhawk.events.v1.CityR\x04city\x129\n" +
+	"\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"F\n" +
+	"\fTaxonomyItem\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
+	"\x04slug\x18\x03 \x01(\tR\x04slug\"\x95\x01\n" +
 	"\x19EventCardNextSessionPlace\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\faddress_line\x18\x02 \x01(\tR\vaddressLine\x12A\n" +
-	"\vcoordinates\x18\x03 \x01(\v2\x1f.cityhawk.common.v1.CoordinatesR\vcoordinates\"\x92\x01\n" +
+	"\vcoordinates\x18\x03 \x01(\v2\x1f.cityhawk.events.v1.CoordinatesR\vcoordinates\"\x92\x01\n" +
 	"\x14EventCardNextSession\x125\n" +
 	"\bstart_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\astartAt\x12C\n" +
 	"\x05place\x18\x02 \x01(\v2-.cityhawk.events.v1.EventCardNextSessionPlaceR\x05place\"\xf6\x02\n" +
@@ -2912,7 +3224,7 @@ const file_cityhawk_events_v1_events_proto_rawDesc = "" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12+\n" +
 	"\x11short_description\x18\x03 \x01(\tR\x10shortDescription\x12&\n" +
 	"\x0fcover_image_url\x18\x04 \x01(\tR\rcoverImageUrl\x124\n" +
-	"\x04tags\x18\x05 \x03(\v2 .cityhawk.common.v1.TaxonomyItemR\x04tags\x12P\n" +
+	"\x04tags\x18\x05 \x03(\v2 .cityhawk.events.v1.TaxonomyItemR\x04tags\x12P\n" +
 	"\fnext_session\x18\x06 \x01(\v2(.cityhawk.events.v1.EventCardNextSessionH\x00R\vnextSession\x88\x01\x01\x12\x1f\n" +
 	"\vis_favorite\x18\a \x01(\bR\n" +
 	"isFavorite\x12$\n" +
@@ -2936,7 +3248,7 @@ const file_cityhawk_events_v1_events_proto_rawDesc = "" +
 	"\bstart_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\astartAt\x121\n" +
 	"\x06end_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x05endAt\x12\x14\n" +
 	"\x05price\x18\x04 \x01(\x05R\x05price\x12/\n" +
-	"\x05place\x18\x05 \x01(\v2\x19.cityhawk.common.v1.PlaceR\x05place\"\xeb\x05\n" +
+	"\x05place\x18\x05 \x01(\v2\x19.cityhawk.events.v1.PlaceR\x05place\"\xeb\x05\n" +
 	"\fEventDetails\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12+\n" +
@@ -2947,9 +3259,9 @@ const file_cityhawk_events_v1_events_proto_rawDesc = "" +
 	"source_url\x18\x06 \x01(\tH\x00R\tsourceUrl\x88\x01\x01\x127\n" +
 	"\x06author\x18\a \x01(\v2\x1f.cityhawk.events.v1.EventAuthorR\x06author\x12@\n" +
 	"\n" +
-	"categories\x18\b \x03(\v2 .cityhawk.common.v1.TaxonomyItemR\n" +
+	"categories\x18\b \x03(\v2 .cityhawk.events.v1.TaxonomyItemR\n" +
 	"categories\x124\n" +
-	"\x04tags\x18\t \x03(\v2 .cityhawk.common.v1.TaxonomyItemR\x04tags\x126\n" +
+	"\x04tags\x18\t \x03(\v2 .cityhawk.events.v1.TaxonomyItemR\x04tags\x126\n" +
 	"\x06images\x18\n" +
 	" \x03(\v2\x1e.cityhawk.events.v1.EventImageR\x06images\x12<\n" +
 	"\bsessions\x18\v \x03(\v2 .cityhawk.events.v1.EventSessionR\bsessions\x129\n" +
@@ -2977,7 +3289,7 @@ const file_cityhawk_events_v1_events_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12&\n" +
 	"\x0fcover_image_url\x18\x03 \x01(\tR\rcoverImageUrl\x124\n" +
-	"\x04tags\x18\x04 \x03(\v2 .cityhawk.common.v1.TaxonomyItemR\x04tags\x12K\n" +
+	"\x04tags\x18\x04 \x03(\v2 .cityhawk.events.v1.TaxonomyItemR\x04tags\x12K\n" +
 	"\fnext_session\x18\x05 \x01(\v2(.cityhawk.events.v1.EventCardNextSessionR\vnextSession\"u\n" +
 	"\x0eHomeCollection\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
@@ -2987,7 +3299,7 @@ const file_cityhawk_events_v1_events_proto_rawDesc = "" +
 	"\fHomeResponse\x12N\n" +
 	"\x0ffeatured_events\x18\x01 \x03(\v2%.cityhawk.events.v1.HomeFeaturedEventR\x0efeaturedEvents\x12@\n" +
 	"\n" +
-	"categories\x18\x02 \x03(\v2 .cityhawk.common.v1.TaxonomyItemR\n" +
+	"categories\x18\x02 \x03(\v2 .cityhawk.events.v1.TaxonomyItemR\n" +
 	"categories\x12D\n" +
 	"\vcollections\x18\x03 \x03(\v2\".cityhawk.events.v1.HomeCollectionR\vcollections\"\xb8\x04\n" +
 	"\x11ListEventsRequest\x12K\n" +
@@ -3016,7 +3328,7 @@ const file_cityhawk_events_v1_events_proto_rawDesc = "" +
 	"\x0f_author_user_id\"\xae\x04\n" +
 	"\x19SearchEventsNearbyRequest\x12K\n" +
 	"\x0eviewer_context\x18\x01 \x01(\v2\x1f.cityhawk.common.v1.UserContextH\x00R\rviewerContext\x88\x01\x01\x127\n" +
-	"\x06center\x18\x02 \x01(\v2\x1f.cityhawk.common.v1.CoordinatesR\x06center\x12\x1b\n" +
+	"\x06center\x18\x02 \x01(\v2\x1f.cityhawk.events.v1.CoordinatesR\x06center\x12\x1b\n" +
 	"\tradius_km\x18\x03 \x01(\x01R\bradiusKm\x12\x12\n" +
 	"\x04sort\x18\x04 \x01(\tR\x04sort\x123\n" +
 	"\x04page\x18\x05 \x01(\v2\x1f.cityhawk.common.v1.PageRequestR\x04page\x12\x19\n" +
@@ -3041,7 +3353,7 @@ const file_cityhawk_events_v1_events_proto_rawDesc = "" +
 	"\x0fGetEventRequest\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12K\n" +
 	"\x0eviewer_context\x18\x02 \x01(\v2\x1f.cityhawk.common.v1.UserContextH\x00R\rviewerContext\x88\x01\x01\x12M\n" +
-	"\x0fviewer_location\x18\x03 \x01(\v2\x1f.cityhawk.common.v1.CoordinatesH\x01R\x0eviewerLocation\x88\x01\x01B\x11\n" +
+	"\x0fviewer_location\x18\x03 \x01(\v2\x1f.cityhawk.events.v1.CoordinatesH\x01R\x0eviewerLocation\x88\x01\x01B\x11\n" +
 	"\x0f_viewer_contextB\x12\n" +
 	"\x10_viewer_location\"\xa7\x03\n" +
 	"\x12CreateEventRequest\x125\n" +
@@ -3092,10 +3404,10 @@ const file_cityhawk_events_v1_events_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x15\n" +
 	"\x13ListTaxonomyRequest\"N\n" +
 	"\x14ListTaxonomyResponse\x126\n" +
-	"\x05items\x18\x01 \x03(\v2 .cityhawk.common.v1.TaxonomyItemR\x05items\"\x13\n" +
+	"\x05items\x18\x01 \x03(\v2 .cityhawk.events.v1.TaxonomyItemR\x05items\"\x13\n" +
 	"\x11ListCitiesRequest\"D\n" +
 	"\x12ListCitiesResponse\x12.\n" +
-	"\x05items\x18\x01 \x03(\v2\x18.cityhawk.common.v1.CityR\x05items\"\x92\x01\n" +
+	"\x05items\x18\x01 \x03(\v2\x18.cityhawk.events.v1.CityR\x05items\"\x92\x01\n" +
 	"\x0eCollectionCard\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
@@ -3139,7 +3451,7 @@ const file_cityhawk_events_v1_events_proto_rawDesc = "" +
 	"\tcity_name\x18\x05 \x01(\tR\bcityName\x12!\n" +
 	"\fcountry_name\x18\x06 \x01(\tR\vcountryName\x12\x1a\n" +
 	"\btimezone\x18\a \x01(\tR\btimezone\x12A\n" +
-	"\vcoordinates\x18\b \x01(\v2\x1f.cityhawk.common.v1.CoordinatesR\vcoordinates\x12\x1a\n" +
+	"\vcoordinates\x18\b \x01(\v2\x1f.cityhawk.events.v1.CoordinatesR\vcoordinates\x12\x1a\n" +
 	"\bpostcode\x18\t \x01(\tR\bpostcode\x12\x1a\n" +
 	"\bdistrict\x18\n" +
 	" \x01(\tR\bdistrict\x12A\n" +
@@ -3157,7 +3469,7 @@ const file_cityhawk_events_v1_events_proto_rawDesc = "" +
 	"\acity_id\x18\x02 \x01(\tR\x06cityId\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12!\n" +
 	"\faddress_line\x18\x04 \x01(\tR\vaddressLine\x12A\n" +
-	"\vcoordinates\x18\x05 \x01(\v2\x1f.cityhawk.common.v1.CoordinatesR\vcoordinates\x12%\n" +
+	"\vcoordinates\x18\x05 \x01(\v2\x1f.cityhawk.events.v1.CoordinatesR\vcoordinates\x12%\n" +
 	"\vdescription\x18\x06 \x01(\tH\x00R\vdescription\x88\x01\x01B\x0e\n" +
 	"\f_description\"\xa7\x03\n" +
 	"\x12UpdatePlaceRequest\x125\n" +
@@ -3166,7 +3478,7 @@ const file_cityhawk_events_v1_events_proto_rawDesc = "" +
 	"\acity_id\x18\x03 \x01(\tH\x00R\x06cityId\x88\x01\x01\x12\x17\n" +
 	"\x04name\x18\x04 \x01(\tH\x01R\x04name\x88\x01\x01\x12&\n" +
 	"\faddress_line\x18\x05 \x01(\tH\x02R\vaddressLine\x88\x01\x01\x12F\n" +
-	"\vcoordinates\x18\x06 \x01(\v2\x1f.cityhawk.common.v1.CoordinatesH\x03R\vcoordinates\x88\x01\x01\x12%\n" +
+	"\vcoordinates\x18\x06 \x01(\v2\x1f.cityhawk.events.v1.CoordinatesH\x03R\vcoordinates\x88\x01\x01\x12%\n" +
 	"\vdescription\x18\a \x01(\tH\x04R\vdescription\x88\x01\x01\x12+\n" +
 	"\x11clear_description\x18\b \x01(\bR\x10clearDescriptionB\n" +
 	"\n" +
@@ -3207,9 +3519,9 @@ const file_cityhawk_events_v1_events_proto_rawDesc = "" +
 	"\rGetCollection\x12(.cityhawk.events.v1.GetCollectionRequest\x1a%.cityhawk.events.v1.CollectionDetails\"\x00\x12r\n" +
 	"\x11SearchSuggestions\x12,.cityhawk.events.v1.SearchSuggestionsRequest\x1a-.cityhawk.events.v1.SearchSuggestionsResponse\"\x00\x12f\n" +
 	"\rSuggestPlaces\x12(.cityhawk.events.v1.SuggestPlacesRequest\x1a).cityhawk.events.v1.SuggestPlacesResponse\"\x00\x12T\n" +
-	"\fResolvePlace\x12'.cityhawk.events.v1.ResolvePlaceRequest\x1a\x19.cityhawk.common.v1.Place\"\x00\x12R\n" +
-	"\vCreatePlace\x12&.cityhawk.events.v1.CreatePlaceRequest\x1a\x19.cityhawk.common.v1.Place\"\x00\x12R\n" +
-	"\vUpdatePlace\x12&.cityhawk.events.v1.UpdatePlaceRequest\x1a\x19.cityhawk.common.v1.Place\"\x00\x12\x84\x01\n" +
+	"\fResolvePlace\x12'.cityhawk.events.v1.ResolvePlaceRequest\x1a\x19.cityhawk.events.v1.Place\"\x00\x12R\n" +
+	"\vCreatePlace\x12&.cityhawk.events.v1.CreatePlaceRequest\x1a\x19.cityhawk.events.v1.Place\"\x00\x12R\n" +
+	"\vUpdatePlace\x12&.cityhawk.events.v1.UpdatePlaceRequest\x1a\x19.cityhawk.events.v1.Place\"\x00\x12\x84\x01\n" +
 	"\x17GenerateCollectionDraft\x122.cityhawk.events.v1.GenerateCollectionDraftRequest\x1a3.cityhawk.events.v1.GenerateCollectionDraftResponse\"\x00B,Z*cityhawk/backend/pkg/pb/events/v1;eventsv1b\x06proto3"
 
 var (
@@ -3224,158 +3536,162 @@ func file_cityhawk_events_v1_events_proto_rawDescGZIP() []byte {
 	return file_cityhawk_events_v1_events_proto_rawDescData
 }
 
-var file_cityhawk_events_v1_events_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
+var file_cityhawk_events_v1_events_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
 var file_cityhawk_events_v1_events_proto_goTypes = []any{
-	(*EventCardNextSessionPlace)(nil),       // 0: cityhawk.events.v1.EventCardNextSessionPlace
-	(*EventCardNextSession)(nil),            // 1: cityhawk.events.v1.EventCardNextSession
-	(*EventCard)(nil),                       // 2: cityhawk.events.v1.EventCard
-	(*EventAuthor)(nil),                     // 3: cityhawk.events.v1.EventAuthor
-	(*EventImage)(nil),                      // 4: cityhawk.events.v1.EventImage
-	(*EventSession)(nil),                    // 5: cityhawk.events.v1.EventSession
-	(*EventDetails)(nil),                    // 6: cityhawk.events.v1.EventDetails
-	(*EventSessionInput)(nil),               // 7: cityhawk.events.v1.EventSessionInput
-	(*GetHomeRequest)(nil),                  // 8: cityhawk.events.v1.GetHomeRequest
-	(*HomeFeaturedEvent)(nil),               // 9: cityhawk.events.v1.HomeFeaturedEvent
-	(*HomeCollection)(nil),                  // 10: cityhawk.events.v1.HomeCollection
-	(*HomeResponse)(nil),                    // 11: cityhawk.events.v1.HomeResponse
-	(*ListEventsRequest)(nil),               // 12: cityhawk.events.v1.ListEventsRequest
-	(*SearchEventsNearbyRequest)(nil),       // 13: cityhawk.events.v1.SearchEventsNearbyRequest
-	(*ListEventsResponse)(nil),              // 14: cityhawk.events.v1.ListEventsResponse
-	(*GetEventRequest)(nil),                 // 15: cityhawk.events.v1.GetEventRequest
-	(*CreateEventRequest)(nil),              // 16: cityhawk.events.v1.CreateEventRequest
-	(*UpdateEventRequest)(nil),              // 17: cityhawk.events.v1.UpdateEventRequest
-	(*DeleteEventRequest)(nil),              // 18: cityhawk.events.v1.DeleteEventRequest
-	(*EventIDResponse)(nil),                 // 19: cityhawk.events.v1.EventIDResponse
-	(*ListTaxonomyRequest)(nil),             // 20: cityhawk.events.v1.ListTaxonomyRequest
-	(*ListTaxonomyResponse)(nil),            // 21: cityhawk.events.v1.ListTaxonomyResponse
-	(*ListCitiesRequest)(nil),               // 22: cityhawk.events.v1.ListCitiesRequest
-	(*ListCitiesResponse)(nil),              // 23: cityhawk.events.v1.ListCitiesResponse
-	(*CollectionCard)(nil),                  // 24: cityhawk.events.v1.CollectionCard
-	(*ListCollectionsRequest)(nil),          // 25: cityhawk.events.v1.ListCollectionsRequest
-	(*ListCollectionsResponse)(nil),         // 26: cityhawk.events.v1.ListCollectionsResponse
-	(*GetCollectionRequest)(nil),            // 27: cityhawk.events.v1.GetCollectionRequest
-	(*CollectionDetails)(nil),               // 28: cityhawk.events.v1.CollectionDetails
-	(*SearchSuggestionsRequest)(nil),        // 29: cityhawk.events.v1.SearchSuggestionsRequest
-	(*SearchSuggestionsResponse)(nil),       // 30: cityhawk.events.v1.SearchSuggestionsResponse
-	(*PlaceSuggestionSource)(nil),           // 31: cityhawk.events.v1.PlaceSuggestionSource
-	(*PlaceSuggestion)(nil),                 // 32: cityhawk.events.v1.PlaceSuggestion
-	(*SuggestPlacesRequest)(nil),            // 33: cityhawk.events.v1.SuggestPlacesRequest
-	(*SuggestPlacesResponse)(nil),           // 34: cityhawk.events.v1.SuggestPlacesResponse
-	(*ResolvePlaceRequest)(nil),             // 35: cityhawk.events.v1.ResolvePlaceRequest
-	(*CreatePlaceRequest)(nil),              // 36: cityhawk.events.v1.CreatePlaceRequest
-	(*UpdatePlaceRequest)(nil),              // 37: cityhawk.events.v1.UpdatePlaceRequest
-	(*GenerateCollectionDraftRequest)(nil),  // 38: cityhawk.events.v1.GenerateCollectionDraftRequest
-	(*GenerateCollectionDraftResponse)(nil), // 39: cityhawk.events.v1.GenerateCollectionDraftResponse
-	(*v1.Coordinates)(nil),                  // 40: cityhawk.common.v1.Coordinates
-	(*timestamppb.Timestamp)(nil),           // 41: google.protobuf.Timestamp
-	(*v1.TaxonomyItem)(nil),                 // 42: cityhawk.common.v1.TaxonomyItem
-	(*v1.Place)(nil),                        // 43: cityhawk.common.v1.Place
-	(*v1.UserContext)(nil),                  // 44: cityhawk.common.v1.UserContext
-	(*v1.PageRequest)(nil),                  // 45: cityhawk.common.v1.PageRequest
-	(*v1.PageResponse)(nil),                 // 46: cityhawk.common.v1.PageResponse
-	(*v1.City)(nil),                         // 47: cityhawk.common.v1.City
+	(*Coordinates)(nil),                     // 0: cityhawk.events.v1.Coordinates
+	(*City)(nil),                            // 1: cityhawk.events.v1.City
+	(*Place)(nil),                           // 2: cityhawk.events.v1.Place
+	(*TaxonomyItem)(nil),                    // 3: cityhawk.events.v1.TaxonomyItem
+	(*EventCardNextSessionPlace)(nil),       // 4: cityhawk.events.v1.EventCardNextSessionPlace
+	(*EventCardNextSession)(nil),            // 5: cityhawk.events.v1.EventCardNextSession
+	(*EventCard)(nil),                       // 6: cityhawk.events.v1.EventCard
+	(*EventAuthor)(nil),                     // 7: cityhawk.events.v1.EventAuthor
+	(*EventImage)(nil),                      // 8: cityhawk.events.v1.EventImage
+	(*EventSession)(nil),                    // 9: cityhawk.events.v1.EventSession
+	(*EventDetails)(nil),                    // 10: cityhawk.events.v1.EventDetails
+	(*EventSessionInput)(nil),               // 11: cityhawk.events.v1.EventSessionInput
+	(*GetHomeRequest)(nil),                  // 12: cityhawk.events.v1.GetHomeRequest
+	(*HomeFeaturedEvent)(nil),               // 13: cityhawk.events.v1.HomeFeaturedEvent
+	(*HomeCollection)(nil),                  // 14: cityhawk.events.v1.HomeCollection
+	(*HomeResponse)(nil),                    // 15: cityhawk.events.v1.HomeResponse
+	(*ListEventsRequest)(nil),               // 16: cityhawk.events.v1.ListEventsRequest
+	(*SearchEventsNearbyRequest)(nil),       // 17: cityhawk.events.v1.SearchEventsNearbyRequest
+	(*ListEventsResponse)(nil),              // 18: cityhawk.events.v1.ListEventsResponse
+	(*GetEventRequest)(nil),                 // 19: cityhawk.events.v1.GetEventRequest
+	(*CreateEventRequest)(nil),              // 20: cityhawk.events.v1.CreateEventRequest
+	(*UpdateEventRequest)(nil),              // 21: cityhawk.events.v1.UpdateEventRequest
+	(*DeleteEventRequest)(nil),              // 22: cityhawk.events.v1.DeleteEventRequest
+	(*EventIDResponse)(nil),                 // 23: cityhawk.events.v1.EventIDResponse
+	(*ListTaxonomyRequest)(nil),             // 24: cityhawk.events.v1.ListTaxonomyRequest
+	(*ListTaxonomyResponse)(nil),            // 25: cityhawk.events.v1.ListTaxonomyResponse
+	(*ListCitiesRequest)(nil),               // 26: cityhawk.events.v1.ListCitiesRequest
+	(*ListCitiesResponse)(nil),              // 27: cityhawk.events.v1.ListCitiesResponse
+	(*CollectionCard)(nil),                  // 28: cityhawk.events.v1.CollectionCard
+	(*ListCollectionsRequest)(nil),          // 29: cityhawk.events.v1.ListCollectionsRequest
+	(*ListCollectionsResponse)(nil),         // 30: cityhawk.events.v1.ListCollectionsResponse
+	(*GetCollectionRequest)(nil),            // 31: cityhawk.events.v1.GetCollectionRequest
+	(*CollectionDetails)(nil),               // 32: cityhawk.events.v1.CollectionDetails
+	(*SearchSuggestionsRequest)(nil),        // 33: cityhawk.events.v1.SearchSuggestionsRequest
+	(*SearchSuggestionsResponse)(nil),       // 34: cityhawk.events.v1.SearchSuggestionsResponse
+	(*PlaceSuggestionSource)(nil),           // 35: cityhawk.events.v1.PlaceSuggestionSource
+	(*PlaceSuggestion)(nil),                 // 36: cityhawk.events.v1.PlaceSuggestion
+	(*SuggestPlacesRequest)(nil),            // 37: cityhawk.events.v1.SuggestPlacesRequest
+	(*SuggestPlacesResponse)(nil),           // 38: cityhawk.events.v1.SuggestPlacesResponse
+	(*ResolvePlaceRequest)(nil),             // 39: cityhawk.events.v1.ResolvePlaceRequest
+	(*CreatePlaceRequest)(nil),              // 40: cityhawk.events.v1.CreatePlaceRequest
+	(*UpdatePlaceRequest)(nil),              // 41: cityhawk.events.v1.UpdatePlaceRequest
+	(*GenerateCollectionDraftRequest)(nil),  // 42: cityhawk.events.v1.GenerateCollectionDraftRequest
+	(*GenerateCollectionDraftResponse)(nil), // 43: cityhawk.events.v1.GenerateCollectionDraftResponse
+	(*timestamppb.Timestamp)(nil),           // 44: google.protobuf.Timestamp
+	(*v1.UserContext)(nil),                  // 45: cityhawk.common.v1.UserContext
+	(*v1.PageRequest)(nil),                  // 46: cityhawk.common.v1.PageRequest
+	(*v1.PageResponse)(nil),                 // 47: cityhawk.common.v1.PageResponse
 	(*v1.BoolResponse)(nil),                 // 48: cityhawk.common.v1.BoolResponse
 }
 var file_cityhawk_events_v1_events_proto_depIdxs = []int32{
-	40, // 0: cityhawk.events.v1.EventCardNextSessionPlace.coordinates:type_name -> cityhawk.common.v1.Coordinates
-	41, // 1: cityhawk.events.v1.EventCardNextSession.start_at:type_name -> google.protobuf.Timestamp
-	0,  // 2: cityhawk.events.v1.EventCardNextSession.place:type_name -> cityhawk.events.v1.EventCardNextSessionPlace
-	42, // 3: cityhawk.events.v1.EventCard.tags:type_name -> cityhawk.common.v1.TaxonomyItem
-	1,  // 4: cityhawk.events.v1.EventCard.next_session:type_name -> cityhawk.events.v1.EventCardNextSession
-	41, // 5: cityhawk.events.v1.EventSession.start_at:type_name -> google.protobuf.Timestamp
-	41, // 6: cityhawk.events.v1.EventSession.end_at:type_name -> google.protobuf.Timestamp
-	43, // 7: cityhawk.events.v1.EventSession.place:type_name -> cityhawk.common.v1.Place
-	3,  // 8: cityhawk.events.v1.EventDetails.author:type_name -> cityhawk.events.v1.EventAuthor
-	42, // 9: cityhawk.events.v1.EventDetails.categories:type_name -> cityhawk.common.v1.TaxonomyItem
-	42, // 10: cityhawk.events.v1.EventDetails.tags:type_name -> cityhawk.common.v1.TaxonomyItem
-	4,  // 11: cityhawk.events.v1.EventDetails.images:type_name -> cityhawk.events.v1.EventImage
-	5,  // 12: cityhawk.events.v1.EventDetails.sessions:type_name -> cityhawk.events.v1.EventSession
-	41, // 13: cityhawk.events.v1.EventDetails.created_at:type_name -> google.protobuf.Timestamp
-	41, // 14: cityhawk.events.v1.EventDetails.updated_at:type_name -> google.protobuf.Timestamp
-	41, // 15: cityhawk.events.v1.EventSessionInput.start_at:type_name -> google.protobuf.Timestamp
-	41, // 16: cityhawk.events.v1.EventSessionInput.end_at:type_name -> google.protobuf.Timestamp
-	42, // 17: cityhawk.events.v1.HomeFeaturedEvent.tags:type_name -> cityhawk.common.v1.TaxonomyItem
-	1,  // 18: cityhawk.events.v1.HomeFeaturedEvent.next_session:type_name -> cityhawk.events.v1.EventCardNextSession
-	9,  // 19: cityhawk.events.v1.HomeResponse.featured_events:type_name -> cityhawk.events.v1.HomeFeaturedEvent
-	42, // 20: cityhawk.events.v1.HomeResponse.categories:type_name -> cityhawk.common.v1.TaxonomyItem
-	10, // 21: cityhawk.events.v1.HomeResponse.collections:type_name -> cityhawk.events.v1.HomeCollection
-	44, // 22: cityhawk.events.v1.ListEventsRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
-	41, // 23: cityhawk.events.v1.ListEventsRequest.date_from:type_name -> google.protobuf.Timestamp
-	41, // 24: cityhawk.events.v1.ListEventsRequest.date_to:type_name -> google.protobuf.Timestamp
-	45, // 25: cityhawk.events.v1.ListEventsRequest.page:type_name -> cityhawk.common.v1.PageRequest
-	44, // 26: cityhawk.events.v1.SearchEventsNearbyRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
-	40, // 27: cityhawk.events.v1.SearchEventsNearbyRequest.center:type_name -> cityhawk.common.v1.Coordinates
-	45, // 28: cityhawk.events.v1.SearchEventsNearbyRequest.page:type_name -> cityhawk.common.v1.PageRequest
-	41, // 29: cityhawk.events.v1.SearchEventsNearbyRequest.date_from:type_name -> google.protobuf.Timestamp
-	41, // 30: cityhawk.events.v1.SearchEventsNearbyRequest.date_to:type_name -> google.protobuf.Timestamp
-	2,  // 31: cityhawk.events.v1.ListEventsResponse.items:type_name -> cityhawk.events.v1.EventCard
-	46, // 32: cityhawk.events.v1.ListEventsResponse.page:type_name -> cityhawk.common.v1.PageResponse
-	44, // 33: cityhawk.events.v1.GetEventRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
-	40, // 34: cityhawk.events.v1.GetEventRequest.viewer_location:type_name -> cityhawk.common.v1.Coordinates
-	44, // 35: cityhawk.events.v1.CreateEventRequest.actor:type_name -> cityhawk.common.v1.UserContext
-	7,  // 36: cityhawk.events.v1.CreateEventRequest.sessions:type_name -> cityhawk.events.v1.EventSessionInput
-	44, // 37: cityhawk.events.v1.UpdateEventRequest.actor:type_name -> cityhawk.common.v1.UserContext
-	7,  // 38: cityhawk.events.v1.UpdateEventRequest.sessions:type_name -> cityhawk.events.v1.EventSessionInput
-	44, // 39: cityhawk.events.v1.DeleteEventRequest.actor:type_name -> cityhawk.common.v1.UserContext
-	42, // 40: cityhawk.events.v1.ListTaxonomyResponse.items:type_name -> cityhawk.common.v1.TaxonomyItem
-	47, // 41: cityhawk.events.v1.ListCitiesResponse.items:type_name -> cityhawk.common.v1.City
-	44, // 42: cityhawk.events.v1.ListCollectionsRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
-	45, // 43: cityhawk.events.v1.ListCollectionsRequest.page:type_name -> cityhawk.common.v1.PageRequest
-	24, // 44: cityhawk.events.v1.ListCollectionsResponse.items:type_name -> cityhawk.events.v1.CollectionCard
-	46, // 45: cityhawk.events.v1.ListCollectionsResponse.page:type_name -> cityhawk.common.v1.PageResponse
-	44, // 46: cityhawk.events.v1.GetCollectionRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
-	2,  // 47: cityhawk.events.v1.CollectionDetails.events:type_name -> cityhawk.events.v1.EventCard
-	40, // 48: cityhawk.events.v1.PlaceSuggestion.coordinates:type_name -> cityhawk.common.v1.Coordinates
-	31, // 49: cityhawk.events.v1.PlaceSuggestion.source:type_name -> cityhawk.events.v1.PlaceSuggestionSource
-	32, // 50: cityhawk.events.v1.SuggestPlacesResponse.items:type_name -> cityhawk.events.v1.PlaceSuggestion
-	44, // 51: cityhawk.events.v1.ResolvePlaceRequest.actor:type_name -> cityhawk.common.v1.UserContext
-	44, // 52: cityhawk.events.v1.CreatePlaceRequest.actor:type_name -> cityhawk.common.v1.UserContext
-	40, // 53: cityhawk.events.v1.CreatePlaceRequest.coordinates:type_name -> cityhawk.common.v1.Coordinates
-	44, // 54: cityhawk.events.v1.UpdatePlaceRequest.actor:type_name -> cityhawk.common.v1.UserContext
-	40, // 55: cityhawk.events.v1.UpdatePlaceRequest.coordinates:type_name -> cityhawk.common.v1.Coordinates
-	44, // 56: cityhawk.events.v1.GenerateCollectionDraftRequest.actor:type_name -> cityhawk.common.v1.UserContext
-	2,  // 57: cityhawk.events.v1.GenerateCollectionDraftResponse.events:type_name -> cityhawk.events.v1.EventCard
-	8,  // 58: cityhawk.events.v1.EventsService.GetHome:input_type -> cityhawk.events.v1.GetHomeRequest
-	12, // 59: cityhawk.events.v1.EventsService.ListEvents:input_type -> cityhawk.events.v1.ListEventsRequest
-	13, // 60: cityhawk.events.v1.EventsService.SearchEventsNearby:input_type -> cityhawk.events.v1.SearchEventsNearbyRequest
-	15, // 61: cityhawk.events.v1.EventsService.GetEvent:input_type -> cityhawk.events.v1.GetEventRequest
-	16, // 62: cityhawk.events.v1.EventsService.CreateEvent:input_type -> cityhawk.events.v1.CreateEventRequest
-	17, // 63: cityhawk.events.v1.EventsService.UpdateEvent:input_type -> cityhawk.events.v1.UpdateEventRequest
-	18, // 64: cityhawk.events.v1.EventsService.DeleteEvent:input_type -> cityhawk.events.v1.DeleteEventRequest
-	20, // 65: cityhawk.events.v1.EventsService.ListCategories:input_type -> cityhawk.events.v1.ListTaxonomyRequest
-	20, // 66: cityhawk.events.v1.EventsService.ListTags:input_type -> cityhawk.events.v1.ListTaxonomyRequest
-	22, // 67: cityhawk.events.v1.EventsService.ListCities:input_type -> cityhawk.events.v1.ListCitiesRequest
-	25, // 68: cityhawk.events.v1.EventsService.ListCollections:input_type -> cityhawk.events.v1.ListCollectionsRequest
-	27, // 69: cityhawk.events.v1.EventsService.GetCollection:input_type -> cityhawk.events.v1.GetCollectionRequest
-	29, // 70: cityhawk.events.v1.EventsService.SearchSuggestions:input_type -> cityhawk.events.v1.SearchSuggestionsRequest
-	33, // 71: cityhawk.events.v1.EventsService.SuggestPlaces:input_type -> cityhawk.events.v1.SuggestPlacesRequest
-	35, // 72: cityhawk.events.v1.EventsService.ResolvePlace:input_type -> cityhawk.events.v1.ResolvePlaceRequest
-	36, // 73: cityhawk.events.v1.EventsService.CreatePlace:input_type -> cityhawk.events.v1.CreatePlaceRequest
-	37, // 74: cityhawk.events.v1.EventsService.UpdatePlace:input_type -> cityhawk.events.v1.UpdatePlaceRequest
-	38, // 75: cityhawk.events.v1.EventsService.GenerateCollectionDraft:input_type -> cityhawk.events.v1.GenerateCollectionDraftRequest
-	11, // 76: cityhawk.events.v1.EventsService.GetHome:output_type -> cityhawk.events.v1.HomeResponse
-	14, // 77: cityhawk.events.v1.EventsService.ListEvents:output_type -> cityhawk.events.v1.ListEventsResponse
-	14, // 78: cityhawk.events.v1.EventsService.SearchEventsNearby:output_type -> cityhawk.events.v1.ListEventsResponse
-	6,  // 79: cityhawk.events.v1.EventsService.GetEvent:output_type -> cityhawk.events.v1.EventDetails
-	19, // 80: cityhawk.events.v1.EventsService.CreateEvent:output_type -> cityhawk.events.v1.EventIDResponse
-	19, // 81: cityhawk.events.v1.EventsService.UpdateEvent:output_type -> cityhawk.events.v1.EventIDResponse
-	48, // 82: cityhawk.events.v1.EventsService.DeleteEvent:output_type -> cityhawk.common.v1.BoolResponse
-	21, // 83: cityhawk.events.v1.EventsService.ListCategories:output_type -> cityhawk.events.v1.ListTaxonomyResponse
-	21, // 84: cityhawk.events.v1.EventsService.ListTags:output_type -> cityhawk.events.v1.ListTaxonomyResponse
-	23, // 85: cityhawk.events.v1.EventsService.ListCities:output_type -> cityhawk.events.v1.ListCitiesResponse
-	26, // 86: cityhawk.events.v1.EventsService.ListCollections:output_type -> cityhawk.events.v1.ListCollectionsResponse
-	28, // 87: cityhawk.events.v1.EventsService.GetCollection:output_type -> cityhawk.events.v1.CollectionDetails
-	30, // 88: cityhawk.events.v1.EventsService.SearchSuggestions:output_type -> cityhawk.events.v1.SearchSuggestionsResponse
-	34, // 89: cityhawk.events.v1.EventsService.SuggestPlaces:output_type -> cityhawk.events.v1.SuggestPlacesResponse
-	43, // 90: cityhawk.events.v1.EventsService.ResolvePlace:output_type -> cityhawk.common.v1.Place
-	43, // 91: cityhawk.events.v1.EventsService.CreatePlace:output_type -> cityhawk.common.v1.Place
-	43, // 92: cityhawk.events.v1.EventsService.UpdatePlace:output_type -> cityhawk.common.v1.Place
-	39, // 93: cityhawk.events.v1.EventsService.GenerateCollectionDraft:output_type -> cityhawk.events.v1.GenerateCollectionDraftResponse
-	76, // [76:94] is the sub-list for method output_type
-	58, // [58:76] is the sub-list for method input_type
-	58, // [58:58] is the sub-list for extension type_name
-	58, // [58:58] is the sub-list for extension extendee
-	0,  // [0:58] is the sub-list for field type_name
+	0,  // 0: cityhawk.events.v1.Place.coordinates:type_name -> cityhawk.events.v1.Coordinates
+	1,  // 1: cityhawk.events.v1.Place.city:type_name -> cityhawk.events.v1.City
+	44, // 2: cityhawk.events.v1.Place.created_at:type_name -> google.protobuf.Timestamp
+	44, // 3: cityhawk.events.v1.Place.updated_at:type_name -> google.protobuf.Timestamp
+	0,  // 4: cityhawk.events.v1.EventCardNextSessionPlace.coordinates:type_name -> cityhawk.events.v1.Coordinates
+	44, // 5: cityhawk.events.v1.EventCardNextSession.start_at:type_name -> google.protobuf.Timestamp
+	4,  // 6: cityhawk.events.v1.EventCardNextSession.place:type_name -> cityhawk.events.v1.EventCardNextSessionPlace
+	3,  // 7: cityhawk.events.v1.EventCard.tags:type_name -> cityhawk.events.v1.TaxonomyItem
+	5,  // 8: cityhawk.events.v1.EventCard.next_session:type_name -> cityhawk.events.v1.EventCardNextSession
+	44, // 9: cityhawk.events.v1.EventSession.start_at:type_name -> google.protobuf.Timestamp
+	44, // 10: cityhawk.events.v1.EventSession.end_at:type_name -> google.protobuf.Timestamp
+	2,  // 11: cityhawk.events.v1.EventSession.place:type_name -> cityhawk.events.v1.Place
+	7,  // 12: cityhawk.events.v1.EventDetails.author:type_name -> cityhawk.events.v1.EventAuthor
+	3,  // 13: cityhawk.events.v1.EventDetails.categories:type_name -> cityhawk.events.v1.TaxonomyItem
+	3,  // 14: cityhawk.events.v1.EventDetails.tags:type_name -> cityhawk.events.v1.TaxonomyItem
+	8,  // 15: cityhawk.events.v1.EventDetails.images:type_name -> cityhawk.events.v1.EventImage
+	9,  // 16: cityhawk.events.v1.EventDetails.sessions:type_name -> cityhawk.events.v1.EventSession
+	44, // 17: cityhawk.events.v1.EventDetails.created_at:type_name -> google.protobuf.Timestamp
+	44, // 18: cityhawk.events.v1.EventDetails.updated_at:type_name -> google.protobuf.Timestamp
+	44, // 19: cityhawk.events.v1.EventSessionInput.start_at:type_name -> google.protobuf.Timestamp
+	44, // 20: cityhawk.events.v1.EventSessionInput.end_at:type_name -> google.protobuf.Timestamp
+	3,  // 21: cityhawk.events.v1.HomeFeaturedEvent.tags:type_name -> cityhawk.events.v1.TaxonomyItem
+	5,  // 22: cityhawk.events.v1.HomeFeaturedEvent.next_session:type_name -> cityhawk.events.v1.EventCardNextSession
+	13, // 23: cityhawk.events.v1.HomeResponse.featured_events:type_name -> cityhawk.events.v1.HomeFeaturedEvent
+	3,  // 24: cityhawk.events.v1.HomeResponse.categories:type_name -> cityhawk.events.v1.TaxonomyItem
+	14, // 25: cityhawk.events.v1.HomeResponse.collections:type_name -> cityhawk.events.v1.HomeCollection
+	45, // 26: cityhawk.events.v1.ListEventsRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
+	44, // 27: cityhawk.events.v1.ListEventsRequest.date_from:type_name -> google.protobuf.Timestamp
+	44, // 28: cityhawk.events.v1.ListEventsRequest.date_to:type_name -> google.protobuf.Timestamp
+	46, // 29: cityhawk.events.v1.ListEventsRequest.page:type_name -> cityhawk.common.v1.PageRequest
+	45, // 30: cityhawk.events.v1.SearchEventsNearbyRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
+	0,  // 31: cityhawk.events.v1.SearchEventsNearbyRequest.center:type_name -> cityhawk.events.v1.Coordinates
+	46, // 32: cityhawk.events.v1.SearchEventsNearbyRequest.page:type_name -> cityhawk.common.v1.PageRequest
+	44, // 33: cityhawk.events.v1.SearchEventsNearbyRequest.date_from:type_name -> google.protobuf.Timestamp
+	44, // 34: cityhawk.events.v1.SearchEventsNearbyRequest.date_to:type_name -> google.protobuf.Timestamp
+	6,  // 35: cityhawk.events.v1.ListEventsResponse.items:type_name -> cityhawk.events.v1.EventCard
+	47, // 36: cityhawk.events.v1.ListEventsResponse.page:type_name -> cityhawk.common.v1.PageResponse
+	45, // 37: cityhawk.events.v1.GetEventRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
+	0,  // 38: cityhawk.events.v1.GetEventRequest.viewer_location:type_name -> cityhawk.events.v1.Coordinates
+	45, // 39: cityhawk.events.v1.CreateEventRequest.actor:type_name -> cityhawk.common.v1.UserContext
+	11, // 40: cityhawk.events.v1.CreateEventRequest.sessions:type_name -> cityhawk.events.v1.EventSessionInput
+	45, // 41: cityhawk.events.v1.UpdateEventRequest.actor:type_name -> cityhawk.common.v1.UserContext
+	11, // 42: cityhawk.events.v1.UpdateEventRequest.sessions:type_name -> cityhawk.events.v1.EventSessionInput
+	45, // 43: cityhawk.events.v1.DeleteEventRequest.actor:type_name -> cityhawk.common.v1.UserContext
+	3,  // 44: cityhawk.events.v1.ListTaxonomyResponse.items:type_name -> cityhawk.events.v1.TaxonomyItem
+	1,  // 45: cityhawk.events.v1.ListCitiesResponse.items:type_name -> cityhawk.events.v1.City
+	45, // 46: cityhawk.events.v1.ListCollectionsRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
+	46, // 47: cityhawk.events.v1.ListCollectionsRequest.page:type_name -> cityhawk.common.v1.PageRequest
+	28, // 48: cityhawk.events.v1.ListCollectionsResponse.items:type_name -> cityhawk.events.v1.CollectionCard
+	47, // 49: cityhawk.events.v1.ListCollectionsResponse.page:type_name -> cityhawk.common.v1.PageResponse
+	45, // 50: cityhawk.events.v1.GetCollectionRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
+	6,  // 51: cityhawk.events.v1.CollectionDetails.events:type_name -> cityhawk.events.v1.EventCard
+	0,  // 52: cityhawk.events.v1.PlaceSuggestion.coordinates:type_name -> cityhawk.events.v1.Coordinates
+	35, // 53: cityhawk.events.v1.PlaceSuggestion.source:type_name -> cityhawk.events.v1.PlaceSuggestionSource
+	36, // 54: cityhawk.events.v1.SuggestPlacesResponse.items:type_name -> cityhawk.events.v1.PlaceSuggestion
+	45, // 55: cityhawk.events.v1.ResolvePlaceRequest.actor:type_name -> cityhawk.common.v1.UserContext
+	45, // 56: cityhawk.events.v1.CreatePlaceRequest.actor:type_name -> cityhawk.common.v1.UserContext
+	0,  // 57: cityhawk.events.v1.CreatePlaceRequest.coordinates:type_name -> cityhawk.events.v1.Coordinates
+	45, // 58: cityhawk.events.v1.UpdatePlaceRequest.actor:type_name -> cityhawk.common.v1.UserContext
+	0,  // 59: cityhawk.events.v1.UpdatePlaceRequest.coordinates:type_name -> cityhawk.events.v1.Coordinates
+	45, // 60: cityhawk.events.v1.GenerateCollectionDraftRequest.actor:type_name -> cityhawk.common.v1.UserContext
+	6,  // 61: cityhawk.events.v1.GenerateCollectionDraftResponse.events:type_name -> cityhawk.events.v1.EventCard
+	12, // 62: cityhawk.events.v1.EventsService.GetHome:input_type -> cityhawk.events.v1.GetHomeRequest
+	16, // 63: cityhawk.events.v1.EventsService.ListEvents:input_type -> cityhawk.events.v1.ListEventsRequest
+	17, // 64: cityhawk.events.v1.EventsService.SearchEventsNearby:input_type -> cityhawk.events.v1.SearchEventsNearbyRequest
+	19, // 65: cityhawk.events.v1.EventsService.GetEvent:input_type -> cityhawk.events.v1.GetEventRequest
+	20, // 66: cityhawk.events.v1.EventsService.CreateEvent:input_type -> cityhawk.events.v1.CreateEventRequest
+	21, // 67: cityhawk.events.v1.EventsService.UpdateEvent:input_type -> cityhawk.events.v1.UpdateEventRequest
+	22, // 68: cityhawk.events.v1.EventsService.DeleteEvent:input_type -> cityhawk.events.v1.DeleteEventRequest
+	24, // 69: cityhawk.events.v1.EventsService.ListCategories:input_type -> cityhawk.events.v1.ListTaxonomyRequest
+	24, // 70: cityhawk.events.v1.EventsService.ListTags:input_type -> cityhawk.events.v1.ListTaxonomyRequest
+	26, // 71: cityhawk.events.v1.EventsService.ListCities:input_type -> cityhawk.events.v1.ListCitiesRequest
+	29, // 72: cityhawk.events.v1.EventsService.ListCollections:input_type -> cityhawk.events.v1.ListCollectionsRequest
+	31, // 73: cityhawk.events.v1.EventsService.GetCollection:input_type -> cityhawk.events.v1.GetCollectionRequest
+	33, // 74: cityhawk.events.v1.EventsService.SearchSuggestions:input_type -> cityhawk.events.v1.SearchSuggestionsRequest
+	37, // 75: cityhawk.events.v1.EventsService.SuggestPlaces:input_type -> cityhawk.events.v1.SuggestPlacesRequest
+	39, // 76: cityhawk.events.v1.EventsService.ResolvePlace:input_type -> cityhawk.events.v1.ResolvePlaceRequest
+	40, // 77: cityhawk.events.v1.EventsService.CreatePlace:input_type -> cityhawk.events.v1.CreatePlaceRequest
+	41, // 78: cityhawk.events.v1.EventsService.UpdatePlace:input_type -> cityhawk.events.v1.UpdatePlaceRequest
+	42, // 79: cityhawk.events.v1.EventsService.GenerateCollectionDraft:input_type -> cityhawk.events.v1.GenerateCollectionDraftRequest
+	15, // 80: cityhawk.events.v1.EventsService.GetHome:output_type -> cityhawk.events.v1.HomeResponse
+	18, // 81: cityhawk.events.v1.EventsService.ListEvents:output_type -> cityhawk.events.v1.ListEventsResponse
+	18, // 82: cityhawk.events.v1.EventsService.SearchEventsNearby:output_type -> cityhawk.events.v1.ListEventsResponse
+	10, // 83: cityhawk.events.v1.EventsService.GetEvent:output_type -> cityhawk.events.v1.EventDetails
+	23, // 84: cityhawk.events.v1.EventsService.CreateEvent:output_type -> cityhawk.events.v1.EventIDResponse
+	23, // 85: cityhawk.events.v1.EventsService.UpdateEvent:output_type -> cityhawk.events.v1.EventIDResponse
+	48, // 86: cityhawk.events.v1.EventsService.DeleteEvent:output_type -> cityhawk.common.v1.BoolResponse
+	25, // 87: cityhawk.events.v1.EventsService.ListCategories:output_type -> cityhawk.events.v1.ListTaxonomyResponse
+	25, // 88: cityhawk.events.v1.EventsService.ListTags:output_type -> cityhawk.events.v1.ListTaxonomyResponse
+	27, // 89: cityhawk.events.v1.EventsService.ListCities:output_type -> cityhawk.events.v1.ListCitiesResponse
+	30, // 90: cityhawk.events.v1.EventsService.ListCollections:output_type -> cityhawk.events.v1.ListCollectionsResponse
+	32, // 91: cityhawk.events.v1.EventsService.GetCollection:output_type -> cityhawk.events.v1.CollectionDetails
+	34, // 92: cityhawk.events.v1.EventsService.SearchSuggestions:output_type -> cityhawk.events.v1.SearchSuggestionsResponse
+	38, // 93: cityhawk.events.v1.EventsService.SuggestPlaces:output_type -> cityhawk.events.v1.SuggestPlacesResponse
+	2,  // 94: cityhawk.events.v1.EventsService.ResolvePlace:output_type -> cityhawk.events.v1.Place
+	2,  // 95: cityhawk.events.v1.EventsService.CreatePlace:output_type -> cityhawk.events.v1.Place
+	2,  // 96: cityhawk.events.v1.EventsService.UpdatePlace:output_type -> cityhawk.events.v1.Place
+	43, // 97: cityhawk.events.v1.EventsService.GenerateCollectionDraft:output_type -> cityhawk.events.v1.GenerateCollectionDraftResponse
+	80, // [80:98] is the sub-list for method output_type
+	62, // [62:80] is the sub-list for method input_type
+	62, // [62:62] is the sub-list for extension type_name
+	62, // [62:62] is the sub-list for extension extendee
+	0,  // [0:62] is the sub-list for field type_name
 }
 
 func init() { file_cityhawk_events_v1_events_proto_init() }
@@ -3383,27 +3699,27 @@ func file_cityhawk_events_v1_events_proto_init() {
 	if File_cityhawk_events_v1_events_proto != nil {
 		return
 	}
-	file_cityhawk_events_v1_events_proto_msgTypes[2].OneofWrappers = []any{}
-	file_cityhawk_events_v1_events_proto_msgTypes[3].OneofWrappers = []any{}
 	file_cityhawk_events_v1_events_proto_msgTypes[6].OneofWrappers = []any{}
-	file_cityhawk_events_v1_events_proto_msgTypes[8].OneofWrappers = []any{}
+	file_cityhawk_events_v1_events_proto_msgTypes[7].OneofWrappers = []any{}
+	file_cityhawk_events_v1_events_proto_msgTypes[10].OneofWrappers = []any{}
 	file_cityhawk_events_v1_events_proto_msgTypes[12].OneofWrappers = []any{}
-	file_cityhawk_events_v1_events_proto_msgTypes[13].OneofWrappers = []any{}
-	file_cityhawk_events_v1_events_proto_msgTypes[15].OneofWrappers = []any{}
 	file_cityhawk_events_v1_events_proto_msgTypes[16].OneofWrappers = []any{}
 	file_cityhawk_events_v1_events_proto_msgTypes[17].OneofWrappers = []any{}
-	file_cityhawk_events_v1_events_proto_msgTypes[25].OneofWrappers = []any{}
-	file_cityhawk_events_v1_events_proto_msgTypes[27].OneofWrappers = []any{}
-	file_cityhawk_events_v1_events_proto_msgTypes[36].OneofWrappers = []any{}
-	file_cityhawk_events_v1_events_proto_msgTypes[37].OneofWrappers = []any{}
-	file_cityhawk_events_v1_events_proto_msgTypes[38].OneofWrappers = []any{}
+	file_cityhawk_events_v1_events_proto_msgTypes[19].OneofWrappers = []any{}
+	file_cityhawk_events_v1_events_proto_msgTypes[20].OneofWrappers = []any{}
+	file_cityhawk_events_v1_events_proto_msgTypes[21].OneofWrappers = []any{}
+	file_cityhawk_events_v1_events_proto_msgTypes[29].OneofWrappers = []any{}
+	file_cityhawk_events_v1_events_proto_msgTypes[31].OneofWrappers = []any{}
+	file_cityhawk_events_v1_events_proto_msgTypes[40].OneofWrappers = []any{}
+	file_cityhawk_events_v1_events_proto_msgTypes[41].OneofWrappers = []any{}
+	file_cityhawk_events_v1_events_proto_msgTypes[42].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cityhawk_events_v1_events_proto_rawDesc), len(file_cityhawk_events_v1_events_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   40,
+			NumMessages:   44,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

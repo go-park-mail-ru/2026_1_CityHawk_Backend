@@ -8,7 +8,6 @@ package socialv1
 
 import (
 	v1 "cityhawk/backend/pkg/pb/common/v1"
-	v11 "cityhawk/backend/pkg/pb/events/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -182,7 +181,7 @@ func (x *ListFavoriteEventsRequest) GetPage() *v1.PageRequest {
 
 type ListFavoriteEventsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Items         []*v11.EventCard       `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	Items         []*FavoriteEvent       `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
 	Page          *v1.PageResponse       `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -218,7 +217,7 @@ func (*ListFavoriteEventsResponse) Descriptor() ([]byte, []int) {
 	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ListFavoriteEventsResponse) GetItems() []*v11.EventCard {
+func (x *ListFavoriteEventsResponse) GetItems() []*FavoriteEvent {
 	if x != nil {
 		return x.Items
 	}
@@ -228,6 +227,58 @@ func (x *ListFavoriteEventsResponse) GetItems() []*v11.EventCard {
 func (x *ListFavoriteEventsResponse) GetPage() *v1.PageResponse {
 	if x != nil {
 		return x.Page
+	}
+	return nil
+}
+
+type FavoriteEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FavoriteEvent) Reset() {
+	*x = FavoriteEvent{}
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FavoriteEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FavoriteEvent) ProtoMessage() {}
+
+func (x *FavoriteEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FavoriteEvent.ProtoReflect.Descriptor instead.
+func (*FavoriteEvent) Descriptor() ([]byte, []int) {
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *FavoriteEvent) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *FavoriteEvent) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
 	}
 	return nil
 }
@@ -242,7 +293,7 @@ type IsFavoriteRequest struct {
 
 func (x *IsFavoriteRequest) Reset() {
 	*x = IsFavoriteRequest{}
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[4]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -254,7 +305,7 @@ func (x *IsFavoriteRequest) String() string {
 func (*IsFavoriteRequest) ProtoMessage() {}
 
 func (x *IsFavoriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[4]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -267,7 +318,7 @@ func (x *IsFavoriteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IsFavoriteRequest.ProtoReflect.Descriptor instead.
 func (*IsFavoriteRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{4}
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *IsFavoriteRequest) GetUserId() string {
@@ -293,7 +344,7 @@ type IsFavoriteResponse struct {
 
 func (x *IsFavoriteResponse) Reset() {
 	*x = IsFavoriteResponse{}
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[5]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -305,7 +356,7 @@ func (x *IsFavoriteResponse) String() string {
 func (*IsFavoriteResponse) ProtoMessage() {}
 
 func (x *IsFavoriteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[5]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -318,7 +369,7 @@ func (x *IsFavoriteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IsFavoriteResponse.ProtoReflect.Descriptor instead.
 func (*IsFavoriteResponse) Descriptor() ([]byte, []int) {
-	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{5}
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *IsFavoriteResponse) GetIsFavorite() bool {
@@ -338,7 +389,7 @@ type FollowUserRequest struct {
 
 func (x *FollowUserRequest) Reset() {
 	*x = FollowUserRequest{}
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[6]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -350,7 +401,7 @@ func (x *FollowUserRequest) String() string {
 func (*FollowUserRequest) ProtoMessage() {}
 
 func (x *FollowUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[6]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -363,7 +414,7 @@ func (x *FollowUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FollowUserRequest.ProtoReflect.Descriptor instead.
 func (*FollowUserRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{6}
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *FollowUserRequest) GetActor() *v1.UserContext {
@@ -390,7 +441,7 @@ type UnfollowUserRequest struct {
 
 func (x *UnfollowUserRequest) Reset() {
 	*x = UnfollowUserRequest{}
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[7]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -402,7 +453,7 @@ func (x *UnfollowUserRequest) String() string {
 func (*UnfollowUserRequest) ProtoMessage() {}
 
 func (x *UnfollowUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[7]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -415,7 +466,7 @@ func (x *UnfollowUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnfollowUserRequest.ProtoReflect.Descriptor instead.
 func (*UnfollowUserRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{7}
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UnfollowUserRequest) GetActor() *v1.UserContext {
@@ -443,7 +494,7 @@ type ListFollowersRequest struct {
 
 func (x *ListFollowersRequest) Reset() {
 	*x = ListFollowersRequest{}
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[8]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -455,7 +506,7 @@ func (x *ListFollowersRequest) String() string {
 func (*ListFollowersRequest) ProtoMessage() {}
 
 func (x *ListFollowersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[8]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -468,7 +519,7 @@ func (x *ListFollowersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFollowersRequest.ProtoReflect.Descriptor instead.
 func (*ListFollowersRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{8}
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListFollowersRequest) GetUserId() string {
@@ -503,7 +554,7 @@ type ListFollowingRequest struct {
 
 func (x *ListFollowingRequest) Reset() {
 	*x = ListFollowingRequest{}
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[9]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -515,7 +566,7 @@ func (x *ListFollowingRequest) String() string {
 func (*ListFollowingRequest) ProtoMessage() {}
 
 func (x *ListFollowingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[9]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -528,7 +579,7 @@ func (x *ListFollowingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFollowingRequest.ProtoReflect.Descriptor instead.
 func (*ListFollowingRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{9}
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListFollowingRequest) GetUserId() string {
@@ -554,7 +605,7 @@ func (x *ListFollowingRequest) GetPage() *v1.PageRequest {
 
 type ListUsersResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Items         []*v1.UserSummary      `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	Items         []*UserFollow          `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
 	Page          *v1.PageResponse       `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -562,7 +613,7 @@ type ListUsersResponse struct {
 
 func (x *ListUsersResponse) Reset() {
 	*x = ListUsersResponse{}
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[10]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -574,7 +625,7 @@ func (x *ListUsersResponse) String() string {
 func (*ListUsersResponse) ProtoMessage() {}
 
 func (x *ListUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[10]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -587,10 +638,10 @@ func (x *ListUsersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUsersResponse.ProtoReflect.Descriptor instead.
 func (*ListUsersResponse) Descriptor() ([]byte, []int) {
-	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{10}
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *ListUsersResponse) GetItems() []*v1.UserSummary {
+func (x *ListUsersResponse) GetItems() []*UserFollow {
 	if x != nil {
 		return x.Items
 	}
@@ -600,6 +651,66 @@ func (x *ListUsersResponse) GetItems() []*v1.UserSummary {
 func (x *ListUsersResponse) GetPage() *v1.PageResponse {
 	if x != nil {
 		return x.Page
+	}
+	return nil
+}
+
+type UserFollow struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	IsFollowing   bool                   `protobuf:"varint,2,opt,name=is_following,json=isFollowing,proto3" json:"is_following,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserFollow) Reset() {
+	*x = UserFollow{}
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserFollow) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserFollow) ProtoMessage() {}
+
+func (x *UserFollow) ProtoReflect() protoreflect.Message {
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserFollow.ProtoReflect.Descriptor instead.
+func (*UserFollow) Descriptor() ([]byte, []int) {
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *UserFollow) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UserFollow) GetIsFollowing() bool {
+	if x != nil {
+		return x.IsFollowing
+	}
+	return false
+}
+
+func (x *UserFollow) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
 	}
 	return nil
 }
@@ -614,7 +725,7 @@ type IsFollowingRequest struct {
 
 func (x *IsFollowingRequest) Reset() {
 	*x = IsFollowingRequest{}
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[11]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -626,7 +737,7 @@ func (x *IsFollowingRequest) String() string {
 func (*IsFollowingRequest) ProtoMessage() {}
 
 func (x *IsFollowingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[11]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -639,7 +750,7 @@ func (x *IsFollowingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IsFollowingRequest.ProtoReflect.Descriptor instead.
 func (*IsFollowingRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{11}
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *IsFollowingRequest) GetFollowerUserId() string {
@@ -665,7 +776,7 @@ type IsFollowingResponse struct {
 
 func (x *IsFollowingResponse) Reset() {
 	*x = IsFollowingResponse{}
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[12]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -677,7 +788,7 @@ func (x *IsFollowingResponse) String() string {
 func (*IsFollowingResponse) ProtoMessage() {}
 
 func (x *IsFollowingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[12]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -690,7 +801,7 @@ func (x *IsFollowingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IsFollowingResponse.ProtoReflect.Descriptor instead.
 func (*IsFollowingResponse) Descriptor() ([]byte, []int) {
-	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{12}
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *IsFollowingResponse) GetIsFollowing() bool {
@@ -711,7 +822,7 @@ type GetSocialFlagsRequest struct {
 
 func (x *GetSocialFlagsRequest) Reset() {
 	*x = GetSocialFlagsRequest{}
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[13]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -723,7 +834,7 @@ func (x *GetSocialFlagsRequest) String() string {
 func (*GetSocialFlagsRequest) ProtoMessage() {}
 
 func (x *GetSocialFlagsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[13]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -736,7 +847,7 @@ func (x *GetSocialFlagsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSocialFlagsRequest.ProtoReflect.Descriptor instead.
 func (*GetSocialFlagsRequest) Descriptor() ([]byte, []int) {
-	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{13}
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetSocialFlagsRequest) GetViewerContext() *v1.UserContext {
@@ -771,7 +882,7 @@ type EventFavoriteFlag struct {
 
 func (x *EventFavoriteFlag) Reset() {
 	*x = EventFavoriteFlag{}
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[14]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -783,7 +894,7 @@ func (x *EventFavoriteFlag) String() string {
 func (*EventFavoriteFlag) ProtoMessage() {}
 
 func (x *EventFavoriteFlag) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[14]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -796,7 +907,7 @@ func (x *EventFavoriteFlag) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventFavoriteFlag.ProtoReflect.Descriptor instead.
 func (*EventFavoriteFlag) Descriptor() ([]byte, []int) {
-	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{14}
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *EventFavoriteFlag) GetEventId() string {
@@ -831,7 +942,7 @@ type UserFollowingFlag struct {
 
 func (x *UserFollowingFlag) Reset() {
 	*x = UserFollowingFlag{}
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[15]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -843,7 +954,7 @@ func (x *UserFollowingFlag) String() string {
 func (*UserFollowingFlag) ProtoMessage() {}
 
 func (x *UserFollowingFlag) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[15]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -856,7 +967,7 @@ func (x *UserFollowingFlag) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserFollowingFlag.ProtoReflect.Descriptor instead.
 func (*UserFollowingFlag) Descriptor() ([]byte, []int) {
-	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{15}
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *UserFollowingFlag) GetUserId() string {
@@ -890,7 +1001,7 @@ type SocialFlagsResponse struct {
 
 func (x *SocialFlagsResponse) Reset() {
 	*x = SocialFlagsResponse{}
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[16]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -902,7 +1013,7 @@ func (x *SocialFlagsResponse) String() string {
 func (*SocialFlagsResponse) ProtoMessage() {}
 
 func (x *SocialFlagsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cityhawk_social_v1_social_proto_msgTypes[16]
+	mi := &file_cityhawk_social_v1_social_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -915,7 +1026,7 @@ func (x *SocialFlagsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SocialFlagsResponse.ProtoReflect.Descriptor instead.
 func (*SocialFlagsResponse) Descriptor() ([]byte, []int) {
-	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{16}
+	return file_cityhawk_social_v1_social_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *SocialFlagsResponse) GetFavoriteEvents() []*EventFavoriteFlag {
@@ -936,7 +1047,7 @@ var File_cityhawk_social_v1_social_proto protoreflect.FileDescriptor
 
 const file_cityhawk_social_v1_social_proto_rawDesc = "" +
 	"\n" +
-	"\x1fcityhawk/social/v1/social.proto\x12\x12cityhawk.social.v1\x1a\x1fcityhawk/common/v1/common.proto\x1a\x1fcityhawk/events/v1/events.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"f\n" +
+	"\x1fcityhawk/social/v1/social.proto\x12\x12cityhawk.social.v1\x1a\x1fcityhawk/common/v1/common.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"f\n" +
 	"\x12AddFavoriteRequest\x125\n" +
 	"\x05actor\x18\x01 \x01(\v2\x1f.cityhawk.common.v1.UserContextR\x05actor\x12\x19\n" +
 	"\bevent_id\x18\x02 \x01(\tR\aeventId\"i\n" +
@@ -945,10 +1056,14 @@ const file_cityhawk_social_v1_social_proto_rawDesc = "" +
 	"\bevent_id\x18\x02 \x01(\tR\aeventId\"\x87\x01\n" +
 	"\x19ListFavoriteEventsRequest\x125\n" +
 	"\x05actor\x18\x01 \x01(\v2\x1f.cityhawk.common.v1.UserContextR\x05actor\x123\n" +
-	"\x04page\x18\x02 \x01(\v2\x1f.cityhawk.common.v1.PageRequestR\x04page\"\x87\x01\n" +
-	"\x1aListFavoriteEventsResponse\x123\n" +
-	"\x05items\x18\x01 \x03(\v2\x1d.cityhawk.events.v1.EventCardR\x05items\x124\n" +
-	"\x04page\x18\x02 \x01(\v2 .cityhawk.common.v1.PageResponseR\x04page\"G\n" +
+	"\x04page\x18\x02 \x01(\v2\x1f.cityhawk.common.v1.PageRequestR\x04page\"\x8b\x01\n" +
+	"\x1aListFavoriteEventsResponse\x127\n" +
+	"\x05items\x18\x01 \x03(\v2!.cityhawk.social.v1.FavoriteEventR\x05items\x124\n" +
+	"\x04page\x18\x02 \x01(\v2 .cityhawk.common.v1.PageResponseR\x04page\"e\n" +
+	"\rFavoriteEvent\x12\x19\n" +
+	"\bevent_id\x18\x01 \x01(\tR\aeventId\x129\n" +
+	"\n" +
+	"created_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"G\n" +
 	"\x11IsFavoriteRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x19\n" +
 	"\bevent_id\x18\x02 \x01(\tR\aeventId\"5\n" +
@@ -970,10 +1085,16 @@ const file_cityhawk_social_v1_social_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12K\n" +
 	"\x0eviewer_context\x18\x02 \x01(\v2\x1f.cityhawk.common.v1.UserContextH\x00R\rviewerContext\x88\x01\x01\x123\n" +
 	"\x04page\x18\x03 \x01(\v2\x1f.cityhawk.common.v1.PageRequestR\x04pageB\x11\n" +
-	"\x0f_viewer_context\"\x80\x01\n" +
-	"\x11ListUsersResponse\x125\n" +
-	"\x05items\x18\x01 \x03(\v2\x1f.cityhawk.common.v1.UserSummaryR\x05items\x124\n" +
-	"\x04page\x18\x02 \x01(\v2 .cityhawk.common.v1.PageResponseR\x04page\"h\n" +
+	"\x0f_viewer_context\"\x7f\n" +
+	"\x11ListUsersResponse\x124\n" +
+	"\x05items\x18\x01 \x03(\v2\x1e.cityhawk.social.v1.UserFollowR\x05items\x124\n" +
+	"\x04page\x18\x02 \x01(\v2 .cityhawk.common.v1.PageResponseR\x04page\"\x83\x01\n" +
+	"\n" +
+	"UserFollow\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
+	"\fis_following\x18\x02 \x01(\bR\visFollowing\x129\n" +
+	"\n" +
+	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"h\n" +
 	"\x12IsFollowingRequest\x12(\n" +
 	"\x10follower_user_id\x18\x01 \x01(\tR\x0efollowerUserId\x12(\n" +
 	"\x10followed_user_id\x18\x02 \x01(\tR\x0efollowedUserId\"8\n" +
@@ -1024,78 +1145,80 @@ func file_cityhawk_social_v1_social_proto_rawDescGZIP() []byte {
 	return file_cityhawk_social_v1_social_proto_rawDescData
 }
 
-var file_cityhawk_social_v1_social_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_cityhawk_social_v1_social_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_cityhawk_social_v1_social_proto_goTypes = []any{
 	(*AddFavoriteRequest)(nil),         // 0: cityhawk.social.v1.AddFavoriteRequest
 	(*RemoveFavoriteRequest)(nil),      // 1: cityhawk.social.v1.RemoveFavoriteRequest
 	(*ListFavoriteEventsRequest)(nil),  // 2: cityhawk.social.v1.ListFavoriteEventsRequest
 	(*ListFavoriteEventsResponse)(nil), // 3: cityhawk.social.v1.ListFavoriteEventsResponse
-	(*IsFavoriteRequest)(nil),          // 4: cityhawk.social.v1.IsFavoriteRequest
-	(*IsFavoriteResponse)(nil),         // 5: cityhawk.social.v1.IsFavoriteResponse
-	(*FollowUserRequest)(nil),          // 6: cityhawk.social.v1.FollowUserRequest
-	(*UnfollowUserRequest)(nil),        // 7: cityhawk.social.v1.UnfollowUserRequest
-	(*ListFollowersRequest)(nil),       // 8: cityhawk.social.v1.ListFollowersRequest
-	(*ListFollowingRequest)(nil),       // 9: cityhawk.social.v1.ListFollowingRequest
-	(*ListUsersResponse)(nil),          // 10: cityhawk.social.v1.ListUsersResponse
-	(*IsFollowingRequest)(nil),         // 11: cityhawk.social.v1.IsFollowingRequest
-	(*IsFollowingResponse)(nil),        // 12: cityhawk.social.v1.IsFollowingResponse
-	(*GetSocialFlagsRequest)(nil),      // 13: cityhawk.social.v1.GetSocialFlagsRequest
-	(*EventFavoriteFlag)(nil),          // 14: cityhawk.social.v1.EventFavoriteFlag
-	(*UserFollowingFlag)(nil),          // 15: cityhawk.social.v1.UserFollowingFlag
-	(*SocialFlagsResponse)(nil),        // 16: cityhawk.social.v1.SocialFlagsResponse
-	(*v1.UserContext)(nil),             // 17: cityhawk.common.v1.UserContext
-	(*v1.PageRequest)(nil),             // 18: cityhawk.common.v1.PageRequest
-	(*v11.EventCard)(nil),              // 19: cityhawk.events.v1.EventCard
-	(*v1.PageResponse)(nil),            // 20: cityhawk.common.v1.PageResponse
-	(*v1.UserSummary)(nil),             // 21: cityhawk.common.v1.UserSummary
+	(*FavoriteEvent)(nil),              // 4: cityhawk.social.v1.FavoriteEvent
+	(*IsFavoriteRequest)(nil),          // 5: cityhawk.social.v1.IsFavoriteRequest
+	(*IsFavoriteResponse)(nil),         // 6: cityhawk.social.v1.IsFavoriteResponse
+	(*FollowUserRequest)(nil),          // 7: cityhawk.social.v1.FollowUserRequest
+	(*UnfollowUserRequest)(nil),        // 8: cityhawk.social.v1.UnfollowUserRequest
+	(*ListFollowersRequest)(nil),       // 9: cityhawk.social.v1.ListFollowersRequest
+	(*ListFollowingRequest)(nil),       // 10: cityhawk.social.v1.ListFollowingRequest
+	(*ListUsersResponse)(nil),          // 11: cityhawk.social.v1.ListUsersResponse
+	(*UserFollow)(nil),                 // 12: cityhawk.social.v1.UserFollow
+	(*IsFollowingRequest)(nil),         // 13: cityhawk.social.v1.IsFollowingRequest
+	(*IsFollowingResponse)(nil),        // 14: cityhawk.social.v1.IsFollowingResponse
+	(*GetSocialFlagsRequest)(nil),      // 15: cityhawk.social.v1.GetSocialFlagsRequest
+	(*EventFavoriteFlag)(nil),          // 16: cityhawk.social.v1.EventFavoriteFlag
+	(*UserFollowingFlag)(nil),          // 17: cityhawk.social.v1.UserFollowingFlag
+	(*SocialFlagsResponse)(nil),        // 18: cityhawk.social.v1.SocialFlagsResponse
+	(*v1.UserContext)(nil),             // 19: cityhawk.common.v1.UserContext
+	(*v1.PageRequest)(nil),             // 20: cityhawk.common.v1.PageRequest
+	(*v1.PageResponse)(nil),            // 21: cityhawk.common.v1.PageResponse
 	(*timestamppb.Timestamp)(nil),      // 22: google.protobuf.Timestamp
 	(*v1.BoolResponse)(nil),            // 23: cityhawk.common.v1.BoolResponse
 }
 var file_cityhawk_social_v1_social_proto_depIdxs = []int32{
-	17, // 0: cityhawk.social.v1.AddFavoriteRequest.actor:type_name -> cityhawk.common.v1.UserContext
-	17, // 1: cityhawk.social.v1.RemoveFavoriteRequest.actor:type_name -> cityhawk.common.v1.UserContext
-	17, // 2: cityhawk.social.v1.ListFavoriteEventsRequest.actor:type_name -> cityhawk.common.v1.UserContext
-	18, // 3: cityhawk.social.v1.ListFavoriteEventsRequest.page:type_name -> cityhawk.common.v1.PageRequest
-	19, // 4: cityhawk.social.v1.ListFavoriteEventsResponse.items:type_name -> cityhawk.events.v1.EventCard
-	20, // 5: cityhawk.social.v1.ListFavoriteEventsResponse.page:type_name -> cityhawk.common.v1.PageResponse
-	17, // 6: cityhawk.social.v1.FollowUserRequest.actor:type_name -> cityhawk.common.v1.UserContext
-	17, // 7: cityhawk.social.v1.UnfollowUserRequest.actor:type_name -> cityhawk.common.v1.UserContext
-	17, // 8: cityhawk.social.v1.ListFollowersRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
-	18, // 9: cityhawk.social.v1.ListFollowersRequest.page:type_name -> cityhawk.common.v1.PageRequest
-	17, // 10: cityhawk.social.v1.ListFollowingRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
-	18, // 11: cityhawk.social.v1.ListFollowingRequest.page:type_name -> cityhawk.common.v1.PageRequest
-	21, // 12: cityhawk.social.v1.ListUsersResponse.items:type_name -> cityhawk.common.v1.UserSummary
-	20, // 13: cityhawk.social.v1.ListUsersResponse.page:type_name -> cityhawk.common.v1.PageResponse
-	17, // 14: cityhawk.social.v1.GetSocialFlagsRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
-	22, // 15: cityhawk.social.v1.EventFavoriteFlag.created_at:type_name -> google.protobuf.Timestamp
-	22, // 16: cityhawk.social.v1.UserFollowingFlag.created_at:type_name -> google.protobuf.Timestamp
-	14, // 17: cityhawk.social.v1.SocialFlagsResponse.favorite_events:type_name -> cityhawk.social.v1.EventFavoriteFlag
-	15, // 18: cityhawk.social.v1.SocialFlagsResponse.following_users:type_name -> cityhawk.social.v1.UserFollowingFlag
-	0,  // 19: cityhawk.social.v1.SocialService.AddFavorite:input_type -> cityhawk.social.v1.AddFavoriteRequest
-	1,  // 20: cityhawk.social.v1.SocialService.RemoveFavorite:input_type -> cityhawk.social.v1.RemoveFavoriteRequest
-	2,  // 21: cityhawk.social.v1.SocialService.ListFavoriteEvents:input_type -> cityhawk.social.v1.ListFavoriteEventsRequest
-	4,  // 22: cityhawk.social.v1.SocialService.IsFavorite:input_type -> cityhawk.social.v1.IsFavoriteRequest
-	6,  // 23: cityhawk.social.v1.SocialService.FollowUser:input_type -> cityhawk.social.v1.FollowUserRequest
-	7,  // 24: cityhawk.social.v1.SocialService.UnfollowUser:input_type -> cityhawk.social.v1.UnfollowUserRequest
-	8,  // 25: cityhawk.social.v1.SocialService.ListFollowers:input_type -> cityhawk.social.v1.ListFollowersRequest
-	9,  // 26: cityhawk.social.v1.SocialService.ListFollowing:input_type -> cityhawk.social.v1.ListFollowingRequest
-	11, // 27: cityhawk.social.v1.SocialService.IsFollowing:input_type -> cityhawk.social.v1.IsFollowingRequest
-	13, // 28: cityhawk.social.v1.SocialService.GetSocialFlags:input_type -> cityhawk.social.v1.GetSocialFlagsRequest
-	23, // 29: cityhawk.social.v1.SocialService.AddFavorite:output_type -> cityhawk.common.v1.BoolResponse
-	23, // 30: cityhawk.social.v1.SocialService.RemoveFavorite:output_type -> cityhawk.common.v1.BoolResponse
-	3,  // 31: cityhawk.social.v1.SocialService.ListFavoriteEvents:output_type -> cityhawk.social.v1.ListFavoriteEventsResponse
-	5,  // 32: cityhawk.social.v1.SocialService.IsFavorite:output_type -> cityhawk.social.v1.IsFavoriteResponse
-	23, // 33: cityhawk.social.v1.SocialService.FollowUser:output_type -> cityhawk.common.v1.BoolResponse
-	23, // 34: cityhawk.social.v1.SocialService.UnfollowUser:output_type -> cityhawk.common.v1.BoolResponse
-	10, // 35: cityhawk.social.v1.SocialService.ListFollowers:output_type -> cityhawk.social.v1.ListUsersResponse
-	10, // 36: cityhawk.social.v1.SocialService.ListFollowing:output_type -> cityhawk.social.v1.ListUsersResponse
-	12, // 37: cityhawk.social.v1.SocialService.IsFollowing:output_type -> cityhawk.social.v1.IsFollowingResponse
-	16, // 38: cityhawk.social.v1.SocialService.GetSocialFlags:output_type -> cityhawk.social.v1.SocialFlagsResponse
-	29, // [29:39] is the sub-list for method output_type
-	19, // [19:29] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	19, // 0: cityhawk.social.v1.AddFavoriteRequest.actor:type_name -> cityhawk.common.v1.UserContext
+	19, // 1: cityhawk.social.v1.RemoveFavoriteRequest.actor:type_name -> cityhawk.common.v1.UserContext
+	19, // 2: cityhawk.social.v1.ListFavoriteEventsRequest.actor:type_name -> cityhawk.common.v1.UserContext
+	20, // 3: cityhawk.social.v1.ListFavoriteEventsRequest.page:type_name -> cityhawk.common.v1.PageRequest
+	4,  // 4: cityhawk.social.v1.ListFavoriteEventsResponse.items:type_name -> cityhawk.social.v1.FavoriteEvent
+	21, // 5: cityhawk.social.v1.ListFavoriteEventsResponse.page:type_name -> cityhawk.common.v1.PageResponse
+	22, // 6: cityhawk.social.v1.FavoriteEvent.created_at:type_name -> google.protobuf.Timestamp
+	19, // 7: cityhawk.social.v1.FollowUserRequest.actor:type_name -> cityhawk.common.v1.UserContext
+	19, // 8: cityhawk.social.v1.UnfollowUserRequest.actor:type_name -> cityhawk.common.v1.UserContext
+	19, // 9: cityhawk.social.v1.ListFollowersRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
+	20, // 10: cityhawk.social.v1.ListFollowersRequest.page:type_name -> cityhawk.common.v1.PageRequest
+	19, // 11: cityhawk.social.v1.ListFollowingRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
+	20, // 12: cityhawk.social.v1.ListFollowingRequest.page:type_name -> cityhawk.common.v1.PageRequest
+	12, // 13: cityhawk.social.v1.ListUsersResponse.items:type_name -> cityhawk.social.v1.UserFollow
+	21, // 14: cityhawk.social.v1.ListUsersResponse.page:type_name -> cityhawk.common.v1.PageResponse
+	22, // 15: cityhawk.social.v1.UserFollow.created_at:type_name -> google.protobuf.Timestamp
+	19, // 16: cityhawk.social.v1.GetSocialFlagsRequest.viewer_context:type_name -> cityhawk.common.v1.UserContext
+	22, // 17: cityhawk.social.v1.EventFavoriteFlag.created_at:type_name -> google.protobuf.Timestamp
+	22, // 18: cityhawk.social.v1.UserFollowingFlag.created_at:type_name -> google.protobuf.Timestamp
+	16, // 19: cityhawk.social.v1.SocialFlagsResponse.favorite_events:type_name -> cityhawk.social.v1.EventFavoriteFlag
+	17, // 20: cityhawk.social.v1.SocialFlagsResponse.following_users:type_name -> cityhawk.social.v1.UserFollowingFlag
+	0,  // 21: cityhawk.social.v1.SocialService.AddFavorite:input_type -> cityhawk.social.v1.AddFavoriteRequest
+	1,  // 22: cityhawk.social.v1.SocialService.RemoveFavorite:input_type -> cityhawk.social.v1.RemoveFavoriteRequest
+	2,  // 23: cityhawk.social.v1.SocialService.ListFavoriteEvents:input_type -> cityhawk.social.v1.ListFavoriteEventsRequest
+	5,  // 24: cityhawk.social.v1.SocialService.IsFavorite:input_type -> cityhawk.social.v1.IsFavoriteRequest
+	7,  // 25: cityhawk.social.v1.SocialService.FollowUser:input_type -> cityhawk.social.v1.FollowUserRequest
+	8,  // 26: cityhawk.social.v1.SocialService.UnfollowUser:input_type -> cityhawk.social.v1.UnfollowUserRequest
+	9,  // 27: cityhawk.social.v1.SocialService.ListFollowers:input_type -> cityhawk.social.v1.ListFollowersRequest
+	10, // 28: cityhawk.social.v1.SocialService.ListFollowing:input_type -> cityhawk.social.v1.ListFollowingRequest
+	13, // 29: cityhawk.social.v1.SocialService.IsFollowing:input_type -> cityhawk.social.v1.IsFollowingRequest
+	15, // 30: cityhawk.social.v1.SocialService.GetSocialFlags:input_type -> cityhawk.social.v1.GetSocialFlagsRequest
+	23, // 31: cityhawk.social.v1.SocialService.AddFavorite:output_type -> cityhawk.common.v1.BoolResponse
+	23, // 32: cityhawk.social.v1.SocialService.RemoveFavorite:output_type -> cityhawk.common.v1.BoolResponse
+	3,  // 33: cityhawk.social.v1.SocialService.ListFavoriteEvents:output_type -> cityhawk.social.v1.ListFavoriteEventsResponse
+	6,  // 34: cityhawk.social.v1.SocialService.IsFavorite:output_type -> cityhawk.social.v1.IsFavoriteResponse
+	23, // 35: cityhawk.social.v1.SocialService.FollowUser:output_type -> cityhawk.common.v1.BoolResponse
+	23, // 36: cityhawk.social.v1.SocialService.UnfollowUser:output_type -> cityhawk.common.v1.BoolResponse
+	11, // 37: cityhawk.social.v1.SocialService.ListFollowers:output_type -> cityhawk.social.v1.ListUsersResponse
+	11, // 38: cityhawk.social.v1.SocialService.ListFollowing:output_type -> cityhawk.social.v1.ListUsersResponse
+	14, // 39: cityhawk.social.v1.SocialService.IsFollowing:output_type -> cityhawk.social.v1.IsFollowingResponse
+	18, // 40: cityhawk.social.v1.SocialService.GetSocialFlags:output_type -> cityhawk.social.v1.SocialFlagsResponse
+	31, // [31:41] is the sub-list for method output_type
+	21, // [21:31] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_cityhawk_social_v1_social_proto_init() }
@@ -1103,16 +1226,16 @@ func file_cityhawk_social_v1_social_proto_init() {
 	if File_cityhawk_social_v1_social_proto != nil {
 		return
 	}
-	file_cityhawk_social_v1_social_proto_msgTypes[8].OneofWrappers = []any{}
 	file_cityhawk_social_v1_social_proto_msgTypes[9].OneofWrappers = []any{}
-	file_cityhawk_social_v1_social_proto_msgTypes[13].OneofWrappers = []any{}
+	file_cityhawk_social_v1_social_proto_msgTypes[10].OneofWrappers = []any{}
+	file_cityhawk_social_v1_social_proto_msgTypes[15].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cityhawk_social_v1_social_proto_rawDesc), len(file_cityhawk_social_v1_social_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

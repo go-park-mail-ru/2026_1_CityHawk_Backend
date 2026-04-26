@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package cityhawk.profile.v1;
+
+import "cityhawk/common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "cityhawk/backend/pkg/pb/profile/v1;profilev1";
+
+service ProfileService {
+  rpc GetMe(GetMeRequest) returns (UserProfile) {}
+  rpc UpdateMe(UpdateMeRequest) returns (UserProfile) {}
+  rpc GetUser(GetUserRequest) returns (UserProfile) {}
+}
+
+message ProfileCity {
+  string id = 1;
+  string name = 2;
+  string country_name = 3;
+  string timezone = 4;
+}
+
+message UserProfile {
+  string id = 1;
+  string email = 2;
+  string username = 3;
+  string user_surname = 4;
+  cityhawk.common.v1.UserRole role = 5;
+  optional string birthday = 6;
+  optional string avatar_url = 7;
+  optional ProfileCity city = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message GetMeRequest {
+  cityhawk.common.v1.UserContext context = 1;
+}
+
+message UpdateMeRequest {
+  cityhawk.common.v1.UserContext context = 1;
+  optional string email = 2;
+  optional string username = 3;
+  optional string user_surname = 4;
+  optional string birthday = 5;
+  optional string city_id = 6;
+  optional string avatar_url = 7;
+  bool clear_birthday = 8;
+  bool clear_city_id = 9;
+  bool clear_avatar_url = 10;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+  optional cityhawk.common.v1.UserContext viewer_context = 2;
+}
+

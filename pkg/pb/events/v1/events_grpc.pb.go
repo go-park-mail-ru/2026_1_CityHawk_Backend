@@ -58,9 +58,9 @@ type EventsServiceClient interface {
 	GetCollection(ctx context.Context, in *GetCollectionRequest, opts ...grpc.CallOption) (*CollectionDetails, error)
 	SearchSuggestions(ctx context.Context, in *SearchSuggestionsRequest, opts ...grpc.CallOption) (*SearchSuggestionsResponse, error)
 	SuggestPlaces(ctx context.Context, in *SuggestPlacesRequest, opts ...grpc.CallOption) (*SuggestPlacesResponse, error)
-	ResolvePlace(ctx context.Context, in *ResolvePlaceRequest, opts ...grpc.CallOption) (*v1.Place, error)
-	CreatePlace(ctx context.Context, in *CreatePlaceRequest, opts ...grpc.CallOption) (*v1.Place, error)
-	UpdatePlace(ctx context.Context, in *UpdatePlaceRequest, opts ...grpc.CallOption) (*v1.Place, error)
+	ResolvePlace(ctx context.Context, in *ResolvePlaceRequest, opts ...grpc.CallOption) (*Place, error)
+	CreatePlace(ctx context.Context, in *CreatePlaceRequest, opts ...grpc.CallOption) (*Place, error)
+	UpdatePlace(ctx context.Context, in *UpdatePlaceRequest, opts ...grpc.CallOption) (*Place, error)
 	GenerateCollectionDraft(ctx context.Context, in *GenerateCollectionDraftRequest, opts ...grpc.CallOption) (*GenerateCollectionDraftResponse, error)
 }
 
@@ -212,9 +212,9 @@ func (c *eventsServiceClient) SuggestPlaces(ctx context.Context, in *SuggestPlac
 	return out, nil
 }
 
-func (c *eventsServiceClient) ResolvePlace(ctx context.Context, in *ResolvePlaceRequest, opts ...grpc.CallOption) (*v1.Place, error) {
+func (c *eventsServiceClient) ResolvePlace(ctx context.Context, in *ResolvePlaceRequest, opts ...grpc.CallOption) (*Place, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v1.Place)
+	out := new(Place)
 	err := c.cc.Invoke(ctx, EventsService_ResolvePlace_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -222,9 +222,9 @@ func (c *eventsServiceClient) ResolvePlace(ctx context.Context, in *ResolvePlace
 	return out, nil
 }
 
-func (c *eventsServiceClient) CreatePlace(ctx context.Context, in *CreatePlaceRequest, opts ...grpc.CallOption) (*v1.Place, error) {
+func (c *eventsServiceClient) CreatePlace(ctx context.Context, in *CreatePlaceRequest, opts ...grpc.CallOption) (*Place, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v1.Place)
+	out := new(Place)
 	err := c.cc.Invoke(ctx, EventsService_CreatePlace_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -232,9 +232,9 @@ func (c *eventsServiceClient) CreatePlace(ctx context.Context, in *CreatePlaceRe
 	return out, nil
 }
 
-func (c *eventsServiceClient) UpdatePlace(ctx context.Context, in *UpdatePlaceRequest, opts ...grpc.CallOption) (*v1.Place, error) {
+func (c *eventsServiceClient) UpdatePlace(ctx context.Context, in *UpdatePlaceRequest, opts ...grpc.CallOption) (*Place, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v1.Place)
+	out := new(Place)
 	err := c.cc.Invoke(ctx, EventsService_UpdatePlace_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -270,9 +270,9 @@ type EventsServiceServer interface {
 	GetCollection(context.Context, *GetCollectionRequest) (*CollectionDetails, error)
 	SearchSuggestions(context.Context, *SearchSuggestionsRequest) (*SearchSuggestionsResponse, error)
 	SuggestPlaces(context.Context, *SuggestPlacesRequest) (*SuggestPlacesResponse, error)
-	ResolvePlace(context.Context, *ResolvePlaceRequest) (*v1.Place, error)
-	CreatePlace(context.Context, *CreatePlaceRequest) (*v1.Place, error)
-	UpdatePlace(context.Context, *UpdatePlaceRequest) (*v1.Place, error)
+	ResolvePlace(context.Context, *ResolvePlaceRequest) (*Place, error)
+	CreatePlace(context.Context, *CreatePlaceRequest) (*Place, error)
+	UpdatePlace(context.Context, *UpdatePlaceRequest) (*Place, error)
 	GenerateCollectionDraft(context.Context, *GenerateCollectionDraftRequest) (*GenerateCollectionDraftResponse, error)
 	mustEmbedUnimplementedEventsServiceServer()
 }
@@ -326,13 +326,13 @@ func (UnimplementedEventsServiceServer) SearchSuggestions(context.Context, *Sear
 func (UnimplementedEventsServiceServer) SuggestPlaces(context.Context, *SuggestPlacesRequest) (*SuggestPlacesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SuggestPlaces not implemented")
 }
-func (UnimplementedEventsServiceServer) ResolvePlace(context.Context, *ResolvePlaceRequest) (*v1.Place, error) {
+func (UnimplementedEventsServiceServer) ResolvePlace(context.Context, *ResolvePlaceRequest) (*Place, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResolvePlace not implemented")
 }
-func (UnimplementedEventsServiceServer) CreatePlace(context.Context, *CreatePlaceRequest) (*v1.Place, error) {
+func (UnimplementedEventsServiceServer) CreatePlace(context.Context, *CreatePlaceRequest) (*Place, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreatePlace not implemented")
 }
-func (UnimplementedEventsServiceServer) UpdatePlace(context.Context, *UpdatePlaceRequest) (*v1.Place, error) {
+func (UnimplementedEventsServiceServer) UpdatePlace(context.Context, *UpdatePlaceRequest) (*Place, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdatePlace not implemented")
 }
 func (UnimplementedEventsServiceServer) GenerateCollectionDraft(context.Context, *GenerateCollectionDraftRequest) (*GenerateCollectionDraftResponse, error) {

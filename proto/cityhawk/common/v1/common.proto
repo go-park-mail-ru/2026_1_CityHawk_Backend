@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package cityhawk.common.v1;
 
-import "google/protobuf/timestamp.proto";
-
 option go_package = "cityhawk/backend/pkg/pb/common/v1;commonv1";
 
 enum UserRole {
@@ -36,41 +34,3 @@ message IDRequest {
 message BoolResponse {
   bool ok = 1;
 }
-
-message City {
-  string id = 1;
-  string name = 2;
-  string country_name = 3;
-  string timezone = 4;
-}
-
-message Coordinates {
-  double latitude = 1;
-  double longitude = 2;
-}
-
-message Place {
-  string id = 1;
-  string city_id = 2;
-  string name = 3;
-  string address_line = 4;
-  Coordinates coordinates = 5;
-  string description = 6;
-  City city = 7;
-  google.protobuf.Timestamp created_at = 8;
-  google.protobuf.Timestamp updated_at = 9;
-}
-
-message TaxonomyItem {
-  string id = 1;
-  string name = 2;
-  string slug = 3;
-}
-
-message UserSummary {
-  string id = 1;
-  string username = 2;
-  optional string avatar_url = 3;
-  optional bool is_following = 4;
-}
-

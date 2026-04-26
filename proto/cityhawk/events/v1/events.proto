@@ -22,16 +22,46 @@ service EventsService {
   rpc GetCollection(GetCollectionRequest) returns (CollectionDetails) {}
   rpc SearchSuggestions(SearchSuggestionsRequest) returns (SearchSuggestionsResponse) {}
   rpc SuggestPlaces(SuggestPlacesRequest) returns (SuggestPlacesResponse) {}
-  rpc ResolvePlace(ResolvePlaceRequest) returns (cityhawk.common.v1.Place) {}
-  rpc CreatePlace(CreatePlaceRequest) returns (cityhawk.common.v1.Place) {}
-  rpc UpdatePlace(UpdatePlaceRequest) returns (cityhawk.common.v1.Place) {}
+  rpc ResolvePlace(ResolvePlaceRequest) returns (Place) {}
+  rpc CreatePlace(CreatePlaceRequest) returns (Place) {}
+  rpc UpdatePlace(UpdatePlaceRequest) returns (Place) {}
   rpc GenerateCollectionDraft(GenerateCollectionDraftRequest) returns (GenerateCollectionDraftResponse) {}
+}
+
+message Coordinates {
+  double latitude = 1;
+  double longitude = 2;
+}
+
+message City {
+  string id = 1;
+  string name = 2;
+  string country_name = 3;
+  string timezone = 4;
+}
+
+message Place {
+  string id = 1;
+  string city_id = 2;
+  string name = 3;
+  string address_line = 4;
+  Coordinates coordinates = 5;
+  string description = 6;
+  City city = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message TaxonomyItem {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
 }
 
 message EventCardNextSessionPlace {
   string name = 1;
   string address_line = 2;
-  cityhawk.common.v1.Coordinates coordinates = 3;
+  Coordinates coordinates = 3;
 }
 
 message EventCardNextSession {
@@ -44,7 +74,7 @@ message EventCard {
   string title = 2;
   string short_description = 3;
   string cover_image_url = 4;
-  repeated cityhawk.common.v1.TaxonomyItem tags = 5;
+  repeated TaxonomyItem tags = 5;
   optional EventCardNextSession next_session = 6;
   bool is_favorite = 7;
   optional double distance_km = 8;
@@ -67,7 +97,7 @@ message EventSession {
   google.protobuf.Timestamp start_at = 2;
   google.protobuf.Timestamp end_at = 3;
   int32 price = 4;
-  cityhawk.common.v1.Place place = 5;
+  Place place = 5;
 }
 
 message EventDetails {
@@ -78,8 +108,8 @@ message EventDetails {
   int32 age_limit = 5;
   optional string source_url = 6;
   EventAuthor author = 7;
-  repeated cityhawk.common.v1.TaxonomyItem categories = 8;
-  repeated cityhawk.common.v1.TaxonomyItem tags = 9;
+  repeated TaxonomyItem categories = 8;
+  repeated TaxonomyItem tags = 9;
   repeated EventImage images = 10;
   repeated EventSession sessions = 11;
   google.protobuf.Timestamp created_at = 12;
@@ -105,7 +135,7 @@ message HomeFeaturedEvent {
   string id = 1;
   string title = 2;
   string cover_image_url = 3;
-  repeated cityhawk.common.v1.TaxonomyItem tags = 4;
+  repeated TaxonomyItem tags = 4;
   EventCardNextSession next_session = 5;
 }
 
@@ -118,7 +148,7 @@ message HomeCollection {
 
 message HomeResponse {
   repeated HomeFeaturedEvent featured_events = 1;
-  repeated cityhawk.common.v1.TaxonomyItem categories = 2;
+  repeated TaxonomyItem categories = 2;
   repeated HomeCollection collections = 3;
 }
 
@@ -137,7 +167,7 @@ message ListEventsRequest {
 
 message SearchEventsNearbyRequest {
   optional cityhawk.common.v1.UserContext viewer_context = 1;
-  cityhawk.common.v1.Coordinates center = 2;
+  Coordinates center = 2;
   double radius_km = 3;
   string sort = 4;
   cityhawk.common.v1.PageRequest page = 5;
@@ -156,7 +186,7 @@ message ListEventsResponse {
 message GetEventRequest {
   string event_id = 1;
   optional cityhawk.common.v1.UserContext viewer_context = 2;
-  optional cityhawk.common.v1.Coordinates viewer_location = 3;
+  optional Coordinates viewer_location = 3;
 }
 
 message CreateEventRequest {
@@ -203,13 +233,13 @@ message EventIDResponse {
 message ListTaxonomyRequest {}
 
 message ListTaxonomyResponse {
-  repeated cityhawk.common.v1.TaxonomyItem items = 1;
+  repeated TaxonomyItem items = 1;
 }
 
 message ListCitiesRequest {}
 
 message ListCitiesResponse {
-  repeated cityhawk.common.v1.City items = 1;
+  repeated City items = 1;
 }
 
 message CollectionCard {
@@ -269,7 +299,7 @@ message PlaceSuggestion {
   string city_name = 5;
   string country_name = 6;
   string timezone = 7;
-  cityhawk.common.v1.Coordinates coordinates = 8;
+  Coordinates coordinates = 8;
   string postcode = 9;
   string district = 10;
   PlaceSuggestionSource source = 11;
@@ -294,7 +324,7 @@ message CreatePlaceRequest {
   string city_id = 2;
   string name = 3;
   string address_line = 4;
-  cityhawk.common.v1.Coordinates coordinates = 5;
+  Coordinates coordinates = 5;
   optional string description = 6;
 }
 
@@ -304,7 +334,7 @@ message UpdatePlaceRequest {
   optional string city_id = 3;
   optional string name = 4;
   optional string address_line = 5;
-  optional cityhawk.common.v1.Coordinates coordinates = 6;
+  optional Coordinates coordinates = 6;
   optional string description = 7;
   bool clear_description = 8;
 }
@@ -324,4 +354,3 @@ message GenerateCollectionDraftResponse {
   repeated EventCard events = 3;
   string rationale = 4;
 }
-

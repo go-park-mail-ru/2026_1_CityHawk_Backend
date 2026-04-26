@@ -24,6 +24,7 @@ proto:
 		--go-grpc_out=. --go-grpc_opt=module=cityhawk/backend \
 		proto/cityhawk/common/v1/common.proto \
 		proto/cityhawk/auth/v1/auth.proto \
+		proto/cityhawk/profile/v1/profile.proto \
 		proto/cityhawk/events/v1/events.proto \
 		proto/cityhawk/social/v1/social.proto \
 		proto/cityhawk/support/v1/support.proto
