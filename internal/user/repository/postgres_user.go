@@ -22,11 +22,11 @@ const (
 	insertUserQuery = `
 		INSERT INTO user_account (email, username, user_surname, password_hash, birthday, city_id, avatar_url)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, email, username, user_surname, password_hash, birthday, city_id, avatar_url, created_at, updated_at
+		RETURNING id, email, username, user_surname, password_hash, birthday, city_id, avatar_url, role, created_at, updated_at
 	`
 	getUserByEmailQuery = `
 		SELECT
-			u.id, u.email, u.username, u.user_surname, u.password_hash, u.birthday, u.city_id, u.avatar_url, u.created_at, u.updated_at,
+			u.id, u.email, u.username, u.user_surname, u.password_hash, u.birthday, u.city_id, u.avatar_url, u.role, u.created_at, u.updated_at,
 			c.id, c.name, c.country_name, c.timezone
 		FROM user_account u
 		LEFT JOIN city c ON c.id = u.city_id
@@ -34,7 +34,7 @@ const (
 	`
 	getUserByIDQuery = `
 		SELECT
-			u.id, u.email, u.username, u.user_surname, u.password_hash, u.birthday, u.city_id, u.avatar_url, u.created_at, u.updated_at,
+			u.id, u.email, u.username, u.user_surname, u.password_hash, u.birthday, u.city_id, u.avatar_url, u.role, u.created_at, u.updated_at,
 			c.id, c.name, c.country_name, c.timezone
 		FROM user_account u
 		LEFT JOIN city c ON c.id = u.city_id
@@ -69,6 +69,7 @@ func (r *PostgresUserRepository) Create(ctx context.Context, u usermodel.User) (
 		&persisted.Birthday,
 		&persisted.CityID,
 		&persisted.AvatarURL,
+		&persisted.Role,
 		&persisted.CreatedAt,
 		&persisted.UpdatedAt,
 	)
@@ -206,6 +207,7 @@ func scanUser(row userScanner) (usermodel.User, error) {
 		&birthday,
 		&cityID,
 		&avatarURL,
+		&u.Role,
 		&u.CreatedAt,
 		&u.UpdatedAt,
 		&cityRecordID,
@@ -228,6 +230,9 @@ func scanUser(row userScanner) (usermodel.User, error) {
 	if avatarURL.Valid {
 		v := avatarURL.String
 		u.AvatarURL = &v
+	}
+	if u.Role == "" {
+		u.Role = usermodel.RoleUser
 	}
 	if cityRecordID.Valid {
 		u.City = &usermodel.City{

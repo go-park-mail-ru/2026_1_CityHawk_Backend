@@ -37,14 +37,20 @@ coverage-check:
 db-schema:
 	psql "$(DATABASE_URL)" -f db/migrations/0001_init.up.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0003_search_trgm.up.sql
-	psql "$(DATABASE_URL)" -f db/migrations/0005_media_paths.up.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0004_media_paths.up.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0005_support_tickets.up.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0006_support_ticket_messages.up.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0007_user_roles.up.sql
 
 db-seed:
 	psql "$(DATABASE_URL)" -f db/migrations/0002_seed.up.sql
 
 db-reset:
 	psql "$(DATABASE_URL)" -f db/migrations/0002_seed.down.sql
-	psql "$(DATABASE_URL)" -f db/migrations/0005_media_paths.down.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0007_user_roles.down.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0006_support_ticket_messages.down.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0005_support_tickets.down.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0004_media_paths.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0003_search_trgm.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0001_init.down.sql
 

@@ -22,6 +22,9 @@ import (
 	platformmiddleware "cityhawk/backend/internal/platform/middleware"
 	platformpostgres "cityhawk/backend/internal/platform/postgres"
 	platformsecurity "cityhawk/backend/internal/platform/security"
+	supportdelivery "cityhawk/backend/internal/support/delivery/http"
+	supportrepo "cityhawk/backend/internal/support/repository"
+	supportusecase "cityhawk/backend/internal/support/usecase"
 	userdelivery "cityhawk/backend/internal/user/delivery/http"
 	userrepo "cityhawk/backend/internal/user/repository"
 )
@@ -39,6 +42,8 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	store := userrepo.NewPostgresUserRepository(pool)
 	placeRepo := placerepo.NewPostgresRepository(pool)
 	placeUC := placeusecase.NewService(placeRepo)
+	supportRepo := supportrepo.NewPostgresRepository(pool)
+	supportUC := supportusecase.NewService(supportRepo, store)
 	var placeLookupHandler *placedelivery.PlaceLookupHandler
 	if cfg.Photon.Enabled {
 		photonClient := photonintegration.NewClient(photonintegration.ClientConfig{
@@ -80,6 +85,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		return nil, nil, err
 	}
 	meHandler := userdelivery.NewMeHandler(store, avatarStore)
+	supportHandler := supportdelivery.NewHandler(supportUC)
 	vkOAuthCfg, err := gatewayvk.NewOAuthConfig(cfg.OAuth.VK)
 	if err != nil {
 		log.Printf("vk oauth disabled: %v", err)
@@ -172,6 +178,12 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	mux.HandleFunc("GET /api/collections", placeHandler.Collections)
 	mux.HandleFunc("GET /api/collections/", placeHandler.CollectionByID)
 	mux.HandleFunc("GET /api/search", placeHandler.Search)
+	mux.Handle("GET /api/support/tickets", withAuth(supportHandler.Tickets))
+	mux.Handle("POST /api/support/tickets", withAuthAndCSRF(supportHandler.Tickets))
+	mux.Handle("GET /api/support/tickets/", withAuth(supportHandler.TicketByID))
+	mux.Handle("POST /api/support/tickets/", withAuthAndCSRF(supportHandler.TicketByID))
+	mux.Handle("PATCH /api/support/tickets/", withAuthAndCSRF(supportHandler.TicketByID))
+	mux.Handle("GET /api/support/stats", withAuth(supportHandler.Stats))
 	if placeLookupHandler != nil {
 		mux.HandleFunc("GET /api/place-suggestions", placeLookupHandler.Suggestions)
 		mux.Handle("POST /api/places/resolve", withAuth(placeLookupHandler.Resolve))

@@ -49,6 +49,9 @@ func (r *InMemoryUserRepository) Create(_ context.Context, u usermodel.User) (us
 	if u.UpdatedAt.IsZero() {
 		u.UpdatedAt = u.CreatedAt
 	}
+	if u.Role == "" {
+		u.Role = usermodel.RoleUser
+	}
 	if u.CityID != nil {
 		if city, ok := r.cities[*u.CityID]; ok {
 			copied := city
