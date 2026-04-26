@@ -8,7 +8,7 @@ GO_CACHE_DIR ?= $(CURDIR)/.cache/go-build
 GO_TMP_DIR ?= $(CURDIR)/.cache/gotmp
 DATABASE_URL ?= postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable
 
-.PHONY: test coverage coverage-check clean db-schema db-seed db-reset
+.PHONY: test coverage coverage-check proto clean db-schema db-seed db-reset
 
 define GO_ENV
 export GOCACHE="$(GO_CACHE_DIR)" GOTMPDIR="$(GO_TMP_DIR)" GOTOOLCHAIN="$(TOOLCHAIN)";
@@ -17,6 +17,16 @@ endef
 test:
 	@mkdir -p "$(GO_CACHE_DIR)" "$(GO_TMP_DIR)"
 	@$(GO_ENV) go test ./...
+
+proto:
+	PATH="$$(go env GOPATH)/bin:$$PATH" protoc -I proto \
+		--go_out=. --go_opt=module=cityhawk/backend \
+		--go-grpc_out=. --go-grpc_opt=module=cityhawk/backend \
+		proto/cityhawk/common/v1/common.proto \
+		proto/cityhawk/auth/v1/auth.proto \
+		proto/cityhawk/events/v1/events.proto \
+		proto/cityhawk/social/v1/social.proto \
+		proto/cityhawk/support/v1/support.proto
 
 coverage:
 	@mkdir -p "$(GO_CACHE_DIR)" "$(GO_TMP_DIR)"
