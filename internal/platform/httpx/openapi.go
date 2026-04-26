@@ -20,6 +20,7 @@ tags:
   - name: Search
   - name: Tags
   - name: Collections
+  - name: Support
 paths:
   /api/health:
     get:
@@ -702,6 +703,344 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/support/tickets:
+    get:
+      tags: [Support]
+      summary: List current user's support tickets
+      security:
+        - accessCookie: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [open, in_progress, closed]
+        - in: query
+          name: category
+          schema:
+            type: string
+            enum: [bug, suggestion, product_complaint, other]
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Support tickets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportTicketListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [Support]
+      summary: Create support ticket
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSupportTicketRequest'
+      responses:
+        "201":
+          description: Created support ticket
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportTicket'
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: CSRF token mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/support/tickets/{ticketId}:
+    get:
+      tags: [Support]
+      summary: Get current user's support ticket
+      security:
+        - accessCookie: []
+      parameters:
+        - in: path
+          name: ticketId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Support ticket
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportTicket'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Support ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [Support]
+      summary: Update current user's support ticket
+      security:
+        - accessCookie: []
+      parameters:
+        - in: path
+          name: ticketId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSupportTicketRequest'
+      responses:
+        "200":
+          description: Updated support ticket
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportTicket'
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: CSRF token mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Support ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "409":
+          description: Support ticket is closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/support/tickets/{ticketId}/status:
+    patch:
+      tags: [Support]
+      summary: Update support ticket status
+      security:
+        - accessCookie: []
+      parameters:
+        - in: path
+          name: ticketId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSupportTicketStatusRequest'
+      responses:
+        "200":
+          description: Updated support ticket
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportTicket'
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: Forbidden or CSRF token mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Support ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/support/tickets/{ticketId}/messages:
+    get:
+      tags: [Support]
+      summary: List support ticket messages
+      security:
+        - accessCookie: []
+      parameters:
+        - in: path
+          name: ticketId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Support ticket messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportTicketMessageListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Support ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [Support]
+      summary: Create support ticket message
+      security:
+        - accessCookie: []
+      parameters:
+        - in: path
+          name: ticketId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSupportTicketMessageRequest'
+      responses:
+        "201":
+          description: Created support ticket message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportTicketMessage'
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: CSRF token mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Support ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/support/stats:
+    get:
+      tags: [Support]
+      summary: Get support ticket statistics
+      security:
+        - accessCookie: []
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Support ticket statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportTicketStats'
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     accessCookie:
@@ -800,6 +1139,9 @@ components:
           type: string
         userSurname:
           type: string
+        role:
+          type: string
+          enum: [user, admin]
         birthday:
           type: string
           format: date
@@ -822,6 +1164,9 @@ components:
           type: string
         userSurname:
           type: string
+        role:
+          type: string
+          enum: [user, admin]
         birthday:
           type: string
           format: date
@@ -1257,6 +1602,119 @@ components:
           type: array
           items:
             type: string
+    SupportTicket:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+          enum: [bug, suggestion, product_complaint, other]
+        status:
+          type: string
+          enum: [open, in_progress, closed]
+        title:
+          type: string
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+          nullable: true
+    SupportTicketListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupportTicket'
+        limit:
+          type: integer
+        offset:
+          type: integer
+    CreateSupportTicketRequest:
+      type: object
+      required: [category, title, message]
+      properties:
+        category:
+          type: string
+          enum: [bug, suggestion, product_complaint, other]
+        title:
+          type: string
+        message:
+          type: string
+    UpdateSupportTicketRequest:
+      type: object
+      properties:
+        category:
+          type: string
+          enum: [bug, suggestion, product_complaint, other]
+        title:
+          type: string
+        message:
+          type: string
+    UpdateSupportTicketStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [open, in_progress, closed]
+    SupportTicketMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        ticketId:
+          type: string
+        authorUserId:
+          type: string
+        authorRole:
+          type: string
+          enum: [user, support, admin]
+        body:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    SupportTicketMessageListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupportTicketMessage'
+    CreateSupportTicketMessageRequest:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+    SupportTicketStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        byStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        byCategory:
+          type: object
+          additionalProperties:
+            type: integer
+        openTotal:
+          type: integer
+        inProgressTotal:
+          type: integer
+        closedTotal:
+          type: integer
     HomeTag:
       type: object
       properties:

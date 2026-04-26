@@ -5,6 +5,7 @@ type meResponse struct {
 	Email       string        `json:"email"`
 	Username    string        `json:"username"`
 	UserSurname string        `json:"userSurname"`
+	Role        string        `json:"role"`
 	Birthday    *string       `json:"birthday"`
 	AvatarURL   *string       `json:"avatarUrl"`
 	City        *cityResponse `json:"city"`
@@ -16,6 +17,7 @@ type patchMeResponse struct {
 	Email       string  `json:"email"`
 	Username    string  `json:"username"`
 	UserSurname string  `json:"userSurname"`
+	Role        string  `json:"role"`
 	Birthday    *string `json:"birthday"`
 	AvatarURL   *string `json:"avatarUrl"`
 	UpdatedAt   string  `json:"updatedAt"`
