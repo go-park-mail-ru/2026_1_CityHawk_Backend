@@ -7,6 +7,7 @@ erDiagram
         text username
         text user_surname
         text password_hash
+        text role
         datetime birthday
         uuid city_id FK
         text avatar_url
@@ -213,6 +214,27 @@ erDiagram
         uuid collection_id FK
     }
 
+    SUPPORT_TICKET {
+        uuid id PK
+        uuid user_id FK
+        text category
+        text status
+        text title
+        text message
+        datetime created_at
+        datetime updated_at
+        datetime closed_at
+    }
+
+    SUPPORT_TICKET_MESSAGE {
+        uuid id PK
+        uuid ticket_id FK
+        uuid author_user_id FK
+        text author_role
+        text body
+        datetime created_at
+    }
+
     USER_ACCOUNT }o--|| CITY : "city_id FK"
     REFRESH_SESSION }o--|| USER_ACCOUNT : "user_id FK"
     PLACE }o--|| CITY : "city_id FK"
@@ -263,3 +285,7 @@ erDiagram
     NOTIFICATION_INVITATION }o--|| EVENT_INVITATION : "invitation_id FK"
     NOTIFICATION_COLLECTION ||--|| NOTIFICATION : "notification_id PK, FK"
     NOTIFICATION_COLLECTION }o--|| COLLECTION : "collection_id FK"
+
+    SUPPORT_TICKET }o--|| USER_ACCOUNT : "user_id FK"
+    SUPPORT_TICKET_MESSAGE }o--|| SUPPORT_TICKET : "ticket_id FK"
+    SUPPORT_TICKET_MESSAGE }o--|| USER_ACCOUNT : "author_user_id FK"

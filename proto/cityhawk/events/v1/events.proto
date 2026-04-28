@@ -1,0 +1,356 @@
+syntax = "proto3";
+
+package cityhawk.events.v1;
+
+import "cityhawk/common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "cityhawk/backend/pkg/pb/events/v1;eventsv1";
+
+service EventsService {
+  rpc GetHome(GetHomeRequest) returns (HomeResponse) {}
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse) {}
+  rpc SearchEventsNearby(SearchEventsNearbyRequest) returns (ListEventsResponse) {}
+  rpc GetEvent(GetEventRequest) returns (EventDetails) {}
+  rpc CreateEvent(CreateEventRequest) returns (EventIDResponse) {}
+  rpc UpdateEvent(UpdateEventRequest) returns (EventIDResponse) {}
+  rpc DeleteEvent(DeleteEventRequest) returns (cityhawk.common.v1.BoolResponse) {}
+  rpc ListCategories(ListTaxonomyRequest) returns (ListTaxonomyResponse) {}
+  rpc ListTags(ListTaxonomyRequest) returns (ListTaxonomyResponse) {}
+  rpc ListCities(ListCitiesRequest) returns (ListCitiesResponse) {}
+  rpc ListCollections(ListCollectionsRequest) returns (ListCollectionsResponse) {}
+  rpc GetCollection(GetCollectionRequest) returns (CollectionDetails) {}
+  rpc SearchSuggestions(SearchSuggestionsRequest) returns (SearchSuggestionsResponse) {}
+  rpc SuggestPlaces(SuggestPlacesRequest) returns (SuggestPlacesResponse) {}
+  rpc ResolvePlace(ResolvePlaceRequest) returns (Place) {}
+  rpc CreatePlace(CreatePlaceRequest) returns (Place) {}
+  rpc UpdatePlace(UpdatePlaceRequest) returns (Place) {}
+  rpc GenerateCollectionDraft(GenerateCollectionDraftRequest) returns (GenerateCollectionDraftResponse) {}
+}
+
+message Coordinates {
+  double latitude = 1;
+  double longitude = 2;
+}
+
+message City {
+  string id = 1;
+  string name = 2;
+  string country_name = 3;
+  string timezone = 4;
+}
+
+message Place {
+  string id = 1;
+  string city_id = 2;
+  string name = 3;
+  string address_line = 4;
+  Coordinates coordinates = 5;
+  string description = 6;
+  City city = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message TaxonomyItem {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+}
+
+message EventCardNextSessionPlace {
+  string name = 1;
+  string address_line = 2;
+  Coordinates coordinates = 3;
+}
+
+message EventCardNextSession {
+  google.protobuf.Timestamp start_at = 1;
+  EventCardNextSessionPlace place = 2;
+}
+
+message EventCard {
+  string id = 1;
+  string title = 2;
+  string short_description = 3;
+  string cover_image_url = 4;
+  repeated TaxonomyItem tags = 5;
+  optional EventCardNextSession next_session = 6;
+  bool is_favorite = 7;
+  optional double distance_km = 8;
+}
+
+message EventAuthor {
+  string id = 1;
+  string username = 2;
+  optional string avatar_url = 3;
+  bool is_following = 4;
+}
+
+message EventImage {
+  string id = 1;
+  string image_url = 2;
+}
+
+message EventSession {
+  string id = 1;
+  google.protobuf.Timestamp start_at = 2;
+  google.protobuf.Timestamp end_at = 3;
+  int32 price = 4;
+  Place place = 5;
+}
+
+message EventDetails {
+  string id = 1;
+  string title = 2;
+  string short_description = 3;
+  string full_description = 4;
+  int32 age_limit = 5;
+  optional string source_url = 6;
+  EventAuthor author = 7;
+  repeated TaxonomyItem categories = 8;
+  repeated TaxonomyItem tags = 9;
+  repeated EventImage images = 10;
+  repeated EventSession sessions = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+  bool is_favorite = 14;
+  bool is_owner = 15;
+  optional double distance_km = 16;
+}
+
+message EventSessionInput {
+  string place_id = 1;
+  google.protobuf.Timestamp start_at = 2;
+  google.protobuf.Timestamp end_at = 3;
+  int32 price = 4;
+}
+
+message GetHomeRequest {
+  optional string city = 1;
+  int32 limit = 2;
+}
+
+message HomeFeaturedEvent {
+  string id = 1;
+  string title = 2;
+  string cover_image_url = 3;
+  repeated TaxonomyItem tags = 4;
+  EventCardNextSession next_session = 5;
+}
+
+message HomeCollection {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string image_url = 4;
+}
+
+message HomeResponse {
+  repeated HomeFeaturedEvent featured_events = 1;
+  repeated TaxonomyItem categories = 2;
+  repeated HomeCollection collections = 3;
+}
+
+message ListEventsRequest {
+  optional cityhawk.common.v1.UserContext viewer_context = 1;
+  optional string query = 2;
+  optional string category_id = 3;
+  optional string tag_id = 4;
+  optional string city_id = 5;
+  optional google.protobuf.Timestamp date_from = 6;
+  optional google.protobuf.Timestamp date_to = 7;
+  optional string author_user_id = 8;
+  string sort = 9;
+  cityhawk.common.v1.PageRequest page = 10;
+}
+
+message SearchEventsNearbyRequest {
+  optional cityhawk.common.v1.UserContext viewer_context = 1;
+  Coordinates center = 2;
+  double radius_km = 3;
+  string sort = 4;
+  cityhawk.common.v1.PageRequest page = 5;
+  optional string query = 6;
+  optional string category_id = 7;
+  optional string tag_id = 8;
+  optional google.protobuf.Timestamp date_from = 9;
+  optional google.protobuf.Timestamp date_to = 10;
+}
+
+message ListEventsResponse {
+  repeated EventCard items = 1;
+  cityhawk.common.v1.PageResponse page = 2;
+}
+
+message GetEventRequest {
+  string event_id = 1;
+  optional cityhawk.common.v1.UserContext viewer_context = 2;
+  optional Coordinates viewer_location = 3;
+}
+
+message CreateEventRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string title = 2;
+  string short_description = 3;
+  string full_description = 4;
+  int32 age_limit = 5;
+  optional string source_url = 6;
+  repeated string category_ids = 7;
+  repeated string tag_ids = 8;
+  repeated string image_urls = 9;
+  repeated EventSessionInput sessions = 10;
+}
+
+message UpdateEventRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string event_id = 2;
+  optional string title = 3;
+  optional string short_description = 4;
+  optional string full_description = 5;
+  optional int32 age_limit = 6;
+  optional string source_url = 7;
+  bool clear_source_url = 8;
+  repeated string category_ids = 9;
+  bool replace_category_ids = 10;
+  repeated string tag_ids = 11;
+  bool replace_tag_ids = 12;
+  repeated string image_urls = 13;
+  bool replace_image_urls = 14;
+  repeated EventSessionInput sessions = 15;
+  bool replace_sessions = 16;
+}
+
+message DeleteEventRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string event_id = 2;
+}
+
+message EventIDResponse {
+  string id = 1;
+}
+
+message ListTaxonomyRequest {}
+
+message ListTaxonomyResponse {
+  repeated TaxonomyItem items = 1;
+}
+
+message ListCitiesRequest {}
+
+message ListCitiesResponse {
+  repeated City items = 1;
+}
+
+message CollectionCard {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string image_url = 4;
+  bool is_public = 5;
+}
+
+message ListCollectionsRequest {
+  optional cityhawk.common.v1.UserContext viewer_context = 1;
+  cityhawk.common.v1.PageRequest page = 2;
+}
+
+message ListCollectionsResponse {
+  repeated CollectionCard items = 1;
+  cityhawk.common.v1.PageResponse page = 2;
+}
+
+message GetCollectionRequest {
+  string collection_id = 1;
+  optional cityhawk.common.v1.UserContext viewer_context = 2;
+}
+
+message CollectionDetails {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string image_url = 4;
+  bool is_public = 5;
+  repeated EventCard events = 6;
+}
+
+message SearchSuggestionsRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+message SearchSuggestionsResponse {
+  repeated string items = 1;
+}
+
+message PlaceSuggestionSource {
+  string provider = 1;
+  int64 osm_id = 2;
+  string osm_type = 3;
+  string osm_key = 4;
+  string osm_value = 5;
+}
+
+message PlaceSuggestion {
+  string token = 1;
+  string label = 2;
+  string name = 3;
+  string address_line = 4;
+  string city_name = 5;
+  string country_name = 6;
+  string timezone = 7;
+  Coordinates coordinates = 8;
+  string postcode = 9;
+  string district = 10;
+  PlaceSuggestionSource source = 11;
+}
+
+message SuggestPlacesRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+message SuggestPlacesResponse {
+  repeated PlaceSuggestion items = 1;
+}
+
+message ResolvePlaceRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string token = 2;
+}
+
+message CreatePlaceRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string city_id = 2;
+  string name = 3;
+  string address_line = 4;
+  Coordinates coordinates = 5;
+  optional string description = 6;
+}
+
+message UpdatePlaceRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string place_id = 2;
+  optional string city_id = 3;
+  optional string name = 4;
+  optional string address_line = 5;
+  optional Coordinates coordinates = 6;
+  optional string description = 7;
+  bool clear_description = 8;
+}
+
+message GenerateCollectionDraftRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string prompt = 2;
+  optional string city_id = 3;
+  repeated string preferred_category_ids = 4;
+  repeated string preferred_tag_ids = 5;
+  int32 event_limit = 6;
+}
+
+message GenerateCollectionDraftResponse {
+  string title = 1;
+  string description = 2;
+  repeated EventCard events = 3;
+  string rationale = 4;
+}

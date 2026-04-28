@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package cityhawk.support.v1;
+
+import "cityhawk/common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "cityhawk/backend/pkg/pb/support/v1;supportv1";
+
+enum TicketCategory {
+  TICKET_CATEGORY_UNSPECIFIED = 0;
+  TICKET_CATEGORY_BUG = 1;
+  TICKET_CATEGORY_SUGGESTION = 2;
+  TICKET_CATEGORY_PRODUCT_COMPLAINT = 3;
+  TICKET_CATEGORY_OTHER = 4;
+}
+
+enum TicketStatus {
+  TICKET_STATUS_UNSPECIFIED = 0;
+  TICKET_STATUS_OPEN = 1;
+  TICKET_STATUS_IN_PROGRESS = 2;
+  TICKET_STATUS_CLOSED = 3;
+}
+
+enum MessageAuthorRole {
+  MESSAGE_AUTHOR_ROLE_UNSPECIFIED = 0;
+  MESSAGE_AUTHOR_ROLE_USER = 1;
+  MESSAGE_AUTHOR_ROLE_SUPPORT = 2;
+  MESSAGE_AUTHOR_ROLE_ADMIN = 3;
+}
+
+service SupportService {
+  rpc CreateTicket(CreateTicketRequest) returns (Ticket) {}
+  rpc ListTickets(ListTicketsRequest) returns (ListTicketsResponse) {}
+  rpc GetTicket(GetTicketRequest) returns (Ticket) {}
+  rpc UpdateTicket(UpdateTicketRequest) returns (Ticket) {}
+  rpc UpdateTicketStatus(UpdateTicketStatusRequest) returns (Ticket) {}
+  rpc CreateTicketMessage(CreateTicketMessageRequest) returns (TicketMessage) {}
+  rpc ListTicketMessages(ListTicketMessagesRequest) returns (ListTicketMessagesResponse) {}
+  rpc GetTicketStats(GetTicketStatsRequest) returns (TicketStats) {}
+}
+
+message Ticket {
+  string id = 1;
+  string user_id = 2;
+  TicketCategory category = 3;
+  TicketStatus status = 4;
+  string title = 5;
+  string message = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  optional google.protobuf.Timestamp closed_at = 9;
+}
+
+message TicketMessage {
+  string id = 1;
+  string ticket_id = 2;
+  string author_user_id = 3;
+  MessageAuthorRole author_role = 4;
+  string body = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message CreateTicketRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  TicketCategory category = 2;
+  string title = 3;
+  string message = 4;
+}
+
+message ListTicketsRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  optional TicketStatus status = 2;
+  optional TicketCategory category = 3;
+  cityhawk.common.v1.PageRequest page = 4;
+}
+
+message ListTicketsResponse {
+  repeated Ticket items = 1;
+  cityhawk.common.v1.PageResponse page = 2;
+}
+
+message GetTicketRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string ticket_id = 2;
+}
+
+message UpdateTicketRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string ticket_id = 2;
+  optional TicketCategory category = 3;
+  optional string title = 4;
+  optional string message = 5;
+}
+
+message UpdateTicketStatusRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string ticket_id = 2;
+  TicketStatus status = 3;
+}
+
+message CreateTicketMessageRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string ticket_id = 2;
+  string body = 3;
+}
+
+message ListTicketMessagesRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string ticket_id = 2;
+}
+
+message ListTicketMessagesResponse {
+  repeated TicketMessage items = 1;
+}
+
+message GetTicketStatsRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  optional google.protobuf.Timestamp from = 2;
+  optional google.protobuf.Timestamp to = 3;
+}
+
+message TicketStats {
+  int32 total = 1;
+  map<string, int32> by_status = 2;
+  map<string, int32> by_category = 3;
+  int32 open_total = 4;
+  int32 in_progress_total = 5;
+  int32 closed_total = 6;
+}

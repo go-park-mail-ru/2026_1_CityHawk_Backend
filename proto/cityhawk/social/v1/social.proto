@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package cityhawk.social.v1;
+
+import "cityhawk/common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "cityhawk/backend/pkg/pb/social/v1;socialv1";
+
+service SocialService {
+  rpc AddFavorite(AddFavoriteRequest) returns (cityhawk.common.v1.BoolResponse) {}
+  rpc RemoveFavorite(RemoveFavoriteRequest) returns (cityhawk.common.v1.BoolResponse) {}
+  rpc ListFavoriteEvents(ListFavoriteEventsRequest) returns (ListFavoriteEventsResponse) {}
+  rpc IsFavorite(IsFavoriteRequest) returns (IsFavoriteResponse) {}
+  rpc FollowUser(FollowUserRequest) returns (cityhawk.common.v1.BoolResponse) {}
+  rpc UnfollowUser(UnfollowUserRequest) returns (cityhawk.common.v1.BoolResponse) {}
+  rpc ListFollowers(ListFollowersRequest) returns (ListUsersResponse) {}
+  rpc ListFollowing(ListFollowingRequest) returns (ListUsersResponse) {}
+  rpc IsFollowing(IsFollowingRequest) returns (IsFollowingResponse) {}
+  rpc GetSocialFlags(GetSocialFlagsRequest) returns (SocialFlagsResponse) {}
+}
+
+message AddFavoriteRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string event_id = 2;
+}
+
+message RemoveFavoriteRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string event_id = 2;
+}
+
+message ListFavoriteEventsRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  cityhawk.common.v1.PageRequest page = 2;
+}
+
+message ListFavoriteEventsResponse {
+  repeated FavoriteEvent items = 1;
+  cityhawk.common.v1.PageResponse page = 2;
+}
+
+message FavoriteEvent {
+  string event_id = 1;
+  google.protobuf.Timestamp created_at = 2;
+}
+
+message IsFavoriteRequest {
+  string user_id = 1;
+  string event_id = 2;
+}
+
+message IsFavoriteResponse {
+  bool is_favorite = 1;
+}
+
+message FollowUserRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string followed_user_id = 2;
+}
+
+message UnfollowUserRequest {
+  cityhawk.common.v1.UserContext actor = 1;
+  string followed_user_id = 2;
+}
+
+message ListFollowersRequest {
+  string user_id = 1;
+  optional cityhawk.common.v1.UserContext viewer_context = 2;
+  cityhawk.common.v1.PageRequest page = 3;
+}
+
+message ListFollowingRequest {
+  string user_id = 1;
+  optional cityhawk.common.v1.UserContext viewer_context = 2;
+  cityhawk.common.v1.PageRequest page = 3;
+}
+
+message ListUsersResponse {
+  repeated UserFollow items = 1;
+  cityhawk.common.v1.PageResponse page = 2;
+}
+
+message UserFollow {
+  string user_id = 1;
+  bool is_following = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+message IsFollowingRequest {
+  string follower_user_id = 1;
+  string followed_user_id = 2;
+}
+
+message IsFollowingResponse {
+  bool is_following = 1;
+}
+
+message GetSocialFlagsRequest {
+  optional cityhawk.common.v1.UserContext viewer_context = 1;
+  repeated string event_ids = 2;
+  repeated string author_user_ids = 3;
+}
+
+message EventFavoriteFlag {
+  string event_id = 1;
+  bool is_favorite = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+message UserFollowingFlag {
+  string user_id = 1;
+  bool is_following = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+message SocialFlagsResponse {
+  repeated EventFavoriteFlag favorite_events = 1;
+  repeated UserFollowingFlag following_users = 2;
+}

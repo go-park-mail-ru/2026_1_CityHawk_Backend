@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package cityhawk.auth.v1;
+
+import "cityhawk/common/v1/common.proto";
+
+option go_package = "cityhawk/backend/pkg/pb/auth/v1;authv1";
+
+enum OAuthProvider {
+  OAUTH_PROVIDER_UNSPECIFIED = 0;
+  OAUTH_PROVIDER_GOOGLE = 1;
+  OAUTH_PROVIDER_YANDEX = 2;
+  OAUTH_PROVIDER_VK = 3;
+}
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (SessionResponse) {}
+  rpc Login(LoginRequest) returns (SessionResponse) {}
+  rpc OAuthLogin(OAuthLoginRequest) returns (SessionResponse) {}
+  rpc Refresh(RefreshRequest) returns (SessionResponse) {}
+  rpc Logout(LogoutRequest) returns (cityhawk.common.v1.BoolResponse) {}
+  rpc ValidateAccessToken(ValidateAccessTokenRequest) returns (ValidateAccessTokenResponse) {}
+}
+
+message TokenPair {
+  string access_token = 1;
+  string refresh_token = 2;
+  string csrf_token = 3;
+  int64 expires_in = 4;
+}
+
+message RegisterRequest {
+  string email = 1;
+  string username = 2;
+  string user_surname = 3;
+  string password = 4;
+  optional string birthday = 5;
+  optional string city_id = 6;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message OAuthLoginRequest {
+  OAuthProvider provider = 1;
+  string code = 2;
+  string redirect_uri = 3;
+  optional string state = 4;
+}
+
+message RefreshRequest {
+  string refresh_token = 1;
+  string csrf_token = 2;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
+}
+
+message SessionResponse {
+  string user_id = 1;
+  string email = 2;
+  string username = 3;
+  cityhawk.common.v1.UserRole role = 4;
+  TokenPair tokens = 5;
+}
+
+message ValidateAccessTokenRequest {
+  string access_token = 1;
+}
+
+message ValidateAccessTokenResponse {
+  bool valid = 1;
+  cityhawk.common.v1.UserContext context = 2;
+}

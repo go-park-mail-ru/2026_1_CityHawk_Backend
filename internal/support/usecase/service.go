@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"maps"
 	"strings"
 
 	supportmodel "cityhawk/backend/internal/support/model"
@@ -331,7 +332,5 @@ func validateText(field string, value string, min int, max int) map[string]strin
 }
 
 func addValidation(target map[string]string, details map[string]string) {
-	for key, value := range details {
-		target[key] = value
-	}
+	maps.Copy(target, details)
 }
