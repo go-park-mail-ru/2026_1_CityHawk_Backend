@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 
 	platformerrors "cityhawk/backend/internal/platform/errors"
 	socialmodel "cityhawk/backend/internal/social/model"
@@ -24,14 +25,24 @@ func (r *PostgresRepository) AddFavorite(ctx context.Context, userID, eventID st
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO favorite_event (user_id, event_id)
 		VALUES ($1, $2)
-		ON CONFLICT DO NOTHING
 	`, userID, eventID)
 	return mapPgError(err)
 }
 
 func (r *PostgresRepository) RemoveFavorite(ctx context.Context, userID, eventID string) error {
-	_, err := r.pool.Exec(ctx, `DELETE FROM favorite_event WHERE user_id = $1 AND event_id = $2`, userID, eventID)
-	return err
+	tag, err := r.pool.Exec(ctx, `DELETE FROM favorite_event WHERE user_id = $1 AND event_id = $2`, userID, eventID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() > 0 {
+		return nil
+	}
+	if ok, err := r.eventExists(ctx, eventID); err != nil {
+		return err
+	} else if !ok {
+		return platformerrors.ErrInvalidReference
+	}
+	return nil
 }
 
 func (r *PostgresRepository) ListFavoriteEvents(ctx context.Context, userID string, limit, offset int) ([]socialmodel.FavoriteEvent, error) {
@@ -56,6 +67,12 @@ func (r *PostgresRepository) ListFavoriteEvents(ctx context.Context, userID stri
 		items = append(items, item)
 	}
 	return items, rows.Err()
+}
+
+func (r *PostgresRepository) CountFavoriteEvents(ctx context.Context, userID string) (int, error) {
+	var total int
+	err := r.pool.QueryRow(ctx, `SELECT count(*) FROM favorite_event WHERE user_id = $1`, userID).Scan(&total)
+	return total, err
 }
 
 func (r *PostgresRepository) IsFavorite(ctx context.Context, userID, eventID string) (socialmodel.FavoriteFlag, error) {
@@ -83,14 +100,24 @@ func (r *PostgresRepository) FollowUser(ctx context.Context, followerUserID, fol
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO user_follow (follower_user_id, followed_user_id)
 		VALUES ($1, $2)
-		ON CONFLICT DO NOTHING
 	`, followerUserID, followedUserID)
 	return mapPgError(err)
 }
 
 func (r *PostgresRepository) UnfollowUser(ctx context.Context, followerUserID, followedUserID string) error {
-	_, err := r.pool.Exec(ctx, `DELETE FROM user_follow WHERE follower_user_id = $1 AND followed_user_id = $2`, followerUserID, followedUserID)
-	return err
+	tag, err := r.pool.Exec(ctx, `DELETE FROM user_follow WHERE follower_user_id = $1 AND followed_user_id = $2`, followerUserID, followedUserID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() > 0 {
+		return nil
+	}
+	if ok, err := r.userExists(ctx, followedUserID); err != nil {
+		return err
+	} else if !ok {
+		return platformerrors.ErrInvalidReference
+	}
+	return nil
 }
 
 func (r *PostgresRepository) ListFollowers(ctx context.Context, userID string, limit, offset int) ([]socialmodel.UserFollow, error) {
@@ -113,6 +140,28 @@ func (r *PostgresRepository) ListFollowing(ctx context.Context, userID string, l
 		LIMIT $2 OFFSET $3
 	`, userID, limit, offset)
 	return scanUserFollows(rows, err)
+}
+
+func (r *PostgresRepository) ListFollowerProfiles(ctx context.Context, userID, viewerID string, limit, offset int) ([]socialmodel.UserProfile, int, error) {
+	return r.listProfiles(ctx, viewerID, `
+		FROM user_follow uf
+		JOIN user_account u ON u.id = uf.follower_user_id
+		LEFT JOIN city c ON c.id = u.city_id
+		WHERE uf.followed_user_id = $1
+		ORDER BY uf.created_at DESC
+		LIMIT $3 OFFSET $4
+	`, userID, limit, offset)
+}
+
+func (r *PostgresRepository) ListFollowingProfiles(ctx context.Context, userID, viewerID string, limit, offset int) ([]socialmodel.UserProfile, int, error) {
+	return r.listProfiles(ctx, viewerID, `
+		FROM user_follow uf
+		JOIN user_account u ON u.id = uf.followed_user_id
+		LEFT JOIN city c ON c.id = u.city_id
+		WHERE uf.follower_user_id = $1
+		ORDER BY uf.created_at DESC
+		LIMIT $3 OFFSET $4
+	`, userID, limit, offset)
 }
 
 func (r *PostgresRepository) IsFollowing(ctx context.Context, followerUserID, followedUserID string) (socialmodel.FollowingFlag, error) {
@@ -174,6 +223,129 @@ func (r *PostgresRepository) FollowingFlags(ctx context.Context, followerUserID 
 	return flags, nil
 }
 
+func (r *PostgresRepository) UserCollections(ctx context.Context, userID string, limit, offset int) ([]socialmodel.CollectionCard, int, error) {
+	rows, err := r.pool.Query(ctx, `
+		WITH first_image AS (
+			SELECT DISTINCT ON (ci.collection_id)
+				ci.collection_id,
+				ci.image_url
+			FROM collection_image ci
+			ORDER BY ci.collection_id, ci.created_at ASC, ci.id ASC
+		)
+		SELECT
+			c.id::text,
+			c.title,
+			COALESCE(c.description, ''),
+			COALESCE(fi.image_url, ''),
+			c.is_public,
+			count(*) OVER() AS total_count
+		FROM collection c
+		LEFT JOIN first_image fi ON fi.collection_id = c.id
+		WHERE c.author_user_id = $1
+		ORDER BY c.created_at DESC, c.id ASC
+		LIMIT $2 OFFSET $3
+	`, userID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	items := make([]socialmodel.CollectionCard, 0)
+	total := 0
+	for rows.Next() {
+		var item socialmodel.CollectionCard
+		if err := rows.Scan(&item.ID, &item.Title, &item.Description, &item.ImageURL, &item.IsPublic, &total); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, item)
+	}
+	return items, total, rows.Err()
+}
+
+func (r *PostgresRepository) listProfiles(ctx context.Context, viewerID, fromSQL string, subjectUserID string, limit, offset int) ([]socialmodel.UserProfile, int, error) {
+	query := `
+		SELECT
+			u.id::text,
+			u.username,
+			u.user_surname,
+			u.avatar_url,
+			c.id::text,
+			c.name,
+			c.country_name,
+			c.timezone,
+			EXISTS (
+				SELECT 1
+				FROM user_follow vf
+				WHERE vf.follower_user_id = $2
+					AND vf.followed_user_id = u.id
+			) AS is_following,
+			count(*) OVER() AS total_count
+	` + fromSQL
+	rows, err := r.pool.Query(ctx, query, subjectUserID, nullableUUID(viewerID), limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	items := make([]socialmodel.UserProfile, 0)
+	total := 0
+	for rows.Next() {
+		var item socialmodel.UserProfile
+		var avatarURL sql.NullString
+		var cityID sql.NullString
+		var cityName sql.NullString
+		var countryName sql.NullString
+		var timezone sql.NullString
+		if err := rows.Scan(
+			&item.ID,
+			&item.Username,
+			&item.UserSurname,
+			&avatarURL,
+			&cityID,
+			&cityName,
+			&countryName,
+			&timezone,
+			&item.IsFollowing,
+			&total,
+		); err != nil {
+			return nil, 0, err
+		}
+		if avatarURL.Valid {
+			value := avatarURL.String
+			item.AvatarURL = &value
+		}
+		if cityID.Valid {
+			item.City = &socialmodel.City{
+				ID:          cityID.String,
+				Name:        cityName.String,
+				CountryName: countryName.String,
+				Timezone:    timezone.String,
+			}
+		}
+		items = append(items, item)
+	}
+	return items, total, rows.Err()
+}
+
+func nullableUUID(value string) any {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return value
+}
+
+func (r *PostgresRepository) eventExists(ctx context.Context, eventID string) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM event WHERE id::text = $1)`, eventID).Scan(&exists)
+	return exists, err
+}
+
+func (r *PostgresRepository) userExists(ctx context.Context, userID string) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM user_account WHERE id::text = $1)`, userID).Scan(&exists)
+	return exists, err
+}
+
 func scanUserFollows(rows pgx.Rows, err error) ([]socialmodel.UserFollow, error) {
 	if err != nil {
 		return nil, err
@@ -198,6 +370,8 @@ func mapPgError(err error) error {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
+		case "23505":
+			return platformerrors.ErrAlreadyExists
 		case "23503":
 			return platformerrors.ErrInvalidReference
 		case "23514":

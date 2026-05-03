@@ -25,6 +25,8 @@ type EventCardView struct {
 	CoverImageURL    string
 	Tags             []EventTaxonomyItem
 	NextSession      *EventCardNextSession
+	IsFavorite       bool
+	Popularity       int
 }
 
 type EventAuthorView struct {
@@ -81,17 +83,18 @@ type EventDetailsView struct {
 }
 
 type EventListFilter struct {
-	Query      string
-	CategoryID string
-	TagID      string
-	CityID     string
-	DateFrom   *time.Time
-	DateTo     *time.Time
-	AuthorID   string
-	Sort       string
-	Limit      int
-	Offset     int
-	UserID     string
+	Query        string
+	CategoryID   string
+	TagID        string
+	CityID       string
+	DateFrom     *time.Time
+	DateTo       *time.Time
+	AuthorID     string
+	CollectionID string
+	Sort         string
+	Limit        int
+	Offset       int
+	UserID       string
 }
 
 type HomeFilter struct {
@@ -175,7 +178,9 @@ type CollectionDetailsView struct {
 }
 
 type SearchSuggestion struct {
-	Name string
+	ID    string
+	Type  string
+	Label string
 }
 
 type HomePayload struct {

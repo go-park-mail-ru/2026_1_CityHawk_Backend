@@ -161,9 +161,13 @@ func toCollectionDetailsResponse(item placemodel.CollectionDetailsView) collecti
 }
 
 func toSearchSuggestionsResponse(items []placemodel.SearchSuggestion) searchSuggestionsResponse {
-	respItems := make([]string, 0, len(items))
+	respItems := make([]searchSuggestionResponse, 0, len(items))
 	for _, item := range items {
-		respItems = append(respItems, safety.EscapeText(item.Name))
+		respItems = append(respItems, searchSuggestionResponse{
+			ID:    item.ID,
+			Type:  item.Type,
+			Label: safety.EscapeText(item.Label),
+		})
 	}
 	return searchSuggestionsResponse{Items: respItems}
 }
@@ -247,6 +251,7 @@ func toEventCardResponse(item placemodel.EventCardView) eventCardResponse {
 		Title:            safety.EscapeText(item.Title),
 		ShortDescription: safety.EscapeText(item.ShortDescription),
 		CoverImageURL:    media.PublicURL(item.CoverImageURL),
+		IsFavorite:       item.IsFavorite,
 		Tags:             tags,
 		NextSession:      nextSession,
 	}

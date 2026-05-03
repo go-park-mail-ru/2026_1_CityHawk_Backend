@@ -71,13 +71,15 @@ func (h *MeHandler) handlePatch(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	email, username, userSurname, birthday, cityID, avatarURL, err := authvalidation.ValidateProfilePatch(
+	email, username, userSurname, birthday, cityID, avatarURL, bio, interestTagIDs, err := authvalidation.ValidateProfilePatch(
 		req.Email,
 		req.Username,
 		req.UserSurname,
 		req.Birthday,
 		req.CityID,
 		req.AvatarURL,
+		req.Bio,
+		req.InterestTagIDs,
 	)
 	if err != nil {
 		var validationErr authvalidation.ValidationError
@@ -103,6 +105,12 @@ func (h *MeHandler) handlePatch(w http.ResponseWriter, r *http.Request) error {
 	}
 	if req.CityID != nil {
 		patch.CityID = &cityID
+	}
+	if req.Bio != nil {
+		patch.Bio = &bio
+	}
+	if req.InterestTagIDs != nil {
+		patch.InterestTagIDs = &interestTagIDs
 	}
 	if req.AvatarURL != nil {
 		patch.AvatarURL = &avatarURL
@@ -172,12 +180,14 @@ func decodeMultipartPatchMeRequest(r *http.Request) (patchMeRequest, *multipart.
 	}
 
 	req := patchMeRequest{
-		Email:       multipartValue(r.MultipartForm, "email"),
-		Username:    multipartValue(r.MultipartForm, "username"),
-		UserSurname: multipartValue(r.MultipartForm, "userSurname"),
-		Birthday:    multipartValue(r.MultipartForm, "birthday"),
-		CityID:      multipartValue(r.MultipartForm, "cityId"),
-		AvatarURL:   multipartValue(r.MultipartForm, "avatarUrl"),
+		Email:          multipartValue(r.MultipartForm, "email"),
+		Username:       multipartValue(r.MultipartForm, "username"),
+		UserSurname:    multipartValue(r.MultipartForm, "userSurname"),
+		Birthday:       multipartValue(r.MultipartForm, "birthday"),
+		CityID:         multipartValue(r.MultipartForm, "cityId"),
+		Bio:            multipartValue(r.MultipartForm, "bio"),
+		InterestTagIDs: multipartValues(r.MultipartForm, "interestTagIds"),
+		AvatarURL:      multipartValue(r.MultipartForm, "avatarUrl"),
 	}
 
 	var avatarHeader *multipart.FileHeader
@@ -205,6 +215,17 @@ func multipartValue(form *multipart.Form, key string) *string {
 	return &value
 }
 
+func multipartValues(form *multipart.Form, key string) []string {
+	if form == nil || form.Value == nil {
+		return nil
+	}
+	values := form.Value[key]
+	if len(values) == 0 {
+		return nil
+	}
+	return append([]string(nil), values...)
+}
+
 func makeMeResponse(u usermodel.User) meResponse {
 	var birthday *string
 	if u.Birthday != nil {
@@ -223,15 +244,17 @@ func makeMeResponse(u usermodel.User) meResponse {
 	}
 
 	return meResponse{
-		ID:          u.ID,
-		Email:       u.Email,
-		Username:    safety.EscapeText(u.Username),
-		UserSurname: safety.EscapeText(u.UserSurname),
-		Role:        string(u.Role),
-		Birthday:    birthday,
-		AvatarURL:   media.PublicURLPtr(u.AvatarURL),
-		City:        city,
-		CreatedAt:   u.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		ID:             u.ID,
+		Email:          u.Email,
+		Username:       safety.EscapeText(u.Username),
+		UserSurname:    safety.EscapeText(u.UserSurname),
+		Role:           string(u.Role),
+		Birthday:       birthday,
+		Bio:            u.Bio,
+		InterestTagIDs: append([]string(nil), u.InterestTagIDs...),
+		AvatarURL:      media.PublicURLPtr(u.AvatarURL),
+		City:           city,
+		CreatedAt:      u.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
 }
 
@@ -243,13 +266,15 @@ func makePatchMeResponse(u usermodel.User) patchMeResponse {
 	}
 
 	return patchMeResponse{
-		ID:          u.ID,
-		Email:       u.Email,
-		Username:    safety.EscapeText(u.Username),
-		UserSurname: safety.EscapeText(u.UserSurname),
-		Role:        string(u.Role),
-		Birthday:    birthday,
-		AvatarURL:   media.PublicURLPtr(u.AvatarURL),
-		UpdatedAt:   u.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		ID:             u.ID,
+		Email:          u.Email,
+		Username:       safety.EscapeText(u.Username),
+		UserSurname:    safety.EscapeText(u.UserSurname),
+		Role:           string(u.Role),
+		Birthday:       birthday,
+		Bio:            u.Bio,
+		InterestTagIDs: append([]string(nil), u.InterestTagIDs...),
+		AvatarURL:      media.PublicURLPtr(u.AvatarURL),
+		UpdatedAt:      u.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
 }

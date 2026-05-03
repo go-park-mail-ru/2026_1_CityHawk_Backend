@@ -61,12 +61,14 @@ db-schema:
 	psql "$(DATABASE_URL)" -f db/migrations/0005_support_tickets.up.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0006_support_ticket_messages.up.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0007_user_roles.up.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0008_profile_social_schema.up.sql
 
 db-seed:
 	psql "$(DATABASE_URL)" -f db/migrations/0002_seed.up.sql
 
 db-reset:
 	psql "$(DATABASE_URL)" -f db/migrations/0002_seed.down.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0008_profile_social_schema.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0007_user_roles.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0006_support_ticket_messages.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0005_support_tickets.down.sql

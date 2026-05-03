@@ -250,7 +250,7 @@ func (s *Server) SearchSuggestions(ctx context.Context, req *eventsv1.SearchSugg
 	}
 	response := &eventsv1.SearchSuggestionsResponse{Items: make([]string, 0, len(items))}
 	for _, item := range items {
-		response.Items = append(response.Items, item.Name)
+		response.Items = append(response.Items, item.Label)
 	}
 	return response, nil
 }

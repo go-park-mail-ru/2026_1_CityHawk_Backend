@@ -45,13 +45,15 @@ func (s *Server) UpdateMe(ctx context.Context, req *profilev1.UpdateMeRequest) (
 		return nil, grpcconv.Error(platformerrors.ErrUnauthorized)
 	}
 
-	email, username, userSurname, birthday, cityID, avatarURL, err := authvalidation.ValidateProfilePatch(
+	email, username, userSurname, birthday, cityID, avatarURL, _, _, err := authvalidation.ValidateProfilePatch(
 		req.Email,
 		req.Username,
 		req.UserSurname,
 		req.Birthday,
 		req.CityId,
 		req.AvatarUrl,
+		nil,
+		nil,
 	)
 	if err != nil {
 		var validationErr authvalidation.ValidationError

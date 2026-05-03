@@ -54,7 +54,7 @@ func TestInMemoryRepositoryReadOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SearchSuggestions() error = %v", err)
 	}
-	if len(suggestions) == 0 || suggestions[0].Name != "Jazz Night" {
+	if len(suggestions) == 0 || suggestions[0].Label != "Jazz Night" || suggestions[0].Type != "event" {
 		t.Fatalf("SearchSuggestions() = %+v, want Jazz Night suggestion", suggestions)
 	}
 

@@ -12,6 +12,30 @@ type UserFollow struct {
 	CreatedAt time.Time
 }
 
+type City struct {
+	ID          string
+	Name        string
+	CountryName string
+	Timezone    string
+}
+
+type UserProfile struct {
+	ID          string
+	Username    string
+	UserSurname string
+	AvatarURL   *string
+	City        *City
+	IsFollowing bool
+}
+
+type CollectionCard struct {
+	ID          string
+	Title       string
+	Description string
+	ImageURL    string
+	IsPublic    bool
+}
+
 type FavoriteFlag struct {
 	EventID    string
 	IsFavorite bool

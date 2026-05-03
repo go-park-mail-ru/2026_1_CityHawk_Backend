@@ -20,13 +20,28 @@ type PostgresUserRepository struct {
 
 const (
 	insertUserQuery = `
-		INSERT INTO user_account (email, username, user_surname, password_hash, birthday, city_id, avatar_url)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, email, username, user_surname, password_hash, birthday, city_id, avatar_url, role, created_at, updated_at
+		INSERT INTO user_account (email, username, user_surname, password_hash, birthday, city_id, avatar_url, bio)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id
 	`
 	getUserByEmailQuery = `
 		SELECT
-			u.id, u.email, u.username, u.user_surname, u.password_hash, u.birthday, u.city_id, u.avatar_url, u.role, u.created_at, u.updated_at,
+			u.id, u.email, u.username, u.user_surname, u.password_hash, u.birthday, u.city_id, u.avatar_url, u.bio,
+			COALESCE((
+				SELECT CASE
+					WHEN bool_or(ur.role = 'admin') THEN 'admin'
+					WHEN bool_or(ur.role = 'organizer') THEN 'organizer'
+					ELSE 'user'
+				END
+				FROM user_role ur
+				WHERE ur.user_id = u.id
+			), 'user') AS role,
+			COALESCE((
+				SELECT array_agg(uit.tag_id::text ORDER BY uit.tag_id::text)
+				FROM user_interest_tag uit
+				WHERE uit.user_id = u.id
+			), '{}'::text[]) AS interest_tag_ids,
+			u.created_at, u.updated_at,
 			c.id, c.name, c.country_name, c.timezone
 		FROM user_account u
 		LEFT JOIN city c ON c.id = u.city_id
@@ -34,7 +49,22 @@ const (
 	`
 	getUserByIDQuery = `
 		SELECT
-			u.id, u.email, u.username, u.user_surname, u.password_hash, u.birthday, u.city_id, u.avatar_url, u.role, u.created_at, u.updated_at,
+			u.id, u.email, u.username, u.user_surname, u.password_hash, u.birthday, u.city_id, u.avatar_url, u.bio,
+			COALESCE((
+				SELECT CASE
+					WHEN bool_or(ur.role = 'admin') THEN 'admin'
+					WHEN bool_or(ur.role = 'organizer') THEN 'organizer'
+					ELSE 'user'
+				END
+				FROM user_role ur
+				WHERE ur.user_id = u.id
+			), 'user') AS role,
+			COALESCE((
+				SELECT array_agg(uit.tag_id::text ORDER BY uit.tag_id::text)
+				FROM user_interest_tag uit
+				WHERE uit.user_id = u.id
+			), '{}'::text[]) AS interest_tag_ids,
+			u.created_at, u.updated_at,
 			c.id, c.name, c.country_name, c.timezone
 		FROM user_account u
 		LEFT JOIN city c ON c.id = u.city_id
@@ -47,7 +77,14 @@ func NewPostgresUserRepository(pool *pgxpool.Pool) *PostgresUserRepository {
 }
 
 func (r *PostgresUserRepository) Create(ctx context.Context, u usermodel.User) (usermodel.User, error) {
-	row := r.pool.QueryRow(
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return usermodel.User{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var id string
+	err = tx.QueryRow(
 		ctx,
 		insertUserQuery,
 		u.Email,
@@ -57,28 +94,34 @@ func (r *PostgresUserRepository) Create(ctx context.Context, u usermodel.User) (
 		u.Birthday,
 		u.CityID,
 		u.AvatarURL,
-	)
-
-	var persisted usermodel.User
-	err := row.Scan(
-		&persisted.ID,
-		&persisted.Email,
-		&persisted.Username,
-		&persisted.UserSurname,
-		&persisted.PasswordHash,
-		&persisted.Birthday,
-		&persisted.CityID,
-		&persisted.AvatarURL,
-		&persisted.Role,
-		&persisted.CreatedAt,
-		&persisted.UpdatedAt,
-	)
+		u.Bio,
+	).Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return usermodel.User{}, platformerrors.ErrEmailExists
 		}
 		return usermodel.User{}, err
+	}
+
+	role := u.Role
+	if role == "" {
+		role = usermodel.RoleUser
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO user_role (user_id, role)
+		VALUES ($1, $2)
+		ON CONFLICT DO NOTHING
+	`, id, role); err != nil {
+		return usermodel.User{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return usermodel.User{}, err
+	}
+
+	persisted, ok := r.GetByID(ctx, id)
+	if !ok {
+		return usermodel.User{}, pgx.ErrNoRows
 	}
 	return persisted, nil
 }
@@ -120,7 +163,7 @@ func (r *PostgresUserRepository) GetByID(ctx context.Context, id string) (usermo
 }
 
 func (r *PostgresUserRepository) UpdateProfile(ctx context.Context, id string, patch usermodel.ProfilePatch) (usermodel.User, bool, error) {
-	setClauses := make([]string, 0, 6)
+	setClauses := make([]string, 0, 7)
 	args := make([]any, 0, 7)
 	argPos := 1
 
@@ -154,29 +197,73 @@ func (r *PostgresUserRepository) UpdateProfile(ctx context.Context, id string, p
 		args = append(args, *patch.AvatarURL)
 		argPos++
 	}
+	if patch.Bio != nil {
+		setClauses = append(setClauses, fmt.Sprintf("bio = $%d", argPos))
+		args = append(args, *patch.Bio)
+		argPos++
+	}
 
-	if len(setClauses) == 0 {
+	if len(setClauses) == 0 && patch.InterestTagIDs == nil {
 		u, ok := r.GetByID(ctx, id)
 		return u, ok, nil
 	}
 
-	args = append(args, id)
-	query := fmt.Sprintf(`
-		UPDATE user_account
-		SET %s, updated_at = now()
-		WHERE id = $%d
-	`, strings.Join(setClauses, ", "), argPos)
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return usermodel.User{}, false, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
 
-	if _, err := r.pool.Exec(ctx, query, args...); err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			switch pgErr.Code {
-			case "23503":
-				return usermodel.User{}, false, platformerrors.ErrInvalidCity
-			case "23505":
-				return usermodel.User{}, false, platformerrors.ErrEmailExists
+	if len(setClauses) > 0 {
+		args = append(args, id)
+		query := fmt.Sprintf(`
+			UPDATE user_account
+			SET %s, updated_at = now()
+			WHERE id = $%d
+		`, strings.Join(setClauses, ", "), argPos)
+
+		if tag, err := tx.Exec(ctx, query, args...); err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) {
+				switch pgErr.Code {
+				case "23503":
+					return usermodel.User{}, false, platformerrors.ErrInvalidCity
+				case "23505":
+					return usermodel.User{}, false, platformerrors.ErrEmailExists
+				}
+			}
+			return usermodel.User{}, false, err
+		} else if tag.RowsAffected() == 0 {
+			return usermodel.User{}, false, nil
+		}
+	}
+
+	if patch.InterestTagIDs != nil {
+		if _, err := tx.Exec(ctx, `DELETE FROM user_interest_tag WHERE user_id = $1`, id); err != nil {
+			return usermodel.User{}, false, err
+		}
+		for _, tagID := range *patch.InterestTagIDs {
+			if _, err := tx.Exec(ctx, `
+				INSERT INTO user_interest_tag (user_id, tag_id)
+				VALUES ($1, $2)
+			`, id, tagID); err != nil {
+				var pgErr *pgconn.PgError
+				if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+					return usermodel.User{}, false, platformerrors.ErrInvalidReference
+				}
+				return usermodel.User{}, false, err
 			}
 		}
+		if len(setClauses) == 0 {
+			if tag, err := tx.Exec(ctx, `UPDATE user_account SET updated_at = now() WHERE id = $1`, id); err != nil {
+				return usermodel.User{}, false, err
+			} else if tag.RowsAffected() == 0 {
+				return usermodel.User{}, false, nil
+			}
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
 		return usermodel.User{}, false, err
 	}
 
@@ -192,11 +279,13 @@ func scanUser(row userScanner) (usermodel.User, error) {
 	var u usermodel.User
 	var cityID sql.NullString
 	var avatarURL sql.NullString
+	var bio sql.NullString
 	var birthday sql.NullTime
 	var cityRecordID sql.NullString
 	var cityName sql.NullString
 	var countryName sql.NullString
 	var timezone sql.NullString
+	var interestTagIDs textArray
 
 	err := row.Scan(
 		&u.ID,
@@ -207,7 +296,9 @@ func scanUser(row userScanner) (usermodel.User, error) {
 		&birthday,
 		&cityID,
 		&avatarURL,
+		&bio,
 		&u.Role,
+		&interestTagIDs,
 		&u.CreatedAt,
 		&u.UpdatedAt,
 		&cityRecordID,
@@ -231,9 +322,14 @@ func scanUser(row userScanner) (usermodel.User, error) {
 		v := avatarURL.String
 		u.AvatarURL = &v
 	}
+	if bio.Valid {
+		v := bio.String
+		u.Bio = &v
+	}
 	if u.Role == "" {
 		u.Role = usermodel.RoleUser
 	}
+	u.InterestTagIDs = append([]string(nil), interestTagIDs...)
 	if cityRecordID.Valid {
 		u.City = &usermodel.City{
 			ID:          cityRecordID.String,
@@ -244,4 +340,42 @@ func scanUser(row userScanner) (usermodel.User, error) {
 	}
 
 	return u, nil
+}
+
+type textArray []string
+
+func (a *textArray) Scan(src any) error {
+	switch v := src.(type) {
+	case nil:
+		*a = nil
+		return nil
+	case []string:
+		*a = append((*a)[:0], v...)
+		return nil
+	case string:
+		*a = parsePostgresTextArray(v)
+		return nil
+	case []byte:
+		*a = parsePostgresTextArray(string(v))
+		return nil
+	default:
+		return fmt.Errorf("unsupported text array type %T", src)
+	}
+}
+
+func parsePostgresTextArray(raw string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" || raw == "{}" {
+		return nil
+	}
+	raw = strings.TrimPrefix(strings.TrimSuffix(raw, "}"), "{")
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		value := strings.Trim(part, `"`)
+		if value != "" {
+			out = append(out, value)
+		}
+	}
+	return out
 }

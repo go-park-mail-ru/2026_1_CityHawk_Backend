@@ -30,7 +30,8 @@ func Error(err error) error {
 		errors.Is(err, platformerrors.ErrEventNotFound),
 		errors.Is(err, platformerrors.ErrCategoryNotFound):
 		return status.Error(codes.NotFound, err.Error())
-	case errors.Is(err, platformerrors.ErrEmailExists):
+	case errors.Is(err, platformerrors.ErrEmailExists),
+		errors.Is(err, platformerrors.ErrAlreadyExists):
 		return status.Error(codes.AlreadyExists, err.Error())
 	case errors.Is(err, platformerrors.ErrInvalidCity),
 		errors.Is(err, platformerrors.ErrInvalidReference):

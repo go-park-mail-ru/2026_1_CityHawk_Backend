@@ -63,8 +63,8 @@ func TestValidateProfilePatchAcceptsUploadPath(t *testing.T) {
 	cityID := "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"
 	avatarURL := "/uploads/avatars/file.png"
 
-	gotEmail, gotUsername, gotSurname, gotBirthday, gotCityID, gotAvatarURL, err := ValidateProfilePatch(
-		&email, &username, &surname, &birthday, &cityID, &avatarURL,
+	gotEmail, gotUsername, gotSurname, gotBirthday, gotCityID, gotAvatarURL, _, _, err := ValidateProfilePatch(
+		&email, &username, &surname, &birthday, &cityID, &avatarURL, nil, nil,
 	)
 	if err != nil {
 		t.Fatalf("ValidateProfilePatch() error = %v", err)
@@ -94,7 +94,7 @@ func TestValidateProfilePatchValidationError(t *testing.T) {
 	cityID := "bad"
 	avatarURL := "file.png"
 
-	_, _, _, _, _, _, err := ValidateProfilePatch(&email, &username, &surname, &birthday, &cityID, &avatarURL)
+	_, _, _, _, _, _, _, _, err := ValidateProfilePatch(&email, &username, &surname, &birthday, &cityID, &avatarURL, nil, nil)
 	validationErr, ok := err.(ValidationError)
 	if !ok {
 		t.Fatalf("error type = %T, want ValidationError", err)

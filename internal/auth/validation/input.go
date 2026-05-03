@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/mail"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -102,7 +103,7 @@ func ValidateLogin(email, password string) (string, string, error) {
 	return normalizedEmail, normalizedPassword, nil
 }
 
-func ValidateProfilePatch(email, username, userSurname, birthday, cityID, avatarURL *string) (string, string, string, *time.Time, string, string, error) {
+func ValidateProfilePatch(email, username, userSurname, birthday, cityID, avatarURL, bio *string, interestTagIDs []string) (string, string, string, *time.Time, string, string, string, []string, error) {
 	details := make(map[string]string)
 
 	var normalizedEmail string
@@ -165,11 +166,34 @@ func ValidateProfilePatch(email, username, userSurname, birthday, cityID, avatar
 		}
 	}
 
-	if len(details) > 0 {
-		return "", "", "", nil, "", "", ValidationError{Details: details}
+	var normalizedBio string
+	if bio != nil {
+		normalizedBio = strings.TrimSpace(*bio)
+		if len([]rune(normalizedBio)) > 1000 {
+			details["bio"] = "bio is too long"
+		}
 	}
 
-	return normalizedEmail, normalizedUsername, normalizedSurname, normalizedBirthday, normalizedCityID, normalizedAvatarURL, nil
+	normalizedInterestTagIDs := make([]string, 0, len(interestTagIDs))
+	seenInterestTagIDs := make(map[string]struct{}, len(interestTagIDs))
+	for i, raw := range interestTagIDs {
+		value, err := normalizeAndValidateUUID(raw, "interestTagIds")
+		if err != nil {
+			details["interestTagIds"] = "interestTagIds[" + strconv.Itoa(i) + "] must be uuid"
+			continue
+		}
+		if _, ok := seenInterestTagIDs[value]; ok {
+			continue
+		}
+		seenInterestTagIDs[value] = struct{}{}
+		normalizedInterestTagIDs = append(normalizedInterestTagIDs, value)
+	}
+
+	if len(details) > 0 {
+		return "", "", "", nil, "", "", "", nil, ValidationError{Details: details}
+	}
+
+	return normalizedEmail, normalizedUsername, normalizedSurname, normalizedBirthday, normalizedCityID, normalizedAvatarURL, normalizedBio, normalizedInterestTagIDs, nil
 }
 
 func normalizeAndValidateEmail(raw string) (string, error) {

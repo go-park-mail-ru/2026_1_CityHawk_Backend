@@ -11,6 +11,8 @@ func UserRoleToProto(role usermodel.Role) commonv1.UserRole {
 		return commonv1.UserRole_USER_ROLE_ADMIN
 	case usermodel.RoleUser:
 		return commonv1.UserRole_USER_ROLE_USER
+	case usermodel.RoleOrganizer:
+		return commonv1.UserRole_USER_ROLE_USER
 	default:
 		return commonv1.UserRole_USER_ROLE_UNSPECIFIED
 	}

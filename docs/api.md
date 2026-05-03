@@ -38,9 +38,17 @@ API приложения CityHawk построено по REST-подходу.
 - `POST /api/auth/refresh`
 - `POST /api/auth/logout`
 - `PATCH /api/me`
+- `POST /api/me/favorites/{eventId}`
+- `DELETE /api/me/favorites/{eventId}`
+- `POST /api/users/{userId}/follow`
+- `DELETE /api/users/{userId}/follow`
 - `POST /api/events`
 - `PATCH /api/events/{eventId}`
 - `DELETE /api/events/{eventId}`
+- `POST /api/support/tickets`
+- `PATCH /api/support/tickets/{ticketId}`
+- `PATCH /api/support/tickets/{ticketId}/status`
+- `POST /api/support/tickets/{ticketId}/messages`
 
 После успешного `register`, `login`, `refresh` и OAuth callback сервер также дублирует токен в response header `X-CSRF-Token`, чтобы фронтенд мог сохранить его и отправлять дальше.
 
@@ -98,6 +106,24 @@ ok
 ### GET /swagger/
 
 UI для просмотра OpenAPI.
+
+### GET /runtime-config.js
+
+Runtime-конфиг для frontend-клиента.
+
+Успешный ответ:
+
+```javascript
+window.__APP_CONFIG__ = {
+  API_BASE_URL: "http://localhost:8080",
+  YANDEX_MAPS_API_KEY: "<key-or-empty-string>"
+};
+```
+
+Примечания:
+
+- endpoint отдается frontend-server'ом
+- используется для конфигурации базового API URL и ключа Yandex Maps
 
 ## Статические файлы
 
@@ -264,6 +290,25 @@ UI для просмотра OpenAPI.
 
 ## Profile API
 
+Контракт страниц:
+
+- `/profile`:
+  - обязательно: `GET /api/me`
+  - мои события: `GET /api/events?authorId=<me.id>&limit=4&offset=0`
+  - избранное (целевая схема): `GET /api/me/favorites?limit=4&offset=0`
+- `/profile/settings`:
+  - загрузка формы: `GET /api/me` + `GET /api/cities`
+  - сохранение: `PATCH /api/me` (json или multipart с `avatar`)
+  - выход: `POST /api/auth/logout`
+- модалка подписок/подписчиков на `/profile`:
+  - список подписчиков: `GET /api/me/followers?limit=100&offset=0`
+  - список подписок: `GET /api/me/following?limit=100&offset=0`
+  - подписаться: `POST /api/users/{userId}/follow`
+  - отписаться: `DELETE /api/users/{userId}/follow`
+- карточки событий на `/`, `/events`, `/events/{id}`, `/profile`:
+  - поставить в избранное: `POST /api/me/favorites/{eventId}`
+  - убрать из избранного: `DELETE /api/me/favorites/{eventId}`
+
 ### GET /api/me
 
 Возвращает профиль текущего пользователя.
@@ -282,6 +327,11 @@ UI для просмотра OpenAPI.
   "userSurname": "Ivanova",
   "role": "user",
   "birthday": "2004-01-12",
+  "bio": "Люблю джаз, выставки и прогулки по городу",
+  "interestTagIds": [
+    "22222222-2222-2222-2222-222222222222",
+    "33333333-3333-3333-3333-333333333333"
+  ],
   "avatarUrl": "http://example.com/uploads/avatars/file.png",
   "city": {
     "id": "uuid",
@@ -296,6 +346,55 @@ UI для просмотра OpenAPI.
 Возможные ошибки:
 
 - `401 Unauthorized`
+
+### POST /api/me/favorites/{eventId}
+
+Добавляет событие в избранное текущего пользователя.
+
+Требования:
+
+- cookie `access_token`
+- cookie `csrf_token`
+- header `X-CSRF-Token`
+
+Успешный ответ `200 OK`:
+
+```json
+{
+  "ok": true
+}
+```
+
+Возможные ошибки:
+
+- `401 Unauthorized`
+- `403 CSRF token mismatch`
+- `404 Event not found`
+- `409 Already in favorites`
+
+### DELETE /api/me/favorites/{eventId}
+
+Удаляет событие из избранного текущего пользователя.
+
+Требования:
+
+- cookie `access_token`
+- cookie `csrf_token`
+- header `X-CSRF-Token`
+
+Успешный ответ `200 OK`:
+
+```json
+{
+  "ok": true
+}
+```
+
+Возможные ошибки:
+
+- `401 Unauthorized`
+- `403 CSRF token mismatch`
+- `404 Event not found`
 
 ### PATCH /api/me
 
@@ -318,6 +417,10 @@ UI для просмотра OpenAPI.
   "userSurname": "Ivanova",
   "birthday": "2004-01-12",
   "cityId": "11111111-1111-1111-1111-111111111111",
+  "bio": "Люблю джаз, выставки и прогулки по городу",
+  "interestTagIds": [
+    "22222222-2222-2222-2222-222222222222"
+  ],
   "avatarUrl": "https://example.com/avatar.jpg"
 }
 ```
@@ -332,12 +435,17 @@ email=new-user@mail.com
 userSurname=Ivanova
 birthday=2004-01-12
 cityId=11111111-1111-1111-1111-111111111111
+bio=Люблю джаз, выставки и прогулки по городу
+interestTagIds=22222222-2222-2222-2222-222222222222
+interestTagIds=33333333-3333-3333-3333-333333333333
 avatar=<binary file>
 ```
 
 Правила:
 
 - все поля опциональны
+- `role` в ответе: `user`, `organizer`, `admin`
+- `interestTagIds` передается как массив UUID в JSON или как повторяющееся поле в multipart
 - если загружен файл `avatar`, сервер сохраняет его локально
 - допустимые форматы файла: `PNG`, `JPEG`, `GIF`, `WebP`
 - максимальный размер файла: `5 MB`
@@ -350,7 +458,12 @@ avatar=<binary file>
   "email": "user@mail.com",
   "username": "Alice",
   "userSurname": "Ivanova",
+  "role": "organizer",
   "birthday": "2004-01-12",
+  "bio": "Люблю джаз, выставки и прогулки по городу",
+  "interestTagIds": [
+    "22222222-2222-2222-2222-222222222222"
+  ],
   "avatarUrl": "http://example.com/uploads/avatars/file.png",
   "updatedAt": "2026-03-23T12:00:00Z"
 }
@@ -362,6 +475,223 @@ avatar=<binary file>
 - `401 Unauthorized`
 - `403 CSRF token mismatch`
 - `403 Invalid origin`
+
+### GET /api/me/favorites
+
+Избранные события текущего пользователя для страницы профиля.
+
+Требование:
+
+- cookie `access_token`
+
+Query параметры:
+
+- `limit` — положительное число, по умолчанию `12`
+- `offset` — неотрицательное число, по умолчанию `0`
+
+Успешный ответ `200 OK`:
+
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "title": "Rock concert",
+      "shortDescription": "Best rock night",
+      "coverImageUrl": "https://example.com/event.jpg",
+      "isFavorite": true,
+      "tags": [],
+      "nextSession": {
+        "startAt": "2026-03-30T19:00:00Z",
+        "place": {
+          "name": "Arena",
+          "addressLine": "Lenina 1"
+        }
+      }
+    }
+  ],
+  "total": 1,
+  "limit": 12,
+  "offset": 0
+}
+```
+
+Примечания:
+
+- для текущего пользователя в этом списке `isFavorite` всегда `true`.
+
+Возможные ошибки:
+
+- `401 Unauthorized`
+
+### GET /api/me/followers
+
+Возвращает список подписчиков текущего пользователя.
+
+Требование:
+
+- cookie `access_token`
+
+Query параметры:
+
+- `limit` — положительное число, по умолчанию `20`, максимум `100`
+- `offset` — неотрицательное число, по умолчанию `0`
+
+Успешный ответ `200 OK`:
+
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "username": "Maria",
+      "userSurname": "Sokolova",
+      "avatarUrl": "http://example.com/uploads/avatars/file.png",
+      "city": {
+        "id": "uuid",
+        "name": "Moscow",
+        "countryName": "Russia",
+        "timezone": "Europe/Moscow"
+      },
+      "isFollowing": true
+    }
+  ],
+  "total": 1,
+  "limit": 20,
+  "offset": 0
+}
+```
+
+Возможные ошибки:
+
+- `401 Unauthorized`
+
+### GET /api/me/following
+
+Возвращает список пользователей, на которых подписан текущий пользователь.
+
+Требование:
+
+- cookie `access_token`
+
+Query параметры:
+
+- `limit` — положительное число, по умолчанию `20`, максимум `100`
+- `offset` — неотрицательное число, по умолчанию `0`
+
+Успешный ответ `200 OK`:
+
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "username": "Elena",
+      "userSurname": "Pavlova",
+      "avatarUrl": "http://example.com/uploads/avatars/file.png",
+      "city": {
+        "id": "uuid",
+        "name": "Kazan",
+        "countryName": "Russia",
+        "timezone": "Europe/Moscow"
+      },
+      "isFollowing": true
+    }
+  ],
+  "total": 1,
+  "limit": 20,
+  "offset": 0
+}
+```
+
+Возможные ошибки:
+
+- `401 Unauthorized`
+
+### POST /api/users/{userId}/follow
+
+Подписывает текущего пользователя на пользователя `{userId}`.
+
+Требования:
+
+- cookie `access_token`
+- cookie `csrf_token`
+- header `X-CSRF-Token`
+
+Успешный ответ `200 OK`:
+
+```json
+{
+  "ok": true
+}
+```
+
+Возможные ошибки:
+
+- `401 Unauthorized`
+- `403 CSRF token mismatch`
+- `404 User not found`
+- `409 Already following`
+
+### DELETE /api/users/{userId}/follow
+
+Отписывает текущего пользователя от пользователя `{userId}`.
+
+Требования:
+
+- cookie `access_token`
+- cookie `csrf_token`
+- header `X-CSRF-Token`
+
+Успешный ответ `200 OK`:
+
+```json
+{
+  "ok": true
+}
+```
+
+Возможные ошибки:
+
+- `401 Unauthorized`
+- `403 CSRF token mismatch`
+- `404 User not found`
+
+### GET /api/me/collections
+
+Подборки текущего пользователя для профиля.
+
+Требование:
+
+- cookie `access_token`
+
+Query параметры:
+
+- `limit` — положительное число, по умолчанию `12`
+- `offset` — неотрицательное число, по умолчанию `0`
+
+Успешный ответ `200 OK`:
+
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "title": "Weekend Picks",
+      "description": "Best events for weekend",
+      "imageUrl": "https://example.com/collection.jpg",
+      "isPublic": true
+    }
+  ],
+  "total": 1,
+  "limit": 12,
+  "offset": 0
+}
+```
+
+Возможные ошибки:
+
+- `401 Unauthorized`
 
 ## Home API
 
@@ -445,6 +775,7 @@ Query параметры:
       "title": "Rock concert",
       "shortDescription": "Best rock night",
       "coverImageUrl": "https://example.com/event.jpg",
+      "isFavorite": false,
       "tags": [],
       "nextSession": {
         "startAt": "2026-03-30T19:00:00Z",
@@ -460,6 +791,11 @@ Query параметры:
   "offset": 0
 }
 ```
+
+Примечания:
+
+- `isFavorite` вычисляется относительно текущего авторизованного пользователя;
+- для гостя поле может отсутствовать или быть `false`.
 
 Возможные ошибки:
 
@@ -578,6 +914,7 @@ images=<binary file>
 
 - `400 Validation failed`
 - `401 Unauthorized`
+- `403 Forbidden`
 - `403 CSRF token mismatch`
 - `403 Invalid origin`
 
@@ -714,11 +1051,33 @@ Query параметры:
 - `query` — минимум 2 символа
 - `limit` — от `5` до `10`, по умолчанию `5`
 
+Элемент подсказки может относиться к:
+
+- событию (`type: event`)
+- категории (`type: category`)
+- тегу (`type: tag`)
+
 Успешный ответ:
 
 ```json
 {
-  "items": ["Rock concert", "rock", "retro"]
+  "items": [
+    {
+      "id": "uuid-event",
+      "type": "event",
+      "label": "Rock concert"
+    },
+    {
+      "id": "uuid-category",
+      "type": "category",
+      "label": "Концерты"
+    },
+    {
+      "id": "uuid-tag",
+      "type": "tag",
+      "label": "Rock"
+    }
+  ]
 }
 ```
 
@@ -767,6 +1126,136 @@ Query параметры:
 
 Возможные ошибки:
 
+- `404 Collection not found`
+
+## Map API
+
+Правило страницы карты:
+
+- если подборка не выбрана, пины на карте не отображаются
+- выбор подборки обязателен для загрузки точек
+- фильтры общие и не зависят от конкретной подборки
+
+### GET /api/map/collections
+
+Подборки для боковой панели карты.
+
+Query параметры:
+
+- `cityId` — опционально, фильтр по городу
+- `limit` — опционально, ограничение количества
+
+Успешный ответ:
+
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "title": "Городской вайб",
+      "description": "Лучшие городские локации",
+      "imageUrl": "https://example.com/collection.jpg",
+      "eventsCount": 18,
+      "isPublic": true
+    }
+  ]
+}
+```
+
+### GET /api/map/filters
+
+Глобальные фильтры карты (не зависят от выбранной подборки).
+
+Query параметры:
+
+- `cityId` — опционально
+
+Успешный ответ:
+
+```json
+{
+  "tags": [
+    {
+      "id": "uuid",
+      "name": "Urban",
+      "slug": "urban"
+    }
+  ],
+  "datePresets": [
+    {
+      "value": "today",
+      "label": "Сегодня"
+    },
+    {
+      "value": "weekend",
+      "label": "Выходные"
+    }
+  ],
+  "sortOptions": [
+    {
+      "value": "popular",
+      "label": "Сначала популярные"
+    },
+    {
+      "value": "name",
+      "label": "По названию А-Я"
+    }
+  ]
+}
+```
+
+### GET /api/map/collections/{collectionId}/spots
+
+Пины карты для выбранной подборки.
+
+Query параметры:
+
+- `cityId` — опционально
+- `query` — опционально, текстовый поиск
+- `tagId` — опционально
+- `dateFrom` — опционально
+- `dateTo` — опционально
+- `sort` — `popular | name | dateAsc | dateDesc`
+- `limit` — положительное число, по умолчанию `50`
+- `offset` — неотрицательное число, по умолчанию `0`
+
+Успешный ответ:
+
+```json
+{
+  "collection": {
+    "id": "uuid",
+    "title": "Городской вайб"
+  },
+  "items": [
+    {
+      "id": "uuid",
+      "eventId": "uuid",
+      "title": "Патриаршие пруды",
+      "address": "Малая Бронная улица",
+      "latitude": 55.76361,
+      "longitude": 37.595164,
+      "imageUrl": "https://example.com/photo.jpg",
+      "startAt": "2026-05-06T18:00:00Z",
+      "popularity": 98,
+      "tags": [
+        {
+          "id": "uuid",
+          "name": "Urban",
+          "slug": "urban"
+        }
+      ]
+    }
+  ],
+  "total": 18,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+Возможные ошибки:
+
+- `400 Validation failed`
 - `404 Collection not found`
 
 ## Place Lookup API
@@ -860,22 +1349,26 @@ API техподдержки используется iframe-фронтендо�
 
 - `user` создает обращения, видит только свои обращения, редактирует только свои незакрытые обращения и пишет сообщения только в свои обращения;
 - `admin` видит все обращения, меняет статус любого обращения, пишет в любую переписку и получает статистику;
-- роль хранится в `user_account.role`, временно меняется вручную через `psql`.
+- роль хранится в таблице `user_role`, временно меняется вручную через `psql`.
 
 Временно выдать роль администратора можно так:
 
 ```sql
-UPDATE user_account
-SET role = 'admin'
-WHERE email = 'admin@mail.com';
+INSERT INTO user_role (user_id, role, created_at)
+SELECT id, 'admin', now()
+FROM user_account
+WHERE email = 'admin@mail.com'
+ON CONFLICT (user_id, role) DO NOTHING;
 ```
 
 Вернуть обычную роль:
 
 ```sql
-UPDATE user_account
-SET role = 'user'
-WHERE email = 'admin@mail.com';
+DELETE FROM user_role ur
+USING user_account ua
+WHERE ur.user_id = ua.id
+  AND ua.email = 'admin@mail.com'
+  AND ur.role = 'admin';
 ```
 
 Категории обращений:
@@ -1110,16 +1603,22 @@ Query параметры:
 - `400 Validation failed`
 - `401 Unauthorized`
 
-## Минимальный frontend-набор
+## Актуальный frontend-набор
 
-Endpoint'ы, которые чаще всего нужны фронтенду:
+Endpoint'ы, которые реально используются текущим frontend:
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `POST /api/auth/refresh`
 - `POST /api/auth/logout`
 - `GET /api/me`
-- `PATCH /api/me`
+- `PATCH /api/me` (`application/json` и `multipart/form-data`)
+- `POST /api/me/favorites/{eventId}`
+- `DELETE /api/me/favorites/{eventId}`
+- `GET /api/me/followers`
+- `GET /api/me/following`
+- `POST /api/users/{userId}/follow`
+- `DELETE /api/users/{userId}/follow`
 - `GET /api/home`
 - `GET /api/events`
 - `GET /api/events/{eventId}`
@@ -1130,8 +1629,8 @@ Endpoint'ы, которые чаще всего нужны фронтенду:
 - `GET /api/tags`
 - `GET /api/cities`
 - `GET /api/search`
-- `GET /api/collections`
-- `GET /api/collections/{collectionId}`
+- `GET /api/place-suggestions`
+- `POST /api/places/resolve`
 - `POST /api/support/tickets`
 - `GET /api/support/tickets`
 - `GET /api/support/tickets/{ticketId}`
@@ -1140,3 +1639,25 @@ Endpoint'ы, которые чаще всего нужны фронтенду:
 - `GET /api/support/tickets/{ticketId}/messages`
 - `POST /api/support/tickets/{ticketId}/messages`
 - `GET /api/support/stats`
+
+Профиль:
+
+- текущая реализация блока "избранное" на `/profile` временно использует `GET /api/events`
+- целевой API для профиля: `GET /api/me/favorites` и `GET /api/me/collections`
+- кнопка сердца на карточках уже использует `POST/DELETE /api/me/favorites/{eventId}` без перезагрузки страницы
+
+Примечание по карте:
+
+- страница `/events-map` использует Yandex Maps API v3 через `YANDEX_MAPS_API_KEY`
+- целевая backend-схема для карты описана в разделе `Map API`
+
+## Планируемый API-бэклог
+
+Endpoint'ы для следующих итераций (когда подборки/друзья будут расширяться в профиле):
+
+- `POST /api/me/collections`
+- `PATCH /api/me/collections/{collectionId}`
+- `DELETE /api/me/collections/{collectionId}`
+- `POST /api/me/collections/{collectionId}/events/{eventId}`
+- `DELETE /api/me/collections/{collectionId}/events/{eventId}`
+- `GET /api/users?query=...` (поиск пользователей)
