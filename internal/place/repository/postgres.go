@@ -18,7 +18,7 @@ import (
 )
 
 type PostgresRepository struct {
-	pool *pgxpool.Pool
+	pool postgresDB
 }
 
 type homeFeaturedEventRow struct {
@@ -75,6 +75,13 @@ type eventListRow struct {
 
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
+}
+
+type postgresDB interface {
+	Begin(ctx context.Context) (pgx.Tx, error)
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
 func (r *PostgresRepository) HomePayload(ctx context.Context, filter placemodel.HomeFilter) placemodel.HomePayload {
