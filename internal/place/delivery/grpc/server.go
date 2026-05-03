@@ -519,6 +519,9 @@ func eventWriteError(err error) error {
 	case errors.Is(err, platformerrors.ErrEventNotFound):
 		return status.Error(codes.NotFound, "event not found")
 	case errors.Is(err, platformerrors.ErrInvalidReference):
+		if _, message, ok := platformerrors.InvalidReferenceDetails(err); ok && message != "" {
+			return status.Error(codes.InvalidArgument, message)
+		}
 		return status.Error(codes.InvalidArgument, "request references unknown related entity")
 	default:
 		return grpcconv.Error(err)

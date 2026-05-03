@@ -1064,6 +1064,17 @@ func mapEventWriteError(err error) error {
 	case errors.Is(err, platformerrors.ErrEventNotFound):
 		return httpx.NewHTTPError(http.StatusNotFound, "Event not found")
 	case errors.Is(err, platformerrors.ErrInvalidReference):
+		if field, message, ok := platformerrors.InvalidReferenceDetails(err); ok {
+			if field == "" {
+				field = "value"
+			}
+			if message == "" {
+				message = "request references unknown related entity"
+			}
+			return httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{
+				field: message,
+			})
+		}
 		return httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{
 			"value": "request references unknown related entity",
 		})
