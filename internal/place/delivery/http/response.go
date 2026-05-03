@@ -21,6 +21,7 @@ type eventCardResponse struct {
 	Title            string                        `json:"title"`
 	ShortDescription string                        `json:"shortDescription"`
 	CoverImageURL    string                        `json:"coverImageUrl"`
+	IsFavorite       bool                          `json:"isFavorite"`
 	Tags             []taxonomyItemResponse        `json:"tags"`
 	NextSession      *eventCardNextSessionResponse `json:"nextSession"`
 }
@@ -129,8 +130,14 @@ type collectionDetailsResponse struct {
 	Events      []eventCardResponse `json:"events"`
 }
 
+type searchSuggestionResponse struct {
+	ID    string `json:"id"`
+	Type  string `json:"type"`
+	Label string `json:"label"`
+}
+
 type searchSuggestionsResponse struct {
-	Items []string `json:"items"`
+	Items []searchSuggestionResponse `json:"items"`
 }
 
 type homeTagResponse struct {
@@ -174,4 +181,54 @@ type homePayloadResponse struct {
 	FeaturedEvents []homeFeaturedEventResponse `json:"featuredEvents"`
 	Categories     []homeCategoryResponse      `json:"categories"`
 	Collections    []homeCollectionResponse    `json:"collections"`
+}
+
+type mapCollectionResponse struct {
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	ImageURL    string `json:"imageUrl"`
+	EventsCount int    `json:"eventsCount"`
+	IsPublic    bool   `json:"isPublic"`
+}
+
+type mapCollectionsResponse struct {
+	Items []mapCollectionResponse `json:"items"`
+}
+
+type mapOptionResponse struct {
+	Value string `json:"value"`
+	Label string `json:"label"`
+}
+
+type mapFiltersResponse struct {
+	Tags        []taxonomyItemResponse `json:"tags"`
+	DatePresets []mapOptionResponse    `json:"datePresets"`
+	SortOptions []mapOptionResponse    `json:"sortOptions"`
+}
+
+type mapSpotCollectionResponse struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+}
+
+type mapSpotResponse struct {
+	ID         string                 `json:"id"`
+	EventID    string                 `json:"eventId"`
+	Title      string                 `json:"title"`
+	Address    string                 `json:"address"`
+	Latitude   float64                `json:"latitude"`
+	Longitude  float64                `json:"longitude"`
+	ImageURL   string                 `json:"imageUrl"`
+	StartAt    string                 `json:"startAt"`
+	Popularity int                    `json:"popularity"`
+	Tags       []taxonomyItemResponse `json:"tags"`
+}
+
+type mapSpotsResponse struct {
+	Collection mapSpotCollectionResponse `json:"collection"`
+	Items      []mapSpotResponse         `json:"items"`
+	Total      int                       `json:"total"`
+	Limit      int                       `json:"limit"`
+	Offset     int                       `json:"offset"`
 }

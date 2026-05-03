@@ -52,7 +52,9 @@ type collectionCardRow struct {
 }
 
 type searchSuggestionRow struct {
-	Name string
+	ID    string
+	Type  string
+	Label string
 }
 
 type eventListRow struct {
@@ -66,6 +68,8 @@ type eventListRow struct {
 	PlaceName     string
 	AddressLine   string
 	TotalCount    int
+	IsFavorite    bool
+	Popularity    int
 }
 
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
@@ -451,50 +455,39 @@ func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string
 	const sqlQuery = `
 		WITH candidates AS (
 			SELECT
-				e.title AS name,
+				e.id::text AS id,
+				'event' AS type,
+				e.title AS label,
 				similarity(lower(e.title), lower($1)) AS rank
 			FROM event e
 			WHERE lower(e.title) LIKE '%' || lower($1) || '%'
 			   OR e.title % $1
 			UNION ALL
 			SELECT
-				c.name AS name,
+				c.id::text AS id,
+				'category' AS type,
+				c.name AS label,
 				similarity(lower(c.name), lower($1)) AS rank
 			FROM category c
 			WHERE lower(c.name) LIKE '%' || lower($1) || '%'
 			   OR c.name % $1
 			UNION ALL
 			SELECT
-				t.name AS name,
+				t.id::text AS id,
+				'tag' AS type,
+				t.name AS label,
 				similarity(lower(t.name), lower($1)) AS rank
 			FROM tag t
 			WHERE lower(t.name) LIKE '%' || lower($1) || '%'
 			   OR t.name % $1
-			UNION ALL
-			SELECT
-				col.title AS name,
-				similarity(lower(col.title), lower($1)) AS rank
-			FROM collection col
-			WHERE col.is_public = TRUE
-			  AND (
-					lower(col.title) LIKE '%' || lower($1) || '%'
-					OR col.title % $1
-			  )
-		),
-		deduped AS (
-			SELECT
-				name,
-				MAX(rank) AS rank
-			FROM candidates
-			GROUP BY name
 		)
-		SELECT name
-		FROM deduped
+		SELECT id, type, label
+		FROM candidates
 		ORDER BY
-			CASE WHEN lower(name) LIKE lower($1) || '%' THEN 0 ELSE 1 END,
+			CASE WHEN lower(label) LIKE lower($1) || '%' THEN 0 ELSE 1 END,
 			rank DESC,
-			char_length(name) ASC,
-			name ASC
+			char_length(label) ASC,
+			label ASC
 		LIMIT $2
 	`
 
@@ -507,10 +500,10 @@ func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string
 	items := make([]placemodel.SearchSuggestion, 0, limit)
 	for rows.Next() {
 		var row searchSuggestionRow
-		if err := rows.Scan(&row.Name); err != nil {
+		if err := rows.Scan(&row.ID, &row.Type, &row.Label); err != nil {
 			return nil, err
 		}
-		items = append(items, placemodel.SearchSuggestion{Name: row.Name})
+		items = append(items, placemodel.SearchSuggestion{ID: row.ID, Type: row.Type, Label: row.Label})
 	}
 	if rows.Err() != nil {
 		return nil, rows.Err()
@@ -530,7 +523,7 @@ func (r *PostgresRepository) ListEvents(ctx context.Context, filter placemodel.E
 	total := 0
 	for rows.Next() {
 		var row eventListRow
-		if err := rows.Scan(&row.ID, &row.Title, &row.ShortDesc, &row.CoverImageURL, &row.TagIDs, &row.TagNames, &row.StartAt, &row.PlaceName, &row.AddressLine, &row.TotalCount); err != nil {
+		if err := rows.Scan(&row.ID, &row.Title, &row.ShortDesc, &row.CoverImageURL, &row.TagIDs, &row.TagNames, &row.StartAt, &row.PlaceName, &row.AddressLine, &row.TotalCount, &row.IsFavorite, &row.Popularity); err != nil {
 			return nil, 0, err
 		}
 		total = row.TotalCount
@@ -789,7 +782,7 @@ func (r *PostgresRepository) DeleteEvent(ctx context.Context, id, userID string)
 }
 
 func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
-	args := make([]any, 0, 10)
+	args := make([]any, 0, 12)
 	whereParts := make([]string, 0, 8)
 	argPos := 1
 
@@ -818,6 +811,11 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 		args = append(args, filter.AuthorID)
 		argPos++
 	}
+	if filter.CollectionID != "" {
+		whereParts = append(whereParts, fmt.Sprintf("EXISTS (SELECT 1 FROM collection_event ce WHERE ce.event_id = e.id AND ce.collection_id::text = $%d)", argPos))
+		args = append(args, filter.CollectionID)
+		argPos++
+	}
 	if filter.DateFrom != nil {
 		whereParts = append(whereParts, fmt.Sprintf("EXISTS (SELECT 1 FROM event_session es WHERE es.event_id = e.id AND es.start_at >= $%d)", argPos))
 		args = append(args, *filter.DateFrom)
@@ -826,6 +824,12 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 	if filter.DateTo != nil {
 		whereParts = append(whereParts, fmt.Sprintf("EXISTS (SELECT 1 FROM event_session es WHERE es.event_id = e.id AND es.start_at <= $%d)", argPos))
 		args = append(args, *filter.DateTo)
+		argPos++
+	}
+	favoriteExpr := "false AS is_favorite"
+	if filter.UserID != "" {
+		favoriteExpr = fmt.Sprintf("EXISTS (SELECT 1 FROM favorite_event fe WHERE fe.event_id = e.id AND fe.user_id::text = $%d) AS is_favorite", argPos)
+		args = append(args, filter.UserID)
 		argPos++
 	}
 
@@ -840,8 +844,10 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 		orderBy = "ns.start_at ASC NULLS LAST, e.id ASC"
 	case "dateDesc":
 		orderBy = "ns.start_at DESC NULLS LAST, e.id ASC"
-	case "titleAsc":
+	case "titleAsc", "name":
 		orderBy = "e.title ASC, e.id ASC"
+	case "popular":
+		orderBy = "COALESCE(fc.favorite_count, 0) DESC, e.id ASC"
 	}
 
 	query := fmt.Sprintf(`
@@ -871,6 +877,13 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 			JOIN tag t ON t.id = et.tag_id
 			GROUP BY et.event_id
 		),
+		favorite_counts AS (
+			SELECT
+				fe.event_id,
+				COUNT(*)::int AS favorite_count
+			FROM favorite_event fe
+			GROUP BY fe.event_id
+		),
 		base AS (
 			SELECT
 				e.id,
@@ -882,11 +895,14 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 				ns.start_at,
 				COALESCE(ns.place_name, '') AS place_name,
 				COALESCE(ns.address_line, '') AS address_line,
-				COUNT(*) OVER()::int AS total_count
+				COUNT(*) OVER()::int AS total_count,
+				%s,
+				COALESCE(fc.favorite_count, 0)::int AS popularity
 			FROM event e
 			LEFT JOIN first_image fi ON fi.event_id = e.id
 			LEFT JOIN next_session ns ON ns.event_id = e.id
 			LEFT JOIN tags ON tags.event_id = e.id
+			LEFT JOIN favorite_counts fc ON fc.event_id = e.id
 			%s
 			ORDER BY %s
 			LIMIT $%d OFFSET $%d
@@ -901,9 +917,11 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 			start_at,
 			place_name,
 			address_line,
-			total_count
+			total_count,
+			is_favorite,
+			popularity
 		FROM base
-	`, whereClause, orderBy, argPos, argPos+1)
+	`, favoriteExpr, whereClause, orderBy, argPos, argPos+1)
 	args = append(args, filter.Limit, filter.Offset)
 	return query, args
 }
@@ -1119,6 +1137,8 @@ func toEventCard(row eventListRow) placemodel.EventCardView {
 		CoverImageURL:    row.CoverImageURL,
 		Tags:             tags,
 		NextSession:      nextSession,
+		IsFavorite:       row.IsFavorite,
+		Popularity:       row.Popularity,
 	}
 }
 
@@ -1141,15 +1161,22 @@ func (r *PostgresRepository) fetchCollectionEvents(ctx context.Context, collecti
 			JOIN place p ON p.id = es.place_id
 			ORDER BY es.event_id, es.start_at ASC, es.id ASC
 		),
-		tags AS (
-			SELECT
-				et.event_id,
-				ARRAY_AGG(t.id::text ORDER BY t.name, t.id) AS tag_ids,
-				ARRAY_AGG(t.name ORDER BY t.name, t.id) AS tag_names
-			FROM event_tag et
-			JOIN tag t ON t.id = et.tag_id
-			GROUP BY et.event_id
-		)
+			tags AS (
+				SELECT
+					et.event_id,
+					ARRAY_AGG(t.id::text ORDER BY t.name, t.id) AS tag_ids,
+					ARRAY_AGG(t.name ORDER BY t.name, t.id) AS tag_names
+				FROM event_tag et
+				JOIN tag t ON t.id = et.tag_id
+				GROUP BY et.event_id
+			),
+			favorite_counts AS (
+				SELECT
+					fe.event_id,
+					COUNT(*)::int AS favorite_count
+				FROM favorite_event fe
+				GROUP BY fe.event_id
+			)
 		SELECT
 			e.id::text,
 			e.title,
@@ -1157,17 +1184,20 @@ func (r *PostgresRepository) fetchCollectionEvents(ctx context.Context, collecti
 			COALESCE(fi.image_url, '') AS cover_image_url,
 			COALESCE(tags.tag_ids, '{}'::text[]) AS tag_ids,
 			COALESCE(tags.tag_names, '{}'::text[]) AS tag_names,
-			ns.start_at,
-			COALESCE(ns.place_name, '') AS place_name,
-			COALESCE(ns.address_line, '') AS address_line,
-			0 AS total_count
-		FROM collection_event ce
-		JOIN event e ON e.id = ce.event_id
-		LEFT JOIN first_image fi ON fi.event_id = e.id
-		LEFT JOIN next_session ns ON ns.event_id = e.id
-		LEFT JOIN tags ON tags.event_id = e.id
-		WHERE ce.collection_id = $1
-		ORDER BY ce.created_at ASC, e.id ASC
+				ns.start_at,
+				COALESCE(ns.place_name, '') AS place_name,
+				COALESCE(ns.address_line, '') AS address_line,
+				0 AS total_count,
+				false AS is_favorite,
+				COALESCE(fc.favorite_count, 0)::int AS popularity
+			FROM collection_event ce
+			JOIN event e ON e.id = ce.event_id
+			LEFT JOIN first_image fi ON fi.event_id = e.id
+			LEFT JOIN next_session ns ON ns.event_id = e.id
+			LEFT JOIN tags ON tags.event_id = e.id
+			LEFT JOIN favorite_counts fc ON fc.event_id = e.id
+			WHERE ce.collection_id = $1
+			ORDER BY ce.created_at ASC, e.id ASC
 	`
 
 	rows, err := r.pool.Query(ctx, query, collectionID)
@@ -1179,7 +1209,7 @@ func (r *PostgresRepository) fetchCollectionEvents(ctx context.Context, collecti
 	items := make([]placemodel.EventCardView, 0)
 	for rows.Next() {
 		var row eventListRow
-		if err := rows.Scan(&row.ID, &row.Title, &row.ShortDesc, &row.CoverImageURL, &row.TagIDs, &row.TagNames, &row.StartAt, &row.PlaceName, &row.AddressLine, &row.TotalCount); err != nil {
+		if err := rows.Scan(&row.ID, &row.Title, &row.ShortDesc, &row.CoverImageURL, &row.TagIDs, &row.TagNames, &row.StartAt, &row.PlaceName, &row.AddressLine, &row.TotalCount, &row.IsFavorite, &row.Popularity); err != nil {
 			return nil, err
 		}
 		items = append(items, toEventCard(row))

@@ -18,6 +18,7 @@ import (
 	"cityhawk/backend/internal/platform/httpx"
 	"cityhawk/backend/internal/platform/media"
 	platformmiddleware "cityhawk/backend/internal/platform/middleware"
+	"cityhawk/backend/internal/platform/safety"
 )
 
 type EventsUsecase interface {
@@ -142,6 +143,176 @@ func (h *Handler) CollectionByID(w http.ResponseWriter, r *http.Request) {
 		}
 
 		httpx.WriteJSON(w, http.StatusOK, toCollectionDetailsResponse(item))
+		return nil
+	}).ServeHTTP(w, r)
+}
+
+func (h *Handler) MapCollections(w http.ResponseWriter, r *http.Request) {
+	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodGet {
+			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
+		}
+		items, err := h.events.ListCollections(r.Context())
+		if err != nil {
+			return err
+		}
+		limit := len(items)
+		if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
+			value, err := strconv.Atoi(raw)
+			if err != nil || value <= 0 {
+				return httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"limit": "limit must be a positive integer"})
+			}
+			if value < limit {
+				limit = value
+			}
+		}
+		respItems := make([]mapCollectionResponse, 0, limit)
+		for _, item := range items[:limit] {
+			details, ok, err := h.events.GetCollectionByID(r.Context(), item.ID)
+			if err != nil {
+				return err
+			}
+			eventsCount := 0
+			if ok {
+				eventsCount = len(details.Events)
+			}
+			respItems = append(respItems, mapCollectionResponse{
+				ID:          item.ID,
+				Title:       safety.EscapeText(item.Title),
+				Description: safety.EscapeText(item.Description),
+				ImageURL:    media.PublicURL(item.ImageURL),
+				EventsCount: eventsCount,
+				IsPublic:    item.IsPublic,
+			})
+		}
+		httpx.WriteJSON(w, http.StatusOK, mapCollectionsResponse{Items: respItems})
+		return nil
+	}).ServeHTTP(w, r)
+}
+
+func (h *Handler) MapFilters(w http.ResponseWriter, r *http.Request) {
+	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodGet {
+			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
+		}
+		httpx.WriteJSON(w, http.StatusOK, mapFiltersResponse{
+			Tags: toTagsResponse(h.events.ListTags(r.Context())).Items,
+			DatePresets: []mapOptionResponse{
+				{Value: "today", Label: "Сегодня"},
+				{Value: "weekend", Label: "Выходные"},
+			},
+			SortOptions: []mapOptionResponse{
+				{Value: "popular", Label: "Сначала популярные"},
+				{Value: "name", Label: "По названию А-Я"},
+			},
+		})
+		return nil
+	}).ServeHTTP(w, r)
+}
+
+func (h *Handler) MapCollectionSpots(w http.ResponseWriter, r *http.Request) {
+	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodGet {
+			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
+		}
+		rest := strings.TrimPrefix(r.URL.Path, "/api/map/collections/")
+		if !strings.HasSuffix(rest, "/spots") {
+			return httpx.NewHTTPError(http.StatusNotFound, "Collection not found")
+		}
+		collectionID := strings.TrimSuffix(rest, "/spots")
+		if collectionID == "" || strings.Contains(collectionID, "/") {
+			return httpx.NewHTTPError(http.StatusNotFound, "Collection not found")
+		}
+		limit := 50
+		if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
+			value, err := strconv.Atoi(raw)
+			if err != nil || value <= 0 {
+				return httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"limit": "limit must be a positive integer"})
+			}
+			limit = value
+		}
+		offset := 0
+		if raw := strings.TrimSpace(r.URL.Query().Get("offset")); raw != "" {
+			value, err := strconv.Atoi(raw)
+			if err != nil || value < 0 {
+				return httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"offset": "offset must be a non-negative integer"})
+			}
+			offset = value
+		}
+		details, ok, err := h.events.GetCollectionByID(r.Context(), collectionID)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return httpx.NewHTTPError(http.StatusNotFound, "Collection not found")
+		}
+		dateFrom, err := parseOptionalDateQuery(r.URL.Query(), "dateFrom", false)
+		if err != nil {
+			return err
+		}
+		dateTo, err := parseOptionalDateQuery(r.URL.Query(), "dateTo", true)
+		if err != nil {
+			return err
+		}
+		sortValue := strings.TrimSpace(r.URL.Query().Get("sort"))
+		if sortValue == "" {
+			sortValue = "popular"
+		}
+		if sortValue != "popular" && sortValue != "name" && sortValue != "dateAsc" && sortValue != "dateDesc" {
+			return httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"sort": "sort must be one of popular, name, dateAsc, dateDesc"})
+		}
+		cards, total, err := h.events.ListEvents(r.Context(), placemodel.EventListFilter{
+			Query:        strings.TrimSpace(r.URL.Query().Get("query")),
+			TagID:        strings.TrimSpace(r.URL.Query().Get("tagId")),
+			CityID:       strings.TrimSpace(r.URL.Query().Get("cityId")),
+			DateFrom:     dateFrom,
+			DateTo:       dateTo,
+			CollectionID: collectionID,
+			Sort:         sortValue,
+			Limit:        limit,
+			Offset:       offset,
+		})
+		if err != nil {
+			return err
+		}
+		items := make([]mapSpotResponse, 0, len(cards))
+		for _, card := range cards {
+			event, ok, err := h.events.GetByID(r.Context(), card.ID, "")
+			if err != nil {
+				return err
+			}
+			if !ok || len(event.Sessions) == 0 {
+				continue
+			}
+			session := event.Sessions[0]
+			imageURL := ""
+			if len(event.Images) > 0 {
+				imageURL = media.PublicURL(event.Images[0].ImageURL)
+			}
+			tags := make([]taxonomyItemResponse, 0, len(event.Tags))
+			for _, tag := range event.Tags {
+				tags = append(tags, taxonomyItemResponse{ID: tag.ID, Name: safety.EscapeText(tag.Name), Slug: tag.Slug})
+			}
+			items = append(items, mapSpotResponse{
+				ID:         session.Place.ID,
+				EventID:    event.ID,
+				Title:      safety.EscapeText(event.Title),
+				Address:    safety.EscapeText(session.Place.AddressLine),
+				Latitude:   session.Place.Latitude,
+				Longitude:  session.Place.Longitude,
+				ImageURL:   imageURL,
+				StartAt:    session.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
+				Popularity: card.Popularity,
+				Tags:       tags,
+			})
+		}
+		httpx.WriteJSON(w, http.StatusOK, mapSpotsResponse{
+			Collection: mapSpotCollectionResponse{ID: details.ID, Title: safety.EscapeText(details.Title)},
+			Items:      items,
+			Total:      total,
+			Limit:      limit,
+			Offset:     offset,
+		})
 		return nil
 	}).ServeHTTP(w, r)
 }

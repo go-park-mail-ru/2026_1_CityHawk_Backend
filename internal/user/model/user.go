@@ -12,13 +12,14 @@ type City struct {
 type Role string
 
 const (
-	RoleUser  Role = "user"
-	RoleAdmin Role = "admin"
+	RoleUser      Role = "user"
+	RoleOrganizer Role = "organizer"
+	RoleAdmin     Role = "admin"
 )
 
 func (r Role) Valid() bool {
 	switch r {
-	case RoleUser, RoleAdmin:
+	case RoleUser, RoleOrganizer, RoleAdmin:
 		return true
 	default:
 		return false
@@ -26,25 +27,29 @@ func (r Role) Valid() bool {
 }
 
 type User struct {
-	ID           string
-	Email        string
-	Username     string
-	UserSurname  string
-	PasswordHash string
-	Birthday     *time.Time
-	CityID       *string
-	City         *City
-	AvatarURL    *string
-	Role         Role
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID             string
+	Email          string
+	Username       string
+	UserSurname    string
+	PasswordHash   string
+	Birthday       *time.Time
+	CityID         *string
+	City           *City
+	AvatarURL      *string
+	Bio            *string
+	InterestTagIDs []string
+	Role           Role
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type ProfilePatch struct {
-	Email       *string
-	Username    *string
-	UserSurname *string
-	Birthday    *time.Time
-	CityID      *string
-	AvatarURL   *string
+	Email          *string
+	Username       *string
+	UserSurname    *string
+	Birthday       *time.Time
+	CityID         *string
+	AvatarURL      *string
+	Bio            *string
+	InterestTagIDs *[]string
 }

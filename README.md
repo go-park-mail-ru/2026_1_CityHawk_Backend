@@ -42,6 +42,47 @@ make coverage-check
 
 После финального прогона в проекте покрытие составляет `60.4%`.
 
+## Микросервисы и gRPC
+
+Проект можно запускать в двух режимах:
+
+- `./cmd` - существующий HTTP backend, совместимый с текущим API;
+- `./cmd/*-service` - отдельные gRPC-сервисы, собранные по proto-контрактам из `proto/cityhawk/*/v1`.
+
+Доступные gRPC-сервисы:
+
+```text
+auth-service     :50051  cityhawk.auth.v1.AuthService
+profile-service  :50052  cityhawk.profile.v1.ProfileService
+events-service   :50053  cityhawk.events.v1.EventsService
+support-service  :50054  cityhawk.support.v1.SupportService
+social-service   :50055  cityhawk.social.v1.SocialService
+```
+
+Сгенерированные клиентские и серверные интерфейсы лежат в `pkg/pb/*/v1`, а серверные адаптеры - в `internal/*/delivery/grpc`.
+
+Локальная сборка всех бинарников:
+
+```bash
+make build-services
+```
+
+Запуск одного сервиса:
+
+```bash
+AUTH_GRPC_ADDR=:50051 go run ./cmd/auth-service
+PROFILE_GRPC_ADDR=:50052 go run ./cmd/profile-service
+EVENTS_GRPC_ADDR=:50053 go run ./cmd/events-service
+SUPPORT_GRPC_ADDR=:50054 go run ./cmd/support-service
+SOCIAL_GRPC_ADDR=:50055 go run ./cmd/social-service
+```
+
+Через Docker Compose:
+
+```bash
+docker compose up -d postgres photon cityhawk-auth-service cityhawk-profile-service cityhawk-events-service cityhawk-support-service cityhawk-social-service
+```
+
 ## База данных
 
 Документация по структуре БД лежит в:

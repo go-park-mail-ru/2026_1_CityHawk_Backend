@@ -22,6 +22,8 @@ import (
 	platformmiddleware "cityhawk/backend/internal/platform/middleware"
 	platformpostgres "cityhawk/backend/internal/platform/postgres"
 	platformsecurity "cityhawk/backend/internal/platform/security"
+	socialdelivery "cityhawk/backend/internal/social/delivery/http"
+	socialrepo "cityhawk/backend/internal/social/repository"
 	supportdelivery "cityhawk/backend/internal/support/delivery/http"
 	supportrepo "cityhawk/backend/internal/support/repository"
 	supportusecase "cityhawk/backend/internal/support/usecase"
@@ -42,6 +44,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	store := userrepo.NewPostgresUserRepository(pool)
 	placeRepo := placerepo.NewPostgresRepository(pool)
 	placeUC := placeusecase.NewService(placeRepo)
+	socialRepo := socialrepo.NewPostgresRepository(pool)
 	supportRepo := supportrepo.NewPostgresRepository(pool)
 	supportUC := supportusecase.NewService(supportRepo, store)
 	var placeLookupHandler *placedelivery.PlaceLookupHandler
@@ -86,6 +89,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	}
 	meHandler := userdelivery.NewMeHandler(store, avatarStore)
 	supportHandler := supportdelivery.NewHandler(supportUC)
+	socialHandler := socialdelivery.NewHandler(socialRepo, placeUC)
 	vkOAuthCfg, err := gatewayvk.NewOAuthConfig(cfg.OAuth.VK)
 	if err != nil {
 		log.Printf("vk oauth disabled: %v", err)
@@ -169,6 +173,14 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	mux.Handle("POST /api/auth/logout", withCSRF(http.HandlerFunc(authRefreshHandler.Logout)))
 	mux.Handle("GET /api/me", withAuth(meHandler.Me))
 	mux.Handle("PATCH /api/me", withAuthAndCSRF(meHandler.Me))
+	mux.Handle("GET /api/me/favorites", withAuth(socialHandler.Favorites))
+	mux.Handle("POST /api/me/favorites/", withAuthAndCSRF(socialHandler.FavoriteByID))
+	mux.Handle("DELETE /api/me/favorites/", withAuthAndCSRF(socialHandler.FavoriteByID))
+	mux.Handle("GET /api/me/followers", withAuth(socialHandler.Followers))
+	mux.Handle("GET /api/me/following", withAuth(socialHandler.Following))
+	mux.Handle("GET /api/me/collections", withAuth(socialHandler.Collections))
+	mux.Handle("POST /api/users/", withAuthAndCSRF(socialHandler.FollowByID))
+	mux.Handle("DELETE /api/users/", withAuthAndCSRF(socialHandler.FollowByID))
 	mux.Handle("GET /api/events", withOptionalAuth(placeHandler.Events))
 	mux.Handle("POST /api/events", withAuthAndCSRF(placeHandler.Events))
 	mux.HandleFunc("GET /api/home", placeHandler.Home)
@@ -178,6 +190,9 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	mux.HandleFunc("GET /api/collections", placeHandler.Collections)
 	mux.HandleFunc("GET /api/collections/", placeHandler.CollectionByID)
 	mux.HandleFunc("GET /api/search", placeHandler.Search)
+	mux.HandleFunc("GET /api/map/collections", placeHandler.MapCollections)
+	mux.HandleFunc("GET /api/map/filters", placeHandler.MapFilters)
+	mux.HandleFunc("GET /api/map/collections/", placeHandler.MapCollectionSpots)
 	mux.Handle("GET /api/support/tickets", withAuth(supportHandler.Tickets))
 	mux.Handle("POST /api/support/tickets", withAuthAndCSRF(supportHandler.Tickets))
 	mux.Handle("GET /api/support/tickets/", withAuth(supportHandler.TicketByID))

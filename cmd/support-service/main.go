@@ -1,0 +1,29 @@
+package main
+
+import (
+	"log"
+	"net"
+
+	"cityhawk/backend/internal/app"
+	appconfig "cityhawk/backend/internal/config"
+)
+
+func main() {
+	cfg := appconfig.LoadFromEnv()
+	server, cleanup, err := app.NewSupportGRPCServer(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer cleanup()
+
+	addr := cfg.GRPC.SupportAddr
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("support grpc service started on %s", addr)
+	if err := server.Serve(listener); err != nil {
+		log.Fatal(err)
+	}
+}

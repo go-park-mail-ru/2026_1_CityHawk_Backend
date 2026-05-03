@@ -7,10 +7,26 @@ erDiagram
         text username
         text user_surname
         text password_hash
-        text role
         datetime birthday
         uuid city_id FK
         text avatar_url
+        text bio
+        datetime created_at
+        datetime updated_at
+    }
+
+    USER_ROLE {
+        uuid user_id PK, FK
+        text role PK
+        datetime created_at
+    }
+
+    ORGANIZER_PROFILE {
+        uuid user_id PK, FK
+        text display_name
+        text description
+        text website_url
+        boolean is_verified
         datetime created_at
         datetime updated_at
     }
@@ -100,6 +116,12 @@ erDiagram
         uuid tag_id PK, FK
         datetime created_at
         datetime updated_at
+    }
+
+    USER_INTEREST_TAG {
+        uuid user_id PK, FK
+        uuid tag_id PK, FK
+        datetime created_at
     }
 
     COLLECTION {
@@ -236,6 +258,8 @@ erDiagram
     }
 
     USER_ACCOUNT }o--|| CITY : "city_id FK"
+    USER_ROLE }o--|| USER_ACCOUNT : "user_id FK"
+    ORGANIZER_PROFILE ||--|| USER_ACCOUNT : "user_id FK"
     REFRESH_SESSION }o--|| USER_ACCOUNT : "user_id FK"
     PLACE }o--|| CITY : "city_id FK"
 
@@ -249,6 +273,8 @@ erDiagram
 
     EVENT_TAG }o--|| EVENT : "event_id FK"
     EVENT_TAG }o--|| TAG : "tag_id FK"
+    USER_INTEREST_TAG }o--|| USER_ACCOUNT : "user_id FK"
+    USER_INTEREST_TAG }o--|| TAG : "tag_id FK"
 
     COLLECTION }o--|| USER_ACCOUNT : "author_user_id FK"
     COLLECTION_IMAGE }o--|| COLLECTION : "collection_id FK"
@@ -289,3 +315,12 @@ erDiagram
     SUPPORT_TICKET }o--|| USER_ACCOUNT : "user_id FK"
     SUPPORT_TICKET_MESSAGE }o--|| SUPPORT_TICKET : "ticket_id FK"
     SUPPORT_TICKET_MESSAGE }o--|| USER_ACCOUNT : "author_user_id FK"
+
+## Ограничения и индексы (рекомендуемые)
+
+```sql
+-- USER_ROLE: допустимые роли
+ALTER TABLE user_role
+  ADD CONSTRAINT user_role_allowed_values
+  CHECK (role IN ('user', 'organizer', 'admin'));
+```

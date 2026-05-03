@@ -158,7 +158,7 @@ func TestResponseMappers(t *testing.T) {
 			ImageURL:    "/uploads/collection.png",
 			IsPublic:    true,
 		}})
-		searchResp := toSearchSuggestionsResponse([]placemodel.SearchSuggestion{{Name: `Jazz <Night>`}})
+		searchResp := toSearchSuggestionsResponse([]placemodel.SearchSuggestion{{ID: "event-1", Type: "event", Label: `Jazz <Night>`}})
 		homeResp := toHomePayloadResponse(placemodel.HomePayload{
 			FeaturedEvents: []placemodel.HomeFeaturedEvent{{
 				ID:            "event-1",
@@ -191,7 +191,7 @@ func TestResponseMappers(t *testing.T) {
 		if collectionsResp.Items[0].Title == `Weekend <Picks>` {
 			t.Fatalf("collection was not escaped: %+v", collectionsResp.Items[0])
 		}
-		if searchResp.Items[0] == `Jazz <Night>` {
+		if searchResp.Items[0].Label == `Jazz <Night>` {
 			t.Fatalf("search suggestion was not escaped: %+v", searchResp.Items)
 		}
 		if homeResp.FeaturedEvents[0].Title == `Concert <main>` || homeResp.Collections[0].Title == `Weekend <Picks>` {

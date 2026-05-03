@@ -217,35 +217,35 @@ func (r *InMemoryRepository) SearchSuggestions(_ context.Context, query string, 
 	seen := map[string]struct{}{}
 	items := make([]placemodel.SearchSuggestion, 0)
 
-	add := func(name string) {
-		key := strings.ToLower(strings.TrimSpace(name))
+	add := func(id, kind, label string) {
+		key := kind + ":" + strings.ToLower(strings.TrimSpace(id))
+		labelKey := strings.ToLower(strings.TrimSpace(label))
 		if key == "" {
 			return
 		}
-		if !strings.Contains(key, query) && !strings.HasPrefix(key, query) {
+		if !strings.Contains(labelKey, query) && !strings.HasPrefix(labelKey, query) {
 			return
 		}
 		if _, ok := seen[key]; ok {
 			return
 		}
 		seen[key] = struct{}{}
-		items = append(items, placemodel.SearchSuggestion{Name: name})
+		items = append(items, placemodel.SearchSuggestion{ID: id, Type: kind, Label: label})
 	}
 
 	for _, id := range r.order {
 		event := r.byID[id]
-		add(event.Title)
+		add(event.ID, "event", event.Title)
 		for _, category := range event.Categories {
-			add(category.Name)
+			add(category.ID, "category", category.Name)
 		}
 		for _, tag := range event.Tags {
-			add(tag.Name)
+			add(tag.ID, "tag", tag.Name)
 		}
 	}
-	add("Weekend Picks")
 
 	sort.Slice(items, func(i, j int) bool {
-		return strings.ToLower(items[i].Name) < strings.ToLower(items[j].Name)
+		return strings.ToLower(items[i].Label) < strings.ToLower(items[j].Label)
 	})
 	if len(items) > limit {
 		items = items[:limit]
@@ -488,6 +488,7 @@ func toCard(event placemodel.EventDetailsView) placemodel.EventCardView {
 		CoverImageURL:    firstImageURL(event),
 		Tags:             event.Tags,
 		NextSession:      nextSession,
+		IsFavorite:       event.IsFavorite,
 	}
 }
 

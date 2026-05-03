@@ -22,6 +22,7 @@ var (
 	ErrEventNotFound      = errors.New("event not found")
 	ErrCategoryNotFound   = errors.New("category not found")
 	ErrEmailExists        = errors.New("email already exists")
+	ErrAlreadyExists     = errors.New("already exists")
 	ErrInvalidCity        = errors.New("invalid city")
 	ErrForbidden          = errors.New("forbidden")
 	ErrInvalidReference   = errors.New("invalid reference")

@@ -8,7 +8,7 @@ GO_CACHE_DIR ?= $(CURDIR)/.cache/go-build
 GO_TMP_DIR ?= $(CURDIR)/.cache/gotmp
 DATABASE_URL ?= postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable
 
-.PHONY: test coverage coverage-check proto clean db-schema db-seed db-reset
+.PHONY: test coverage coverage-check proto build-services clean db-schema db-seed db-reset
 
 define GO_ENV
 export GOCACHE="$(GO_CACHE_DIR)" GOTMPDIR="$(GO_TMP_DIR)" GOTOOLCHAIN="$(TOOLCHAIN)";
@@ -28,6 +28,15 @@ proto:
 		proto/cityhawk/events/v1/events.proto \
 		proto/cityhawk/social/v1/social.proto \
 		proto/cityhawk/support/v1/support.proto
+
+build-services:
+	@mkdir -p .bin
+	@$(GO_ENV) go build -o .bin/cityhawk-backend ./cmd
+	@$(GO_ENV) go build -o .bin/cityhawk-auth-service ./cmd/auth-service
+	@$(GO_ENV) go build -o .bin/cityhawk-profile-service ./cmd/profile-service
+	@$(GO_ENV) go build -o .bin/cityhawk-events-service ./cmd/events-service
+	@$(GO_ENV) go build -o .bin/cityhawk-social-service ./cmd/social-service
+	@$(GO_ENV) go build -o .bin/cityhawk-support-service ./cmd/support-service
 
 coverage:
 	@mkdir -p "$(GO_CACHE_DIR)" "$(GO_TMP_DIR)"
@@ -52,12 +61,14 @@ db-schema:
 	psql "$(DATABASE_URL)" -f db/migrations/0005_support_tickets.up.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0006_support_ticket_messages.up.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0007_user_roles.up.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0008_profile_social_schema.up.sql
 
 db-seed:
 	psql "$(DATABASE_URL)" -f db/migrations/0002_seed.up.sql
 
 db-reset:
 	psql "$(DATABASE_URL)" -f db/migrations/0002_seed.down.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0008_profile_social_schema.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0007_user_roles.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0006_support_ticket_messages.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0005_support_tickets.down.sql

@@ -13,6 +13,11 @@ func TestLoadFromEnvAndParsers(t *testing.T) {
 	t.Setenv("DB_PASSWORD", "pass")
 	t.Setenv("DB_NAME", "name")
 	t.Setenv("DB_SSLMODE", "require")
+	t.Setenv("AUTH_GRPC_ADDR", ":51051")
+	t.Setenv("PROFILE_GRPC_ADDR", ":51052")
+	t.Setenv("EVENTS_GRPC_ADDR", ":51053")
+	t.Setenv("SUPPORT_GRPC_ADDR", ":51054")
+	t.Setenv("SOCIAL_GRPC_ADDR", ":51055")
 	t.Setenv("PHOTON_ENABLED", "true")
 	t.Setenv("PHOTON_BASE_URL", "http://photon")
 	t.Setenv("PHOTON_REQUEST_TIMEOUT", "7s")
@@ -28,6 +33,13 @@ func TestLoadFromEnvAndParsers(t *testing.T) {
 	}
 	if cfg.Database.Host != "db" || cfg.Database.Port != "5433" || cfg.Database.SSLMode != "require" {
 		t.Fatalf("unexpected db config: %+v", cfg.Database)
+	}
+	if cfg.GRPC.AuthAddr != ":51051" ||
+		cfg.GRPC.ProfileAddr != ":51052" ||
+		cfg.GRPC.EventsAddr != ":51053" ||
+		cfg.GRPC.SupportAddr != ":51054" ||
+		cfg.GRPC.SocialAddr != ":51055" {
+		t.Fatalf("unexpected grpc config: %+v", cfg.GRPC)
 	}
 	if !cfg.Photon.Enabled || cfg.Photon.BaseURL != "http://photon" {
 		t.Fatalf("unexpected photon config: %+v", cfg.Photon)

@@ -116,6 +116,12 @@ func (r *InMemoryUserRepository) UpdateProfile(_ context.Context, id string, pat
 	if patch.AvatarURL != nil {
 		u.AvatarURL = patch.AvatarURL
 	}
+	if patch.Bio != nil {
+		u.Bio = patch.Bio
+	}
+	if patch.InterestTagIDs != nil {
+		u.InterestTagIDs = append([]string(nil), (*patch.InterestTagIDs)...)
+	}
 	u.UpdatedAt = time.Now().UTC()
 
 	r.byID[id] = u
