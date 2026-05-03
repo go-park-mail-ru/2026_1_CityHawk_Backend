@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	authmodel "cityhawk/backend/internal/auth/model"
-	authusecase "cityhawk/backend/internal/auth/usecase"
 	authvalidation "cityhawk/backend/internal/auth/validation"
 	"cityhawk/backend/internal/grpcconv"
 	platformerrors "cityhawk/backend/internal/platform/errors"
@@ -20,6 +19,22 @@ type UserReader interface {
 	GetByID(ctx context.Context, id string) (usermodel.User, bool)
 }
 
+type AuthFlow interface {
+	Register(ctx context.Context, input authmodel.RegisterInput) (authmodel.RegistrationResult, error)
+	Login(ctx context.Context, input authmodel.LoginInput) (authmodel.SessionResult, error)
+}
+
+type RefreshTokenManager interface {
+	RotateRefresh(ctx context.Context, oldRefreshToken string) (authmodel.TokenPair, error)
+	RevokeRefresh(ctx context.Context, token string) error
+}
+
+type OAuthLogin interface {
+	LoginWithGoogle(ctx context.Context, code string) (authmodel.TokenPair, error)
+	LoginWithYandex(ctx context.Context, code string) (authmodel.TokenPair, error)
+	LoginWithVK(ctx context.Context, code string) (authmodel.TokenPair, error)
+}
+
 type TokenParser interface {
 	Parse(token string) (platformsecurity.Claims, error)
 }
@@ -27,17 +42,17 @@ type TokenParser interface {
 type Server struct {
 	authv1.UnimplementedAuthServiceServer
 
-	flow   *authusecase.AuthFlowService
-	tokens *authusecase.Service
-	oauth  *authusecase.OAuthLoginService
+	flow   AuthFlow
+	tokens RefreshTokenManager
+	oauth  OAuthLogin
 	users  UserReader
 	parser TokenParser
 }
 
 func NewServer(
-	flow *authusecase.AuthFlowService,
-	tokens *authusecase.Service,
-	oauth *authusecase.OAuthLoginService,
+	flow AuthFlow,
+	tokens RefreshTokenManager,
+	oauth OAuthLogin,
 	users UserReader,
 	parser TokenParser,
 ) *Server {
