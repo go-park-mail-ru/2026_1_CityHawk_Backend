@@ -2,6 +2,7 @@ package app
 
 import (
 	appconfig "cityhawk/backend/internal/config"
+	platformmetrics "cityhawk/backend/internal/platform/metrics"
 	supportgrpc "cityhawk/backend/internal/support/delivery/grpc"
 	supportrepo "cityhawk/backend/internal/support/repository"
 	supportusecase "cityhawk/backend/internal/support/usecase"
@@ -20,7 +21,7 @@ func NewSupportGRPCServer(cfg appconfig.Config) (*grpc.Server, func(), error) {
 	users := userrepo.NewPostgresUserRepository(pool)
 	supportRepo := supportrepo.NewPostgresRepository(pool)
 	supportUC := supportusecase.NewService(supportRepo, users)
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(platformmetrics.UnaryServerInterceptor("cityhawk-support-service")))
 	supportv1.RegisterSupportServiceServer(server, supportgrpc.NewServer(supportUC))
 	reflection.Register(server)
 	return server, pool.Close, nil

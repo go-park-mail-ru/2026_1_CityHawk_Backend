@@ -6,6 +6,7 @@ import (
 	placegrpc "cityhawk/backend/internal/place/delivery/grpc"
 	placerepo "cityhawk/backend/internal/place/repository"
 	placeusecase "cityhawk/backend/internal/place/usecase"
+	platformmetrics "cityhawk/backend/internal/platform/metrics"
 	eventsv1 "cityhawk/backend/pkg/pb/events/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -35,7 +36,7 @@ func NewEventsGRPCServer(cfg appconfig.Config) (*grpc.Server, func(), error) {
 		)
 	}
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(platformmetrics.UnaryServerInterceptor("cityhawk-events-service")))
 	eventsv1.RegisterEventsServiceServer(server, placegrpc.NewServer(eventsUC, lookupUC))
 	reflection.Register(server)
 	return server, pool.Close, nil

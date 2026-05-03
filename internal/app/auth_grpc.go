@@ -10,6 +10,7 @@ import (
 	authrepo "cityhawk/backend/internal/auth/repository"
 	authusecase "cityhawk/backend/internal/auth/usecase"
 	appconfig "cityhawk/backend/internal/config"
+	platformmetrics "cityhawk/backend/internal/platform/metrics"
 	platformsecurity "cityhawk/backend/internal/platform/security"
 	userrepo "cityhawk/backend/internal/user/repository"
 	authv1 "cityhawk/backend/pkg/pb/auth/v1"
@@ -50,7 +51,7 @@ func NewAuthGRPCServer(cfg appconfig.Config) (*grpc.Server, func(), error) {
 		tokenUC,
 	)
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(platformmetrics.UnaryServerInterceptor("cityhawk-auth-service")))
 	authv1.RegisterAuthServiceServer(server, authgrpc.NewServer(flowUC, tokenUC, oauthUC, users, tokenService))
 	reflection.Register(server)
 	return server, pool.Close, nil

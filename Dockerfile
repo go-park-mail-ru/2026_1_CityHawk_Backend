@@ -17,7 +17,7 @@ RUN adduser -D -g '' appuser
 COPY --from=builder /app/cityhawk-service ./cityhawk-service
 
 ENV PORT=8080
-EXPOSE 8080 50051 50052 50053 50054 50055
+EXPOSE 8080 50051 50052 50053 50054 50055 9101 9102 9103 9104 9105
 
 USER appuser
 CMD ["./cityhawk-service"]
