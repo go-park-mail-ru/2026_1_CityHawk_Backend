@@ -61,6 +61,10 @@ social-service   :50055  cityhawk.social.v1.SocialService
 
 Сгенерированные клиентские и серверные интерфейсы лежат в `pkg/pb/*/v1`, а серверные адаптеры - в `internal/*/delivery/grpc`.
 
+Межсервисное общение по gRPC уже используется внутри системы: `support-service` ходит в `profile-service`
+через `cityhawk.profile.v1.ProfileService/GetUser`, чтобы проверять автора тикета и его роль перед операциями
+поддержки. В Docker Compose для этого `SUPPORT` контейнер получает `PROFILE_GRPC_ADDR=cityhawk-profile-service:50052`.
+
 Локальная сборка всех бинарников:
 
 ```bash

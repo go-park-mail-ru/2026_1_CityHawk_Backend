@@ -88,6 +88,10 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (supportmodel.T
 		return supportmodel.Ticket{}, details, ErrValidation
 	}
 
+	if _, err := s.actor(ctx, input.UserID); err != nil {
+		return supportmodel.Ticket{}, nil, err
+	}
+
 	ticket, err := s.repo.Create(ctx, input)
 	return ticket, nil, err
 }

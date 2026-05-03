@@ -177,9 +177,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      cityhawk-profile-service:
+        condition: service_started
     environment:
       - SUPPORT_GRPC_ADDR=:50054
       - SUPPORT_METRICS_ADDR=:9104
+      - PROFILE_GRPC_ADDR=cityhawk-profile-service:50052
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-cityhawk}
