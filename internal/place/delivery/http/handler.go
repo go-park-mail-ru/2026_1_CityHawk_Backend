@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	placemodel "cityhawk/backend/internal/place/model"
 	placeusecase "cityhawk/backend/internal/place/usecase"
@@ -350,6 +351,7 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+	filter.TagID = resolveTagFilter(filter.TagID, h.events.ListTags(r.Context()))
 
 	items, total, err := h.events.ListEvents(r.Context(), filter)
 	if err != nil {
@@ -773,10 +775,16 @@ func parseEventListFilter(r *http.Request) (placemodel.EventListFilter, error) {
 	}
 
 	userID, _ := r.Context().Value(httpx.UserIDContextKey).(string)
+	tagFilter := firstNonEmpty(
+		r.URL.Query().Get("tagId"),
+		r.URL.Query().Get("tag"),
+		r.URL.Query().Get("tagSlug"),
+		r.URL.Query().Get("tagName"),
+	)
 	return placemodel.EventListFilter{
 		Query:      strings.TrimSpace(r.URL.Query().Get("query")),
 		CategoryID: strings.TrimSpace(r.URL.Query().Get("categoryId")),
-		TagID:      strings.TrimSpace(r.URL.Query().Get("tagId")),
+		TagID:      strings.TrimSpace(tagFilter),
 		CityID:     strings.TrimSpace(r.URL.Query().Get("cityId")),
 		DateFrom:   dateFrom,
 		DateTo:     dateTo,
@@ -786,6 +794,55 @@ func parseEventListFilter(r *http.Request) (placemodel.EventListFilter, error) {
 		Offset:     offset,
 		UserID:     userID,
 	}, nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
+}
+
+func normalizeTaxonomyFilter(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	var b strings.Builder
+	b.Grow(len(value))
+	for _, r := range value {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+func resolveTagFilter(raw string, tags []placemodel.HomeTag) string {
+	candidate := strings.TrimSpace(raw)
+	if candidate == "" {
+		return ""
+	}
+
+	normalized := normalizeTaxonomyFilter(candidate)
+	lowerCandidate := strings.ToLower(candidate)
+	for _, tag := range tags {
+		if strings.EqualFold(tag.ID, candidate) {
+			return tag.ID
+		}
+		if strings.EqualFold(tag.Name, candidate) {
+			return tag.ID
+		}
+		if strings.EqualFold(tag.Slug, candidate) {
+			return tag.ID
+		}
+		if normalizeTaxonomyFilter(tag.Name) == normalized ||
+			normalizeTaxonomyFilter(tag.Slug) == normalized ||
+			strings.ToLower(tag.ID) == lowerCandidate {
+			return tag.ID
+		}
+	}
+
+	return candidate
 }
 
 func parseSearchSuggestionsRequest(r *http.Request) (string, int, error) {

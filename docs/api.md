@@ -757,6 +757,9 @@ Query параметры:
 - `query`
 - `categoryId`
 - `tagId`
+- `tag` (альтернатива `tagId`: можно передавать id, slug или name тега)
+- `tagSlug` (альтернатива `tagId`)
+- `tagName` (альтернатива `tagId`)
 - `cityId`
 - `dateFrom`
 - `dateTo`
