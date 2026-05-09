@@ -164,9 +164,12 @@ func toSearchSuggestionsResponse(items []placemodel.SearchSuggestion) searchSugg
 	respItems := make([]searchSuggestionResponse, 0, len(items))
 	for _, item := range items {
 		respItems = append(respItems, searchSuggestionResponse{
-			ID:    item.ID,
-			Type:  item.Type,
-			Label: safety.EscapeText(item.Label),
+			ID:          item.ID,
+			Type:        item.Type,
+			Title:       safety.EscapeText(item.Title),
+			Label:       safety.EscapeText(item.Label),
+			AvatarURL:   media.PublicURLPtr(item.AvatarURL),
+			IsFollowing: item.IsFollowing,
 		})
 	}
 	return searchSuggestionsResponse{Items: respItems}
@@ -242,6 +245,15 @@ func toEventCardResponse(item placemodel.EventCardView) eventCardResponse {
 			Place: eventCardNextSessionPlaceResponse{
 				Name:        safety.EscapeText(item.NextSession.Place.Name),
 				AddressLine: safety.EscapeText(item.NextSession.Place.AddressLine),
+				ID:          item.NextSession.Place.ID,
+				Latitude:    item.NextSession.Place.Latitude,
+				Longitude:   item.NextSession.Place.Longitude,
+				City: eventSessionPlaceCityResponse{
+					ID:          item.NextSession.Place.City.ID,
+					Name:        safety.EscapeText(item.NextSession.Place.City.Name),
+					CountryName: safety.EscapeText(item.NextSession.Place.City.CountryName),
+					Timezone:    item.NextSession.Place.City.Timezone,
+				},
 			},
 		}
 	}

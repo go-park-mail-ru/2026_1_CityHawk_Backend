@@ -1,19 +1,21 @@
-package metrics
+package metricsserver
 
 import (
 	"context"
 	"net/http"
 	"strings"
 	"time"
+
+	platformmetrics "cityhawk/backend/internal/platform/metrics"
 )
 
-func StartServer(addr string) (func(), error) {
+func Start(addr string) (func(), error) {
 	if strings.TrimSpace(addr) == "" {
 		return func() {}, nil
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/metrics", Handler())
+	mux.Handle("/metrics", platformmetrics.Handler())
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))

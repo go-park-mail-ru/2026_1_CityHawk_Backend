@@ -14,6 +14,9 @@ import (
 	authusecase "cityhawk/backend/internal/auth/usecase"
 	appconfig "cityhawk/backend/internal/config"
 	photonintegration "cityhawk/backend/internal/integration/photon"
+	organizerdelivery "cityhawk/backend/internal/organizer/delivery/http"
+	organizerrepo "cityhawk/backend/internal/organizer/repository"
+	organizerusecase "cityhawk/backend/internal/organizer/usecase"
 	placedelivery "cityhawk/backend/internal/place/delivery/http"
 	placerepo "cityhawk/backend/internal/place/repository"
 	placeusecase "cityhawk/backend/internal/place/usecase"
@@ -46,6 +49,8 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	placeRepo := placerepo.NewPostgresRepository(pool)
 	placeUC := placeusecase.NewService(placeRepo)
 	socialRepo := socialrepo.NewPostgresRepository(pool)
+	organizerRepo := organizerrepo.NewPostgresRepository(pool)
+	organizerUC := organizerusecase.NewService(organizerRepo, store)
 	supportRepo := supportrepo.NewPostgresRepository(pool)
 	supportUC := supportusecase.NewService(supportRepo, store)
 	var placeLookupHandler *placedelivery.PlaceLookupHandler
@@ -91,6 +96,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	meHandler := userdelivery.NewMeHandler(store, avatarStore)
 	supportHandler := supportdelivery.NewHandler(supportUC)
 	socialHandler := socialdelivery.NewHandler(socialRepo, placeUC)
+	organizerHandler := organizerdelivery.NewHandler(organizerUC)
 	vkOAuthCfg, err := gatewayvk.NewOAuthConfig(cfg.OAuth.VK)
 	if err != nil {
 		log.Printf("vk oauth disabled: %v", err)
@@ -191,7 +197,10 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	mux.HandleFunc("GET /api/cities", placeHandler.Cities)
 	mux.HandleFunc("GET /api/collections", placeHandler.Collections)
 	mux.HandleFunc("GET /api/collections/", placeHandler.CollectionByID)
-	mux.HandleFunc("GET /api/search", placeHandler.Search)
+	mux.Handle("GET /api/search", withOptionalAuth(placeHandler.Search))
+	mux.Handle("POST /api/organizer/applications", withAuthAndCSRF(organizerHandler.Applications))
+	mux.Handle("GET /api/organizer/applications/me", withAuth(organizerHandler.MyApplication))
+	mux.Handle("PATCH /api/admin/organizer/applications/", withAuthAndCSRF(organizerHandler.AdminApplicationByID))
 	mux.HandleFunc("GET /api/map/collections", placeHandler.MapCollections)
 	mux.HandleFunc("GET /api/map/filters", placeHandler.MapFilters)
 	mux.HandleFunc("GET /api/map/collections/", placeHandler.MapCollectionSpots)
