@@ -6,6 +6,7 @@ import (
 
 	"cityhawk/backend/internal/app"
 	appconfig "cityhawk/backend/internal/config"
+	platformmetrics "cityhawk/backend/internal/platform/metrics"
 )
 
 func main() {
@@ -15,6 +16,12 @@ func main() {
 		log.Fatal(err)
 	}
 	defer cleanup()
+
+	metricsCleanup, err := platformmetrics.StartServer(cfg.Metrics.SupportAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer metricsCleanup()
 
 	addr := cfg.GRPC.SupportAddr
 	listener, err := net.Listen("tcp", addr)

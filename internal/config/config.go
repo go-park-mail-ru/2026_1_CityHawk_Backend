@@ -15,6 +15,7 @@ import (
 type Config struct {
 	Server   ServerConfig
 	GRPC     GRPCConfig
+	Metrics  MetricsConfig
 	Auth     AuthConfig
 	OAuth    OAuthConfig
 	Database DatabaseConfig
@@ -26,6 +27,14 @@ type ServerConfig struct {
 }
 
 type GRPCConfig struct {
+	AuthAddr    string
+	ProfileAddr string
+	EventsAddr  string
+	SupportAddr string
+	SocialAddr  string
+}
+
+type MetricsConfig struct {
 	AuthAddr    string
 	ProfileAddr string
 	EventsAddr  string
@@ -90,6 +99,13 @@ func LoadFromEnv() Config {
 			EventsAddr:  getEnv("EVENTS_GRPC_ADDR", ":50053"),
 			SupportAddr: getEnv("SUPPORT_GRPC_ADDR", ":50054"),
 			SocialAddr:  getEnv("SOCIAL_GRPC_ADDR", ":50055"),
+		},
+		Metrics: MetricsConfig{
+			AuthAddr:    getEnv("AUTH_METRICS_ADDR", ":9101"),
+			ProfileAddr: getEnv("PROFILE_METRICS_ADDR", ":9102"),
+			EventsAddr:  getEnv("EVENTS_METRICS_ADDR", ":9103"),
+			SupportAddr: getEnv("SUPPORT_METRICS_ADDR", ":9104"),
+			SocialAddr:  getEnv("SOCIAL_METRICS_ADDR", ":9105"),
 		},
 		Auth: AuthConfig{
 			JWTSecret:  secret,

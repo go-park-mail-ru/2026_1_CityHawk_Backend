@@ -2,6 +2,7 @@ package app
 
 import (
 	appconfig "cityhawk/backend/internal/config"
+	platformmetrics "cityhawk/backend/internal/platform/metrics"
 	usergrpc "cityhawk/backend/internal/user/delivery/grpc"
 	userrepo "cityhawk/backend/internal/user/repository"
 	profilev1 "cityhawk/backend/pkg/pb/profile/v1"
@@ -16,7 +17,7 @@ func NewProfileGRPCServer(cfg appconfig.Config) (*grpc.Server, func(), error) {
 	}
 
 	users := userrepo.NewPostgresUserRepository(pool)
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(platformmetrics.UnaryServerInterceptor("cityhawk-profile-service")))
 	profilev1.RegisterProfileServiceServer(server, usergrpc.NewServer(users))
 	reflection.Register(server)
 	return server, pool.Close, nil

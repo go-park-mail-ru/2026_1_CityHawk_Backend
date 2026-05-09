@@ -18,6 +18,11 @@ func TestLoadFromEnvAndParsers(t *testing.T) {
 	t.Setenv("EVENTS_GRPC_ADDR", ":51053")
 	t.Setenv("SUPPORT_GRPC_ADDR", ":51054")
 	t.Setenv("SOCIAL_GRPC_ADDR", ":51055")
+	t.Setenv("AUTH_METRICS_ADDR", ":52051")
+	t.Setenv("PROFILE_METRICS_ADDR", ":52052")
+	t.Setenv("EVENTS_METRICS_ADDR", ":52053")
+	t.Setenv("SUPPORT_METRICS_ADDR", ":52054")
+	t.Setenv("SOCIAL_METRICS_ADDR", ":52055")
 	t.Setenv("PHOTON_ENABLED", "true")
 	t.Setenv("PHOTON_BASE_URL", "http://photon")
 	t.Setenv("PHOTON_REQUEST_TIMEOUT", "7s")
@@ -40,6 +45,13 @@ func TestLoadFromEnvAndParsers(t *testing.T) {
 		cfg.GRPC.SupportAddr != ":51054" ||
 		cfg.GRPC.SocialAddr != ":51055" {
 		t.Fatalf("unexpected grpc config: %+v", cfg.GRPC)
+	}
+	if cfg.Metrics.AuthAddr != ":52051" ||
+		cfg.Metrics.ProfileAddr != ":52052" ||
+		cfg.Metrics.EventsAddr != ":52053" ||
+		cfg.Metrics.SupportAddr != ":52054" ||
+		cfg.Metrics.SocialAddr != ":52055" {
+		t.Fatalf("unexpected metrics config: %+v", cfg.Metrics)
 	}
 	if !cfg.Photon.Enabled || cfg.Photon.BaseURL != "http://photon" {
 		t.Fatalf("unexpected photon config: %+v", cfg.Photon)

@@ -19,6 +19,7 @@ import (
 	placeusecase "cityhawk/backend/internal/place/usecase"
 	"cityhawk/backend/internal/platform/httpx"
 	"cityhawk/backend/internal/platform/media"
+	platformmetrics "cityhawk/backend/internal/platform/metrics"
 	platformmiddleware "cityhawk/backend/internal/platform/middleware"
 	platformpostgres "cityhawk/backend/internal/platform/postgres"
 	platformsecurity "cityhawk/backend/internal/platform/security"
@@ -142,6 +143,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	}
 
 	mux := http.NewServeMux()
+	mux.Handle("GET /metrics", platformmetrics.Handler())
 	mux.HandleFunc("GET /openapi.yaml", httpx.OpenAPIYAMLHandler)
 	mux.HandleFunc("GET /swagger", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/swagger/", http.StatusMovedPermanently)
@@ -213,7 +215,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 
 	return &http.Server{
 		Addr:         ":" + cfg.Server.Port,
-		Handler:      platformmiddleware.RequestIDMiddleware(platformmiddleware.AccessLogMiddleware(platformmiddleware.CorsMiddleware(platformmiddleware.CSRFTokenHeaderMiddleware(platformmiddleware.RecoveryMiddleware(mux), authdelivery.ReadCSRFCookie)))),
+		Handler:      platformmetrics.HTTPMiddleware("cityhawk-backend")(platformmiddleware.RequestIDMiddleware(platformmiddleware.AccessLogMiddleware(platformmiddleware.CorsMiddleware(platformmiddleware.CSRFTokenHeaderMiddleware(platformmiddleware.RecoveryMiddleware(mux), authdelivery.ReadCSRFCookie))))),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}, cleanup, nil

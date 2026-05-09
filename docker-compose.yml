@@ -72,6 +72,7 @@ services:
         BUILD_TARGET: ./cmd/auth-service
     ports:
       - "${AUTH_GRPC_PORT:-50051}:50051"
+      - "${AUTH_METRICS_PORT:-9101}:9101"
     env_file:
       - .env
     depends_on:
@@ -79,6 +80,7 @@ services:
         condition: service_healthy
     environment:
       - AUTH_GRPC_ADDR=:50051
+      - AUTH_METRICS_ADDR=:9101
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-cityhawk}
@@ -93,6 +95,7 @@ services:
         BUILD_TARGET: ./cmd/profile-service
     ports:
       - "${PROFILE_GRPC_PORT:-50052}:50052"
+      - "${PROFILE_METRICS_PORT:-9102}:9102"
     env_file:
       - .env
     depends_on:
@@ -100,6 +103,7 @@ services:
         condition: service_healthy
     environment:
       - PROFILE_GRPC_ADDR=:50052
+      - PROFILE_METRICS_ADDR=:9102
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-cityhawk}
@@ -114,6 +118,7 @@ services:
         BUILD_TARGET: ./cmd/events-service
     ports:
       - "${EVENTS_GRPC_PORT:-50053}:50053"
+      - "${EVENTS_METRICS_PORT:-9103}:9103"
     env_file:
       - .env
     depends_on:
@@ -123,6 +128,7 @@ services:
         condition: service_started
     environment:
       - EVENTS_GRPC_ADDR=:50053
+      - EVENTS_METRICS_ADDR=:9103
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-cityhawk}
@@ -142,6 +148,7 @@ services:
         BUILD_TARGET: ./cmd/social-service
     ports:
       - "${SOCIAL_GRPC_PORT:-50055}:50055"
+      - "${SOCIAL_METRICS_PORT:-9105}:9105"
     env_file:
       - .env
     depends_on:
@@ -149,6 +156,7 @@ services:
         condition: service_healthy
     environment:
       - SOCIAL_GRPC_ADDR=:50055
+      - SOCIAL_METRICS_ADDR=:9105
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-cityhawk}
@@ -163,13 +171,18 @@ services:
         BUILD_TARGET: ./cmd/support-service
     ports:
       - "${SUPPORT_GRPC_PORT:-50054}:50054"
+      - "${SUPPORT_METRICS_PORT:-9104}:9104"
     env_file:
       - .env
     depends_on:
       postgres:
         condition: service_healthy
+      cityhawk-profile-service:
+        condition: service_started
     environment:
       - SUPPORT_GRPC_ADDR=:50054
+      - SUPPORT_METRICS_ADDR=:9104
+      - PROFILE_GRPC_ADDR=cityhawk-profile-service:50052
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-cityhawk}
@@ -177,7 +190,73 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-cityhawk}
     restart: unless-stopped
 
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: cityhawk-prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    depends_on:
+      - cityhawk-backend
+      - cityhawk-auth-service
+      - cityhawk-profile-service
+      - cityhawk-events-service
+      - cityhawk-support-service
+      - cityhawk-social-service
+      - node-exporter
+      - cadvisor
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: cityhawk-grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: cityhawk-node-exporter
+    ports:
+      - "${NODE_EXPORTER_PORT:-9100}:9100"
+    command:
+      - --path.rootfs=/host
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cityhawk-cadvisor
+    ports:
+      - "${CADVISOR_PORT:-8081}:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   photon_data:
   uploads_data:
+  prometheus_data:
+  grafana_data:

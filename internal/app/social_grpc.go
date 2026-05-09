@@ -2,6 +2,7 @@ package app
 
 import (
 	appconfig "cityhawk/backend/internal/config"
+	platformmetrics "cityhawk/backend/internal/platform/metrics"
 	socialgrpc "cityhawk/backend/internal/social/delivery/grpc"
 	socialrepo "cityhawk/backend/internal/social/repository"
 	socialv1 "cityhawk/backend/pkg/pb/social/v1"
@@ -16,7 +17,7 @@ func NewSocialGRPCServer(cfg appconfig.Config) (*grpc.Server, func(), error) {
 	}
 
 	repo := socialrepo.NewPostgresRepository(pool)
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(platformmetrics.UnaryServerInterceptor("cityhawk-social-service")))
 	socialv1.RegisterSocialServiceServer(server, socialgrpc.NewServer(repo))
 	reflection.Register(server)
 	return server, pool.Close, nil

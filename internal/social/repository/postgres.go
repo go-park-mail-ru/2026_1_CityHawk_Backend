@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	platformerrors "cityhawk/backend/internal/platform/errors"
+	platformpostgres "cityhawk/backend/internal/platform/postgres"
 	socialmodel "cityhawk/backend/internal/social/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -370,11 +371,11 @@ func mapPgError(err error) error {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
-		case "23505":
+		case platformpostgres.CodeUniqueViolation:
 			return platformerrors.ErrAlreadyExists
-		case "23503":
+		case platformpostgres.CodeForeignKeyViolation:
 			return platformerrors.ErrInvalidReference
-		case "23514":
+		case platformpostgres.CodeCheckViolation:
 			return platformerrors.ErrInvalidReference
 		}
 	}

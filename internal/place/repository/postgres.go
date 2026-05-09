@@ -11,13 +11,14 @@ import (
 
 	placemodel "cityhawk/backend/internal/place/model"
 	platformerrors "cityhawk/backend/internal/platform/errors"
+	platformpostgres "cityhawk/backend/internal/platform/postgres"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PostgresRepository struct {
-	pool *pgxpool.Pool
+	pool postgresDB
 }
 
 type homeFeaturedEventRow struct {
@@ -74,6 +75,13 @@ type eventListRow struct {
 
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
+}
+
+type postgresDB interface {
+	Begin(ctx context.Context) (pgx.Tx, error)
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
 func (r *PostgresRepository) HomePayload(ctx context.Context, filter placemodel.HomeFilter) placemodel.HomePayload {
@@ -193,17 +201,22 @@ func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int, 
 			FROM event_image ei
 			ORDER BY ei.event_id, ei.created_at ASC, ei.id ASC
 		),
-		next_session AS (
-			SELECT DISTINCT ON (es.event_id)
+		ranked_next_session AS (
+			SELECT
 				es.event_id,
 				es.start_at,
 				p.name AS place_name,
-				p.address_line
+				p.address_line,
+				ROW_NUMBER() OVER (PARTITION BY es.event_id ORDER BY es.start_at ASC, es.id ASC) AS rn
 			FROM event_session es
 			JOIN place p ON p.id = es.place_id
 			JOIN city c ON c.id = p.city_id
 			WHERE ($2 = '' OR c.id::text = $2 OR lower(c.name) = lower($2))
-			ORDER BY es.event_id, es.start_at ASC, es.id ASC
+		),
+		next_session AS (
+			SELECT event_id, start_at, place_name, address_line
+			FROM ranked_next_session
+			WHERE rn = 1
 		),
 		tags AS (
 			SELECT
@@ -681,6 +694,20 @@ func (r *PostgresRepository) UpdateEvent(ctx context.Context, input placemodel.E
 		return false, platformerrors.ErrForbidden
 	}
 
+	if err := updateEventFields(ctx, tx, input); err != nil {
+		return false, err
+	}
+	if err := replaceEventRelations(ctx, tx, input); err != nil {
+		return false, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func updateEventFields(ctx context.Context, tx pgx.Tx, input placemodel.EventWriteInput) error {
 	setParts := make([]string, 0, 6)
 	args := make([]any, 0, 7)
 	argPos := 1
@@ -718,35 +745,35 @@ func (r *PostgresRepository) UpdateEvent(ctx context.Context, input placemodel.E
 		args = append(args, input.ID)
 		query := fmt.Sprintf(`UPDATE event SET %s, updated_at = now() WHERE id = $%d`, strings.Join(setParts, ", "), argPos)
 		if _, err := tx.Exec(ctx, query, args...); err != nil {
-			return false, mapPGError(err)
+			return mapPGError(err)
 		}
 	}
 
+	return nil
+}
+
+func replaceEventRelations(ctx context.Context, tx pgx.Tx, input placemodel.EventWriteInput) error {
 	if input.CategoryIDs != nil {
 		if err := replaceCategories(ctx, tx, input.ID, input.CategoryIDs); err != nil {
-			return false, err
+			return err
 		}
 	}
 	if input.TagIDs != nil {
 		if err := replaceTags(ctx, tx, input.ID, input.TagIDs); err != nil {
-			return false, err
+			return err
 		}
 	}
 	if input.ImageURLs != nil {
 		if err := replaceImages(ctx, tx, input.ID, input.ImageURLs); err != nil {
-			return false, err
+			return err
 		}
 	}
 	if input.Sessions != nil {
 		if err := replaceSessions(ctx, tx, input.ID, input.Sessions); err != nil {
-			return false, err
+			return err
 		}
 	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return false, err
-	}
-	return true, nil
+	return nil
 }
 
 func (r *PostgresRepository) DeleteEvent(ctx context.Context, id, userID string) (bool, error) {
@@ -783,6 +810,7 @@ func (r *PostgresRepository) DeleteEvent(ctx context.Context, id, userID string)
 
 func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 	args := make([]any, 0, 12)
+	joinParts := make([]string, 0, 6)
 	whereParts := make([]string, 0, 8)
 	argPos := 1
 
@@ -792,17 +820,18 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 		argPos++
 	}
 	if filter.CategoryID != "" {
-		whereParts = append(whereParts, fmt.Sprintf("EXISTS (SELECT 1 FROM event_category ec WHERE ec.event_id = e.id AND ec.category_id::text = $%d)", argPos))
+		joinParts = append(joinParts, fmt.Sprintf("JOIN event_category ec_filter ON ec_filter.event_id = e.id AND ec_filter.category_id::text = $%d", argPos))
 		args = append(args, filter.CategoryID)
 		argPos++
 	}
 	if filter.TagID != "" {
-		whereParts = append(whereParts, fmt.Sprintf("EXISTS (SELECT 1 FROM event_tag et WHERE et.event_id = e.id AND et.tag_id::text = $%d)", argPos))
+		joinParts = append(joinParts, fmt.Sprintf("JOIN event_tag et_filter ON et_filter.event_id = e.id AND et_filter.tag_id::text = $%d", argPos))
 		args = append(args, filter.TagID)
 		argPos++
 	}
+	sessionWhereParts := make([]string, 0, 3)
 	if filter.CityID != "" {
-		whereParts = append(whereParts, fmt.Sprintf("EXISTS (SELECT 1 FROM event_session es JOIN place p ON p.id = es.place_id WHERE es.event_id = e.id AND p.city_id::text = $%d)", argPos))
+		sessionWhereParts = append(sessionWhereParts, fmt.Sprintf("p_filter.city_id::text = $%d", argPos))
 		args = append(args, filter.CityID)
 		argPos++
 	}
@@ -812,23 +841,32 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 		argPos++
 	}
 	if filter.CollectionID != "" {
-		whereParts = append(whereParts, fmt.Sprintf("EXISTS (SELECT 1 FROM collection_event ce WHERE ce.event_id = e.id AND ce.collection_id::text = $%d)", argPos))
+		joinParts = append(joinParts, fmt.Sprintf("JOIN collection_event ce_filter ON ce_filter.event_id = e.id AND ce_filter.collection_id::text = $%d", argPos))
 		args = append(args, filter.CollectionID)
 		argPos++
 	}
 	if filter.DateFrom != nil {
-		whereParts = append(whereParts, fmt.Sprintf("EXISTS (SELECT 1 FROM event_session es WHERE es.event_id = e.id AND es.start_at >= $%d)", argPos))
+		sessionWhereParts = append(sessionWhereParts, fmt.Sprintf("es_filter.start_at >= $%d", argPos))
 		args = append(args, *filter.DateFrom)
 		argPos++
 	}
 	if filter.DateTo != nil {
-		whereParts = append(whereParts, fmt.Sprintf("EXISTS (SELECT 1 FROM event_session es WHERE es.event_id = e.id AND es.start_at <= $%d)", argPos))
+		sessionWhereParts = append(sessionWhereParts, fmt.Sprintf("es_filter.start_at <= $%d", argPos))
 		args = append(args, *filter.DateTo)
 		argPos++
 	}
+	if len(sessionWhereParts) > 0 {
+		joinParts = append(joinParts, "JOIN event_session es_filter ON es_filter.event_id = e.id")
+		if filter.CityID != "" {
+			joinParts = append(joinParts, "JOIN place p_filter ON p_filter.id = es_filter.place_id")
+		}
+		whereParts = append(whereParts, strings.Join(sessionWhereParts, " AND "))
+	}
 	favoriteExpr := "false AS is_favorite"
+	favoriteJoin := ""
 	if filter.UserID != "" {
-		favoriteExpr = fmt.Sprintf("EXISTS (SELECT 1 FROM favorite_event fe WHERE fe.event_id = e.id AND fe.user_id::text = $%d) AS is_favorite", argPos)
+		favoriteJoin = fmt.Sprintf("LEFT JOIN favorite_event fe_filter ON fe_filter.event_id = e.id AND fe_filter.user_id::text = $%d", argPos)
+		favoriteExpr = "(fe_filter.user_id IS NOT NULL) AS is_favorite"
 		args = append(args, filter.UserID)
 		argPos++
 	}
@@ -837,6 +875,7 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 	if len(whereParts) > 0 {
 		whereClause = "WHERE " + strings.Join(whereParts, " AND ")
 	}
+	joinClause := strings.Join(joinParts, "\n")
 
 	orderBy := "e.created_at DESC, e.id ASC"
 	switch filter.Sort {
@@ -858,15 +897,20 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 			FROM event_image ei
 			ORDER BY ei.event_id, ei.created_at ASC, ei.id ASC
 		),
-		next_session AS (
-			SELECT DISTINCT ON (es.event_id)
+		ranked_next_session AS (
+			SELECT
 				es.event_id,
 				es.start_at,
 				p.name AS place_name,
-				p.address_line
+				p.address_line,
+				ROW_NUMBER() OVER (PARTITION BY es.event_id ORDER BY es.start_at ASC, es.id ASC) AS rn
 			FROM event_session es
 			JOIN place p ON p.id = es.place_id
-			ORDER BY es.event_id, es.start_at ASC, es.id ASC
+		),
+		next_session AS (
+			SELECT event_id, start_at, place_name, address_line
+			FROM ranked_next_session
+			WHERE rn = 1
 		),
 		tags AS (
 			SELECT
@@ -884,6 +928,13 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 			FROM favorite_event fe
 			GROUP BY fe.event_id
 		),
+		filtered_events AS (
+			SELECT e.id
+			FROM event e
+			%s
+			%s
+			GROUP BY e.id
+		),
 		base AS (
 			SELECT
 				e.id,
@@ -898,7 +949,8 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 				COUNT(*) OVER()::int AS total_count,
 				%s,
 				COALESCE(fc.favorite_count, 0)::int AS popularity
-			FROM event e
+			FROM filtered_events filtered
+			JOIN event e ON e.id = filtered.id
 			LEFT JOIN first_image fi ON fi.event_id = e.id
 			LEFT JOIN next_session ns ON ns.event_id = e.id
 			LEFT JOIN tags ON tags.event_id = e.id
@@ -921,7 +973,7 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 			is_favorite,
 			popularity
 		FROM base
-	`, favoriteExpr, whereClause, orderBy, argPos, argPos+1)
+	`, joinClause, whereClause, favoriteExpr, favoriteJoin, orderBy, argPos, argPos+1)
 	args = append(args, filter.Limit, filter.Offset)
 	return query, args
 }
@@ -1082,7 +1134,7 @@ func replaceSessions(ctx context.Context, tx pgx.Tx, eventID string, sessions *[
 
 func getEventOwner(ctx context.Context, tx pgx.Tx, eventID string) (string, error) {
 	var ownerID string
-	err := tx.QueryRow(ctx, `SELECT author_user_id::text FROM event WHERE id = $1`, eventID).Scan(&ownerID)
+	err := tx.QueryRow(ctx, `SELECT author_user_id::text FROM event WHERE id = $1 FOR UPDATE`, eventID).Scan(&ownerID)
 	return ownerID, err
 }
 
@@ -1090,11 +1142,39 @@ func mapPGError(err error) error {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
-		case "23503":
-			return platformerrors.ErrInvalidReference
+		case platformpostgres.CodeForeignKeyViolation:
+			return mapForeignKeyViolation(pgErr)
 		}
 	}
 	return err
+}
+
+func mapForeignKeyViolation(pgErr *pgconn.PgError) error {
+	switch pgErr.ConstraintName {
+	case "event_author_user_id_fkey":
+		return platformerrors.NewInvalidReferenceError("actor", "author user was not found", pgErr.ConstraintName)
+	case "event_category_category_id_fkey":
+		return platformerrors.NewInvalidReferenceError("categoryIds", "one or more categories were not found", pgErr.ConstraintName)
+	case "event_tag_tag_id_fkey":
+		return platformerrors.NewInvalidReferenceError("tagIds", "one or more tags were not found", pgErr.ConstraintName)
+	case "event_session_place_id_fkey":
+		return platformerrors.NewInvalidReferenceError("sessions.placeId", "one or more session places were not found", pgErr.ConstraintName)
+	case "event_image_event_id_fkey",
+		"event_category_event_id_fkey",
+		"event_tag_event_id_fkey",
+		"event_session_event_id_fkey":
+		return platformerrors.NewInvalidReferenceError("eventId", "event was not found", pgErr.ConstraintName)
+	default:
+		field := pgErr.ColumnName
+		if field == "" {
+			field = "value"
+		}
+		message := "request references unknown related entity"
+		if pgErr.ConstraintName != "" {
+			message = fmt.Sprintf("%s (%s)", message, pgErr.ConstraintName)
+		}
+		return platformerrors.NewInvalidReferenceError(field, message, pgErr.ConstraintName)
+	}
 }
 
 type queryable interface {
@@ -1151,15 +1231,20 @@ func (r *PostgresRepository) fetchCollectionEvents(ctx context.Context, collecti
 			FROM event_image ei
 			ORDER BY ei.event_id, ei.created_at ASC, ei.id ASC
 		),
-		next_session AS (
-			SELECT DISTINCT ON (es.event_id)
+		ranked_next_session AS (
+			SELECT
 				es.event_id,
 				es.start_at,
 				p.name AS place_name,
-				p.address_line
+				p.address_line,
+				ROW_NUMBER() OVER (PARTITION BY es.event_id ORDER BY es.start_at ASC, es.id ASC) AS rn
 			FROM event_session es
 			JOIN place p ON p.id = es.place_id
-			ORDER BY es.event_id, es.start_at ASC, es.id ASC
+		),
+		next_session AS (
+			SELECT event_id, start_at, place_name, address_line
+			FROM ranked_next_session
+			WHERE rn = 1
 		),
 			tags AS (
 				SELECT

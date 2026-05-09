@@ -135,6 +135,130 @@ func TestHandlerMessages(t *testing.T) {
 	}
 }
 
+func TestHandlerGetAndUpdateTicket(t *testing.T) {
+	uc := newFakeSupportUsecase()
+	handler := NewHandler(uc)
+	uc.items["ticket-1"] = supportmodel.Ticket{
+		ID:        "ticket-1",
+		UserID:    "user-1",
+		Category:  supportmodel.CategorySuggestion,
+		Status:    supportmodel.StatusOpen,
+		Title:     "Old title",
+		Message:   "Old message",
+		CreatedAt: time.Date(2026, 4, 25, 10, 0, 0, 0, time.UTC),
+		UpdatedAt: time.Date(2026, 4, 25, 10, 0, 0, 0, time.UTC),
+	}
+
+	updateReq := httptest.NewRequest(http.MethodPatch, "/api/support/tickets/ticket-1", strings.NewReader(`{
+		"title": "New title",
+		"message": "New message",
+		"category": "bug"
+	}`))
+	updateReq = updateReq.WithContext(context.WithValue(updateReq.Context(), httpx.UserIDContextKey, "user-1"))
+	updateRec := httptest.NewRecorder()
+	handler.TicketByID(updateRec, updateReq)
+	if updateRec.Code != http.StatusOK {
+		t.Fatalf("update status = %d, want %d body=%s", updateRec.Code, http.StatusOK, updateRec.Body.String())
+	}
+	updatePayload := decodeSupportJSONMap(t, updateRec)
+	if updatePayload["title"] != "New title" || updatePayload["category"] != "bug" {
+		t.Fatalf("unexpected update response: %+v", updatePayload)
+	}
+
+	getReq := httptest.NewRequest(http.MethodGet, "/api/support/tickets/ticket-1", nil)
+	getReq = getReq.WithContext(context.WithValue(getReq.Context(), httpx.UserIDContextKey, "user-1"))
+	getRec := httptest.NewRecorder()
+	handler.TicketByID(getRec, getReq)
+	if getRec.Code != http.StatusOK {
+		t.Fatalf("get status = %d, want %d body=%s", getRec.Code, http.StatusOK, getRec.Body.String())
+	}
+	getPayload := decodeSupportJSONMap(t, getRec)
+	if getPayload["message"] != "New message" {
+		t.Fatalf("unexpected get response: %+v", getPayload)
+	}
+}
+
+func TestHandlerStats(t *testing.T) {
+	uc := newFakeSupportUsecase()
+	handler := NewHandler(uc)
+	uc.items["ticket-1"] = supportmodel.Ticket{
+		ID:        "ticket-1",
+		UserID:    "user-1",
+		Category:  supportmodel.CategoryBug,
+		Status:    supportmodel.StatusOpen,
+		Title:     "Broken page",
+		Message:   "Something does not open",
+		CreatedAt: time.Date(2026, 4, 25, 10, 0, 0, 0, time.UTC),
+		UpdatedAt: time.Date(2026, 4, 25, 10, 0, 0, 0, time.UTC),
+	}
+	uc.items["ticket-2"] = supportmodel.Ticket{
+		ID:        "ticket-2",
+		UserID:    "user-1",
+		Category:  supportmodel.CategorySuggestion,
+		Status:    supportmodel.StatusClosed,
+		Title:     "How to change city?",
+		Message:   "Need details",
+		CreatedAt: time.Date(2026, 4, 25, 10, 0, 0, 0, time.UTC),
+		UpdatedAt: time.Date(2026, 4, 25, 10, 0, 0, 0, time.UTC),
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/support/stats?from=2026-04-01T00:00:00Z&to=2026-04-30T00:00:00Z", nil)
+	req = req.WithContext(context.WithValue(req.Context(), httpx.UserIDContextKey, "admin-1"))
+	rec := httptest.NewRecorder()
+	handler.Stats(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("stats status = %d, want %d body=%s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	payload := decodeSupportJSONMap(t, rec)
+	if payload["total"] != float64(2) {
+		t.Fatalf("unexpected stats response: %+v", payload)
+	}
+}
+
+func TestHandlerValidationErrors(t *testing.T) {
+	handler := NewHandler(newFakeSupportUsecase())
+
+	t.Run("bad list limit", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/support/tickets?limit=nope", nil)
+		req = req.WithContext(context.WithValue(req.Context(), httpx.UserIDContextKey, "user-1"))
+		rec := httptest.NewRecorder()
+		handler.Tickets(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want %d body=%s", rec.Code, http.StatusBadRequest, rec.Body.String())
+		}
+	})
+
+	t.Run("bad ticket path", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/support/tickets/", nil)
+		req = req.WithContext(context.WithValue(req.Context(), httpx.UserIDContextKey, "user-1"))
+		rec := httptest.NewRecorder()
+		handler.TicketByID(rec, req)
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("status = %d, want %d body=%s", rec.Code, http.StatusNotFound, rec.Body.String())
+		}
+	})
+
+	t.Run("bad stats interval", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/support/stats?from=bad-time", nil)
+		req = req.WithContext(context.WithValue(req.Context(), httpx.UserIDContextKey, "admin-1"))
+		rec := httptest.NewRecorder()
+		handler.Stats(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want %d body=%s", rec.Code, http.StatusBadRequest, rec.Body.String())
+		}
+	})
+
+	t.Run("method not allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPut, "/api/support/tickets", nil)
+		req = req.WithContext(context.WithValue(req.Context(), httpx.UserIDContextKey, "user-1"))
+		rec := httptest.NewRecorder()
+		handler.Tickets(rec, req)
+		if rec.Code != http.StatusMethodNotAllowed {
+			t.Fatalf("status = %d, want %d body=%s", rec.Code, http.StatusMethodNotAllowed, rec.Body.String())
+		}
+	})
+}
+
 func decodeSupportJSONMap(t *testing.T, rec *httptest.ResponseRecorder) map[string]any {
 	t.Helper()
 	var payload map[string]any

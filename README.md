@@ -61,6 +61,10 @@ social-service   :50055  cityhawk.social.v1.SocialService
 
 Сгенерированные клиентские и серверные интерфейсы лежат в `pkg/pb/*/v1`, а серверные адаптеры - в `internal/*/delivery/grpc`.
 
+Межсервисное общение по gRPC уже используется внутри системы: `support-service` ходит в `profile-service`
+через `cityhawk.profile.v1.ProfileService/GetUser`, чтобы проверять автора тикета и его роль перед операциями
+поддержки. В Docker Compose для этого `SUPPORT` контейнер получает `PROFILE_GRPC_ADDR=cityhawk-profile-service:50052`.
+
 Локальная сборка всех бинарников:
 
 ```bash
@@ -81,6 +85,32 @@ SOCIAL_GRPC_ADDR=:50055 go run ./cmd/social-service
 
 ```bash
 docker compose up -d postgres photon cityhawk-auth-service cityhawk-profile-service cityhawk-events-service cityhawk-support-service cityhawk-social-service
+```
+
+## Мониторинг
+
+Prometheus и Grafana поднимаются вместе с проектом:
+
+```bash
+docker compose up -d
+```
+
+Grafana доступна на `http://localhost:3000` (`admin` / `admin` по умолчанию), Prometheus - на `http://localhost:9090`.
+
+Dashboard `CityHawk RK Monitoring` автоматически подключается через provisioning и содержит:
+- хиты, ошибки и тайминги запросов по всем HTTP/gRPC сервисам, методам и URL/RPC route;
+- метрики всех микросервисов: `cityhawk-backend`, `cityhawk-auth-service`, `cityhawk-profile-service`, `cityhawk-events-service`, `cityhawk-support-service`, `cityhawk-social-service`;
+- CPU, память и диск машины через `node-exporter`;
+- CPU и память контейнеров через `cAdvisor`.
+
+HTTP backend отдает `/metrics` на `:8080`. gRPC-сервисы отдают `/metrics` на отдельных HTTP-портах:
+
+```text
+auth-service     :9101
+profile-service  :9102
+events-service   :9103
+support-service  :9104
+social-service   :9105
 ```
 
 ## База данных

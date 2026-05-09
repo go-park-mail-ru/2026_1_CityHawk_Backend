@@ -1,0 +1,50 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+scrape_configs:
+  - job_name: cityhawk-backend
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - cityhawk-backend:8080
+        labels:
+          service: cityhawk-backend
+
+  - job_name: cityhawk-grpc-services
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - cityhawk-auth-service:9101
+        labels:
+          service: cityhawk-auth-service
+      - targets:
+          - cityhawk-profile-service:9102
+        labels:
+          service: cityhawk-profile-service
+      - targets:
+          - cityhawk-events-service:9103
+        labels:
+          service: cityhawk-events-service
+      - targets:
+          - cityhawk-support-service:9104
+        labels:
+          service: cityhawk-support-service
+      - targets:
+          - cityhawk-social-service:9105
+        labels:
+          service: cityhawk-social-service
+
+  - job_name: node-exporter
+    static_configs:
+      - targets:
+          - node-exporter:9100
+        labels:
+          service: node-exporter
+
+  - job_name: cadvisor
+    static_configs:
+      - targets:
+          - cadvisor:8080
+        labels:
+          service: cadvisor

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	platformerrors "cityhawk/backend/internal/platform/errors"
+	platformpostgres "cityhawk/backend/internal/platform/postgres"
 	usermodel "cityhawk/backend/internal/user/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -98,7 +99,7 @@ func (r *PostgresUserRepository) Create(ctx context.Context, u usermodel.User) (
 	).Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if errors.As(err, &pgErr) && pgErr.Code == platformpostgres.CodeUniqueViolation {
 			return usermodel.User{}, platformerrors.ErrEmailExists
 		}
 		return usermodel.User{}, err
@@ -226,9 +227,9 @@ func (r *PostgresUserRepository) UpdateProfile(ctx context.Context, id string, p
 			var pgErr *pgconn.PgError
 			if errors.As(err, &pgErr) {
 				switch pgErr.Code {
-				case "23503":
+				case platformpostgres.CodeForeignKeyViolation:
 					return usermodel.User{}, false, platformerrors.ErrInvalidCity
-				case "23505":
+				case platformpostgres.CodeUniqueViolation:
 					return usermodel.User{}, false, platformerrors.ErrEmailExists
 				}
 			}
@@ -248,7 +249,7 @@ func (r *PostgresUserRepository) UpdateProfile(ctx context.Context, id string, p
 				VALUES ($1, $2)
 			`, id, tagID); err != nil {
 				var pgErr *pgconn.PgError
-				if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+				if errors.As(err, &pgErr) && pgErr.Code == platformpostgres.CodeForeignKeyViolation {
 					return usermodel.User{}, false, platformerrors.ErrInvalidReference
 				}
 				return usermodel.User{}, false, err
@@ -263,12 +264,18 @@ func (r *PostgresUserRepository) UpdateProfile(ctx context.Context, id string, p
 		}
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	u, err := scanUser(tx.QueryRow(ctx, getUserByIDQuery, id))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return usermodel.User{}, false, nil
+		}
 		return usermodel.User{}, false, err
 	}
 
-	u, ok := r.GetByID(ctx, id)
-	return u, ok, nil
+	if err := tx.Commit(ctx); err != nil {
+		return usermodel.User{}, false, err
+	}
+	return u, true, nil
 }
 
 type userScanner interface {

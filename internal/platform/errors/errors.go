@@ -22,8 +22,41 @@ var (
 	ErrEventNotFound      = errors.New("event not found")
 	ErrCategoryNotFound   = errors.New("category not found")
 	ErrEmailExists        = errors.New("email already exists")
-	ErrAlreadyExists     = errors.New("already exists")
+	ErrAlreadyExists      = errors.New("already exists")
 	ErrInvalidCity        = errors.New("invalid city")
 	ErrForbidden          = errors.New("forbidden")
 	ErrInvalidReference   = errors.New("invalid reference")
 )
+
+type InvalidReferenceError struct {
+	Field      string
+	Message    string
+	Constraint string
+}
+
+func (e *InvalidReferenceError) Error() string {
+	if e == nil || e.Message == "" {
+		return ErrInvalidReference.Error()
+	}
+	return ErrInvalidReference.Error() + ": " + e.Message
+}
+
+func (e *InvalidReferenceError) Unwrap() error {
+	return ErrInvalidReference
+}
+
+func NewInvalidReferenceError(field, message, constraint string) error {
+	return &InvalidReferenceError{
+		Field:      field,
+		Message:    message,
+		Constraint: constraint,
+	}
+}
+
+func InvalidReferenceDetails(err error) (string, string, bool) {
+	var refErr *InvalidReferenceError
+	if errors.As(err, &refErr) {
+		return refErr.Field, refErr.Message, true
+	}
+	return "", "", false
+}
