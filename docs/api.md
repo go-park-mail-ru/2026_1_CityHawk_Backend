@@ -49,6 +49,8 @@ API приложения CityHawk построено по REST-подходу.
 - `PATCH /api/support/tickets/{ticketId}`
 - `PATCH /api/support/tickets/{ticketId}/status`
 - `POST /api/support/tickets/{ticketId}/messages`
+- `POST /api/organizer/applications`
+- `PATCH /api/admin/organizer/applications/{applicationId}`
 
 После успешного `register`, `login`, `refresh` и OAuth callback сервер также дублирует токен в response header `X-CSRF-Token`, чтобы фронтенд мог сохранить его и отправлять дальше.
 
@@ -303,6 +305,7 @@ window.__APP_CONFIG__ = {
 - модалка подписок/подписчиков на `/profile`:
   - список подписчиков: `GET /api/me/followers?limit=100&offset=0`
   - список подписок: `GET /api/me/following?limit=100&offset=0`
+  - поиск пользователей в модалке: `GET /api/search?query=...&limit=10`
   - подписаться: `POST /api/users/{userId}/follow`
   - отписаться: `DELETE /api/users/{userId}/follow`
 - карточки событий на `/`, `/events`, `/events/{id}`, `/profile`:
@@ -504,8 +507,15 @@ Query параметры:
       "nextSession": {
         "startAt": "2026-03-30T19:00:00Z",
         "place": {
+          "id": "uuid",
           "name": "Arena",
-          "addressLine": "Lenina 1"
+          "addressLine": "Lenina 1",
+          "latitude": 55.75,
+          "longitude": 37.61,
+          "city": {
+            "id": "uuid",
+            "name": "Moscow"
+          }
         }
       }
     }
@@ -722,8 +732,15 @@ Query параметры:
       "nextSession": {
         "startAt": "2026-03-30T19:00:00Z",
         "place": {
+          "id": "uuid",
           "name": "Arena",
-          "addressLine": "Lenina 1"
+          "addressLine": "Lenina 1",
+          "latitude": 55.75,
+          "longitude": 37.61,
+          "city": {
+            "id": "uuid",
+            "name": "Moscow"
+          }
         }
       }
     }
@@ -757,6 +774,9 @@ Query параметры:
 - `query`
 - `categoryId`
 - `tagId`
+- `tag` (альтернатива `tagId`: можно передавать id, slug или name тега)
+- `tagSlug` (альтернатива `tagId`)
+- `tagName` (альтернатива `tagId`)
 - `cityId`
 - `dateFrom`
 - `dateTo`
@@ -796,6 +816,7 @@ Query параметры:
 
 - `isFavorite` вычисляется относительно текущего авторизованного пользователя;
 - для гостя поле может отсутствовать или быть `false`.
+- `nextSession.place` содержит координаты места (`latitude`, `longitude`) для отображения событий на карте.
 
 Возможные ошибки:
 
@@ -1044,15 +1065,16 @@ images=<binary file>
 
 ### GET /api/search
 
-Подсказки для строки поиска.
+Подсказки для строки поиска (используется в хедере и для поиска друзей).
 
 Query параметры:
 
-- `query` — минимум 2 символа
-- `limit` — от `5` до `10`, по умолчанию `5`
+- `query` — строка поиска
+- `limit` — число, по умолчанию `5`
 
 Элемент подсказки может относиться к:
 
+- пользователю (`type: user`)
 - событию (`type: event`)
 - категории (`type: category`)
 - тегу (`type: tag`)
@@ -1063,27 +1085,176 @@ Query параметры:
 {
   "items": [
     {
+      "id": "uuid-user",
+      "type": "user",
+      "title": "Мария Соколова",
+      "label": "@maria",
+      "avatarUrl": "https://example.com/avatar.jpg",
+      "isFollowing": true
+    },
+    {
       "id": "uuid-event",
       "type": "event",
-      "label": "Rock concert"
+      "title": "Rock concert",
+      "label": "Концерт"
     },
     {
       "id": "uuid-category",
       "type": "category",
-      "label": "Концерты"
+      "title": "Концерты",
+      "label": "Категория"
     },
     {
       "id": "uuid-tag",
       "type": "tag",
-      "label": "Rock"
+      "title": "Rock",
+      "label": "Тег"
     }
   ]
+}
+```
+
+Примечания:
+
+- `items` может содержать как объекты, так и строки (для обратной совместимости старого клиента).
+- для `type=user` и `type=event` рекомендуется всегда возвращать `id`, чтобы фронтенд мог перейти в профиль/событие.
+
+Возможные ошибки:
+
+- `400 Validation failed`
+
+## Organizer Applications API (draft)
+
+Раздел для страницы `/organizer/apply`.
+
+### POST /api/organizer/applications
+
+Создать заявку на роль организатора.
+
+Требования:
+
+- cookie `access_token`
+- cookie `csrf_token`
+- header `X-CSRF-Token`
+
+Тело запроса:
+
+```json
+{
+  "name": "Иван Петров",
+  "email": "ivan@example.com",
+  "phone": "+79000000000",
+  "city": "Москва",
+  "projectName": "North Art Lab",
+  "categories": "Концерты, Выставки",
+  "links": "https://example.com",
+  "about": "Организуем события 2 года...",
+  "consent": true
+}
+```
+
+Успешный ответ `201 Created`:
+
+```json
+{
+  "id": "uuid",
+  "status": "pending",
+  "createdAt": "2026-05-09T10:00:00Z"
 }
 ```
 
 Возможные ошибки:
 
 - `400 Validation failed`
+- `401 Unauthorized`
+- `403 CSRF token mismatch`
+- `409 Active application already exists`
+
+Frontend integration (текущее поведение клиента):
+
+- страница `/organizer/apply` отправляет `POST /api/organizer/applications`
+- валидация обязательных полей делается нативно в браузере (`required`)
+- при `201` форма скрывается и показывается блок "Заявка отправлена"
+- при ошибке backend текст из поля `error` показывается пользователю через toast
+
+### GET /api/organizer/applications/me
+
+Получить текущую заявку авторизованного пользователя.
+
+Требование:
+
+- cookie `access_token`
+
+Успешный ответ `200 OK`:
+
+```json
+{
+  "id": "uuid",
+  "status": "pending",
+  "name": "Иван Петров",
+  "email": "ivan@example.com",
+  "phone": "+79000000000",
+  "city": "Москва",
+  "projectName": "North Art Lab",
+  "categories": "Концерты, Выставки",
+  "links": "https://example.com",
+  "about": "Организуем события 2 года...",
+  "reviewComment": "",
+  "createdAt": "2026-05-09T10:00:00Z",
+  "updatedAt": "2026-05-09T10:00:00Z"
+}
+```
+
+Возможные ошибки:
+
+- `401 Unauthorized`
+- `404 Organizer application not found`
+
+### PATCH /api/admin/organizer/applications/{applicationId}
+
+Админ меняет статус заявки.
+
+Требования:
+
+- cookie `access_token`
+- cookie `csrf_token`
+- header `X-CSRF-Token`
+- роль текущего пользователя: `admin`
+
+Тело запроса:
+
+```json
+{
+  "status": "approved",
+  "reviewComment": "Проверено, можно открывать доступ."
+}
+```
+
+Поддерживаемые `status`:
+
+- `pending`
+- `needs_info`
+- `approved`
+- `rejected`
+
+Успешный ответ `200 OK`:
+
+```json
+{
+  "id": "uuid",
+  "status": "approved",
+  "reviewComment": "Проверено, можно открывать доступ.",
+  "updatedAt": "2026-05-10T10:00:00Z"
+}
+```
+
+Возможные ошибки:
+
+- `400 Validation failed`
+- `401 Unauthorized`
+- `403 Forbidden`
+- `403 CSRF token mismatch`
+- `404 Organizer application not found`
 
 ## Collections API
 
@@ -1629,6 +1800,8 @@ Endpoint'ы, которые реально используются текущи
 - `GET /api/tags`
 - `GET /api/cities`
 - `GET /api/search`
+- `POST /api/organizer/applications`
+- `GET /api/organizer/applications/me`
 - `GET /api/place-suggestions`
 - `POST /api/places/resolve`
 - `POST /api/support/tickets`
@@ -1660,4 +1833,4 @@ Endpoint'ы для следующих итераций (когда подбор�
 - `DELETE /api/me/collections/{collectionId}`
 - `POST /api/me/collections/{collectionId}/events/{eventId}`
 - `DELETE /api/me/collections/{collectionId}/events/{eventId}`
-- `GET /api/users?query=...` (поиск пользователей)
+- расширение `/api/search` дополнительными полями ранжирования и пагинацией под social-сценарии
