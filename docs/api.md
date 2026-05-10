@@ -795,13 +795,22 @@ Query параметры:
       "title": "Rock concert",
       "shortDescription": "Best rock night",
       "coverImageUrl": "https://example.com/event.jpg",
+      "latitude": 55.75,
+      "longitude": 37.61,
       "isFavorite": false,
       "tags": [],
       "nextSession": {
         "startAt": "2026-03-30T19:00:00Z",
         "place": {
+          "id": "uuid",
           "name": "Arena",
-          "addressLine": "Lenina 1"
+          "addressLine": "Lenina 1",
+          "latitude": 55.75,
+          "longitude": 37.61,
+          "city": {
+            "id": "uuid",
+            "name": "Moscow"
+          }
         }
       }
     }

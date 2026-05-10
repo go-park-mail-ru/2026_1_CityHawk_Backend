@@ -37,6 +37,10 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			httpx.WriteJSON(w, http.StatusBadRequest, httpx.NewErrorResponse("Validation failed", validationErr.Details))
 		case errors.Is(err, platformerrors.ErrEmailExists):
 			httpx.WriteJSON(w, http.StatusConflict, httpx.NewErrorResponse("User already exists", nil))
+		case errors.Is(err, platformerrors.ErrInvalidCity):
+			httpx.WriteJSON(w, http.StatusBadRequest, httpx.NewErrorResponse("Validation failed", map[string]string{
+				"cityId": "city not found",
+			}))
 		case errors.Is(err, platformerrors.ErrIssueTokens):
 			httpx.WriteJSON(w, http.StatusInternalServerError, httpx.NewErrorResponse("failed to issue tokens", nil))
 		case errors.Is(err, platformerrors.ErrInternal):

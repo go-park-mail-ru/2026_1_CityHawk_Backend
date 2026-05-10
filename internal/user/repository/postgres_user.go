@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	platformerrors "cityhawk/backend/internal/platform/errors"
@@ -18,6 +19,8 @@ import (
 type PostgresUserRepository struct {
 	pool *pgxpool.Pool
 }
+
+var uuidTextPattern = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
 
 const (
 	insertUserQuery = `
@@ -71,6 +74,11 @@ const (
 		LEFT JOIN city c ON c.id = u.city_id
 		WHERE u.id = $1
 	`
+	getUserByIDBasicQuery = `
+		SELECT id, email, username, user_surname, password_hash, birthday, city_id, avatar_url, bio, created_at, updated_at
+		FROM user_account
+		WHERE id = $1
+	`
 )
 
 func NewPostgresUserRepository(pool *pgxpool.Pool) *PostgresUserRepository {
@@ -99,8 +107,13 @@ func (r *PostgresUserRepository) Create(ctx context.Context, u usermodel.User) (
 	).Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == platformpostgres.CodeUniqueViolation {
-			return usermodel.User{}, platformerrors.ErrEmailExists
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case platformpostgres.CodeUniqueViolation:
+				return usermodel.User{}, platformerrors.ErrEmailExists
+			case platformpostgres.CodeForeignKeyViolation:
+				return usermodel.User{}, platformerrors.ErrInvalidCity
+			}
 		}
 		return usermodel.User{}, err
 	}
@@ -122,9 +135,59 @@ func (r *PostgresUserRepository) Create(ctx context.Context, u usermodel.User) (
 
 	persisted, ok := r.GetByID(ctx, id)
 	if !ok {
-		return usermodel.User{}, pgx.ErrNoRows
+		// Fallback for partially migrated schemas (for example missing user_role/user_interest_tag).
+		persistedBasic, basicErr := r.getByIDBasic(ctx, id)
+		if basicErr != nil {
+			return usermodel.User{}, basicErr
+		}
+		return persistedBasic, nil
 	}
 	return persisted, nil
+}
+
+func (r *PostgresUserRepository) getByIDBasic(ctx context.Context, id string) (usermodel.User, error) {
+	var u usermodel.User
+	var cityID sql.NullString
+	var avatarURL sql.NullString
+	var bio sql.NullString
+	var birthday sql.NullTime
+
+	err := r.pool.QueryRow(ctx, getUserByIDBasicQuery, id).Scan(
+		&u.ID,
+		&u.Email,
+		&u.Username,
+		&u.UserSurname,
+		&u.PasswordHash,
+		&birthday,
+		&cityID,
+		&avatarURL,
+		&bio,
+		&u.CreatedAt,
+		&u.UpdatedAt,
+	)
+	if err != nil {
+		return usermodel.User{}, err
+	}
+
+	if birthday.Valid {
+		t := birthday.Time.UTC()
+		u.Birthday = &t
+	}
+	if cityID.Valid {
+		v := cityID.String
+		u.CityID = &v
+	}
+	if avatarURL.Valid {
+		v := avatarURL.String
+		u.AvatarURL = &v
+	}
+	if bio.Valid {
+		v := bio.String
+		u.Bio = &v
+	}
+	u.Role = usermodel.RoleUser
+
+	return u, nil
 }
 
 func (r *PostgresUserRepository) GetByEmail(ctx context.Context, email string) (usermodel.User, bool) {
@@ -374,6 +437,15 @@ func parsePostgresTextArray(raw string) []string {
 	raw = strings.TrimSpace(raw)
 	if raw == "" || raw == "{}" {
 		return nil
+	}
+	if !strings.HasPrefix(raw, "{") || !strings.HasSuffix(raw, "}") {
+		// pgx may return binary representation for text[]/uuid[] via []byte in some paths.
+		// Recover stable API shape by extracting UUID tokens.
+		matches := uuidTextPattern.FindAllString(raw, -1)
+		if len(matches) == 0 {
+			return nil
+		}
+		return matches
 	}
 	raw = strings.TrimPrefix(strings.TrimSuffix(raw, "}"), "{")
 	parts := strings.Split(raw, ",")

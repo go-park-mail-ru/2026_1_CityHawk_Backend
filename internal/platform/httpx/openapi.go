@@ -1388,6 +1388,14 @@ components:
           type: string
         coverImageUrl:
           type: string
+        latitude:
+          type: number
+          nullable: true
+        longitude:
+          type: number
+          nullable: true
+        isFavorite:
+          type: boolean
         tags:
           type: array
           items:

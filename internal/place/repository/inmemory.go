@@ -476,8 +476,12 @@ func toCard(event placemodel.EventDetailsView) placemodel.EventCardView {
 		nextSession = &placemodel.EventCardNextSession{
 			StartAt: first.StartAt,
 			Place: placemodel.EventCardNextSessionPlace{
+				ID:          first.Place.ID,
 				Name:        first.Place.Name,
 				AddressLine: first.Place.AddressLine,
+				Latitude:    first.Place.Latitude,
+				Longitude:   first.Place.Longitude,
+				City:        first.Place.City,
 			},
 		}
 	}
