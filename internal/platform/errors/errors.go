@@ -26,6 +26,7 @@ var (
 	ErrInvalidCity        = errors.New("invalid city")
 	ErrForbidden          = errors.New("forbidden")
 	ErrInvalidReference   = errors.New("invalid reference")
+	ErrNotFound           = errors.New("not found")
 )
 
 type InvalidReferenceError struct {

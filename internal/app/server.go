@@ -147,6 +147,14 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 			httpx.UserIDContextKey,
 		)
 	}
+	withOptionalAuthAndCSRF := func(next http.HandlerFunc) http.Handler {
+		return platformmiddleware.OptionalAuthMiddleware(
+			withCSRF(http.HandlerFunc(next)),
+			authdelivery.ReadAccessCookie,
+			parseAccessToken,
+			httpx.UserIDContextKey,
+		)
+	}
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /metrics", platformmetrics.Handler())
@@ -187,6 +195,9 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	mux.Handle("GET /api/me/followers", withAuth(socialHandler.Followers))
 	mux.Handle("GET /api/me/following", withAuth(socialHandler.Following))
 	mux.Handle("GET /api/me/collections", withAuth(socialHandler.Collections))
+	mux.Handle("GET /api/me/notifications", withAuth(socialHandler.Notifications))
+	mux.Handle("POST /api/me/notifications/read-all", withAuthAndCSRF(socialHandler.NotificationsReadAll))
+	mux.Handle("POST /api/me/notifications/{notificationId}/read", withAuthAndCSRF(socialHandler.NotificationByID))
 	mux.Handle("POST /api/users/", withAuthAndCSRF(socialHandler.FollowByID))
 	mux.Handle("DELETE /api/users/", withAuthAndCSRF(socialHandler.FollowByID))
 	mux.Handle("GET /api/events", withOptionalAuth(placeHandler.Events))
@@ -196,6 +207,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	mux.HandleFunc("GET /api/tags", placeHandler.Tags)
 	mux.HandleFunc("GET /api/cities", placeHandler.Cities)
 	mux.HandleFunc("GET /api/collections", placeHandler.Collections)
+	mux.Handle("POST /api/collections/{collectionId}/share-links", withOptionalAuthAndCSRF(socialHandler.CollectionShareLinks))
 	mux.HandleFunc("GET /api/collections/", placeHandler.CollectionByID)
 	mux.Handle("GET /api/search", withOptionalAuth(placeHandler.Search))
 	mux.Handle("POST /api/organizer/applications", withAuthAndCSRF(organizerHandler.Applications))
@@ -210,10 +222,15 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	mux.Handle("POST /api/support/tickets/", withAuthAndCSRF(supportHandler.TicketByID))
 	mux.Handle("PATCH /api/support/tickets/", withAuthAndCSRF(supportHandler.TicketByID))
 	mux.Handle("GET /api/support/stats", withAuth(supportHandler.Stats))
+	mux.HandleFunc("GET /s/", socialHandler.ShareRedirect)
 	if placeLookupHandler != nil {
 		mux.HandleFunc("GET /api/place-suggestions", placeLookupHandler.Suggestions)
 		mux.Handle("POST /api/places/resolve", withAuth(placeLookupHandler.Resolve))
 	}
+	mux.Handle("GET /api/events/{eventId}/invitees/search", withOptionalAuth(socialHandler.InviteesSearch))
+	mux.Handle("POST /api/events/{eventId}/invitations", withAuthAndCSRF(socialHandler.EventInvitations))
+	mux.Handle("POST /api/events/{eventId}/share-links", withOptionalAuthAndCSRF(socialHandler.EventShareLinks))
+	mux.Handle("PATCH /api/invitations/{invitationId}", withAuthAndCSRF(socialHandler.InvitationByID))
 	mux.Handle("GET /api/events/", withOptionalAuth(placeHandler.EventByID))
 	mux.Handle("PATCH /api/events/", withAuthAndCSRF(placeHandler.EventByID))
 	mux.Handle("DELETE /api/events/", withAuthAndCSRF(placeHandler.EventByID))

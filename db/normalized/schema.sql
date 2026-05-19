@@ -333,12 +333,14 @@ CREATE TABLE event_invitation (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     sender_user_id uuid NOT NULL,
     recipient_user_id uuid NOT NULL,
+    status text NOT NULL DEFAULT 'pending',
     message_text text,
     responded_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT event_invitation_sender_recipient_diff CHECK (sender_user_id <> recipient_user_id),
-    CONSTRAINT event_invitation_message_text_length CHECK (message_text IS NULL OR char_length(message_text) <= 2000),
+    CONSTRAINT event_invitation_status_valid CHECK (status IN ('pending', 'accepted', 'declined', 'cancelled')),
+    CONSTRAINT event_invitation_message_text_length CHECK (message_text IS NULL OR char_length(message_text) <= 500),
     CONSTRAINT event_invitation_sender_user_id_fkey
         FOREIGN KEY (sender_user_id)
         REFERENCES user_account(id)
@@ -393,12 +395,12 @@ COMMENT ON TABLE event_invitation_session IS 'Привязка приглаше�
 
 CREATE TABLE share_link (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    creator_user_id uuid NOT NULL,
+    creator_user_id uuid,
     share_token text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT share_link_share_token_key UNIQUE (share_token),
-    CONSTRAINT share_link_share_token_valid CHECK (char_length(btrim(share_token)) BETWEEN 16 AND 128),
+    CONSTRAINT share_link_share_token_valid CHECK (char_length(btrim(share_token)) BETWEEN 6 AND 128),
     CONSTRAINT share_link_creator_user_id_fkey
         FOREIGN KEY (creator_user_id)
         REFERENCES user_account(id)

@@ -83,6 +83,36 @@ func (f *fakeSocialHTTPRepo) ListFollowingProfiles(context.Context, string, stri
 func (f *fakeSocialHTTPRepo) UserCollections(context.Context, string, int, int) ([]socialmodel.CollectionCard, int, error) {
 	return []socialmodel.CollectionCard{{ID: "collection-1", Title: "Weekend", Description: "Best", ImageURL: "/uploads/collection.png", IsPublic: true}}, 1, nil
 }
+func (f *fakeSocialHTTPRepo) SearchInvitees(context.Context, string, string, string, int) ([]socialmodel.InviteeCandidate, error) {
+	return []socialmodel.InviteeCandidate{{ID: "user-2", Username: "bob", UserSurname: "smith"}}, nil
+}
+func (f *fakeSocialHTTPRepo) CreateInvitations(context.Context, string, string, []string, string, *string) ([]socialmodel.Invitation, error) {
+	return []socialmodel.Invitation{{ID: "invitation-1", EventID: "event-1", SenderID: "user-1", RecipientID: "user-2", Status: "pending", CreatedAt: f.now, UpdatedAt: f.now}}, nil
+}
+func (f *fakeSocialHTTPRepo) UpdateInvitationStatus(context.Context, string, string, string) (socialmodel.Invitation, error) {
+	return socialmodel.Invitation{ID: "invitation-1", EventID: "event-1", SenderID: "user-2", RecipientID: "user-1", Status: "accepted", CreatedAt: f.now, UpdatedAt: f.now}, nil
+}
+func (f *fakeSocialHTTPRepo) ListNotifications(context.Context, string, string, bool, int, int) ([]socialmodel.Notification, int, int, error) {
+	return []socialmodel.Notification{{ID: "notification-1", Type: "system", CreatedAt: f.now}}, 1, 1, nil
+}
+func (f *fakeSocialHTTPRepo) MarkNotificationRead(context.Context, string, string) (int, error) {
+	return 0, nil
+}
+func (f *fakeSocialHTTPRepo) MarkAllNotificationsRead(context.Context, string) (int, error) {
+	return 0, nil
+}
+func (f *fakeSocialHTTPRepo) CreateEventShareLink(context.Context, string, string, string) (socialmodel.ShareLink, error) {
+	eventID := "event-1"
+	return socialmodel.ShareLink{ID: "share-1", Token: "abcdef", EventID: &eventID, CreatedAt: f.now}, nil
+}
+func (f *fakeSocialHTTPRepo) CreateCollectionShareLink(context.Context, string, string, string) (socialmodel.ShareLink, error) {
+	collectionID := "collection-1"
+	return socialmodel.ShareLink{ID: "share-1", Token: "abcdef", CollectionID: &collectionID, CreatedAt: f.now}, nil
+}
+func (f *fakeSocialHTTPRepo) ResolveShareLink(context.Context, string) (socialmodel.ShareLink, bool, error) {
+	eventID := "event-1"
+	return socialmodel.ShareLink{ID: "share-1", Token: "abcdef", EventID: &eventID, CreatedAt: f.now}, true, nil
+}
 
 func testProfile() socialmodel.UserProfile {
 	avatar := "/uploads/avatar.png"

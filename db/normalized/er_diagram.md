@@ -167,6 +167,7 @@ erDiagram
         uuid id PK
         uuid sender_user_id FK
         uuid recipient_user_id FK
+        text status
         text message_text
         datetime responded_at
         datetime created_at
@@ -323,4 +324,9 @@ erDiagram
 ALTER TABLE user_role
   ADD CONSTRAINT user_role_allowed_values
   CHECK (role IN ('user', 'organizer', 'admin'));
+
+-- EVENT_INVITATION: состояние ответа получателя
+ALTER TABLE event_invitation
+  ADD CONSTRAINT event_invitation_status_allowed_values
+  CHECK (status IN ('pending', 'accepted', 'declined', 'cancelled'));
 ```

@@ -424,7 +424,7 @@ Relation USER_FOLLOW:
 ```text
 Relation EVENT_INVITATION:
 
-{id} -> sender_user_id, recipient_user_id, message_text, responded_at, created_at, updated_at
+{id} -> sender_user_id, recipient_user_id, status, message_text, responded_at, created_at, updated_at
 ```
 
 ### Обоснование нормальных форм
