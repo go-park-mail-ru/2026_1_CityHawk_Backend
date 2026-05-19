@@ -210,8 +210,6 @@ services:
       - cityhawk-events-service
       - cityhawk-support-service
       - cityhawk-social-service
-      - node-exporter
-      - cadvisor
     restart: unless-stopped
 
   grafana:
