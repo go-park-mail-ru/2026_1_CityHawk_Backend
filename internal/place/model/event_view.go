@@ -11,6 +11,10 @@ type EventTaxonomyItem struct {
 type EventCardNextSessionPlace struct {
 	Name        string
 	AddressLine string
+	ID          string
+	Latitude    float64
+	Longitude   float64
+	City        EventSessionPlaceCityView
 }
 
 type EventCardNextSession struct {
@@ -178,9 +182,12 @@ type CollectionDetailsView struct {
 }
 
 type SearchSuggestion struct {
-	ID    string
-	Type  string
-	Label string
+	ID          string
+	Type        string
+	Title       string
+	Label       string
+	AvatarURL   *string
+	IsFollowing bool
 }
 
 type HomePayload struct {

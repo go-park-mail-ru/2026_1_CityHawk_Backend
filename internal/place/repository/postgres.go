@@ -11,11 +11,19 @@ import (
 
 	placemodel "cityhawk/backend/internal/place/model"
 	platformerrors "cityhawk/backend/internal/platform/errors"
+	"cityhawk/backend/internal/platform/httpx"
 	platformpostgres "cityhawk/backend/internal/platform/postgres"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+type postgresDB interface {
+	Begin(ctx context.Context) (pgx.Tx, error)
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
 
 type PostgresRepository struct {
 	pool postgresDB
@@ -53,9 +61,12 @@ type collectionCardRow struct {
 }
 
 type searchSuggestionRow struct {
-	ID    string
-	Type  string
-	Label string
+	ID          string
+	Type        string
+	Title       string
+	Label       string
+	AvatarURL   *string
+	IsFollowing bool
 }
 
 type eventListRow struct {
@@ -66,8 +77,15 @@ type eventListRow struct {
 	TagIDs        []string
 	TagNames      []string
 	StartAt       *time.Time
+	PlaceID       string
 	PlaceName     string
 	AddressLine   string
+	Latitude      float64
+	Longitude     float64
+	CityID        string
+	CityName      string
+	CountryName   string
+	Timezone      string
 	TotalCount    int
 	IsFavorite    bool
 	Popularity    int
@@ -75,13 +93,6 @@ type eventListRow struct {
 
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
-}
-
-type postgresDB interface {
-	Begin(ctx context.Context) (pgx.Tx, error)
-	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
-	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
-	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
 func (r *PostgresRepository) HomePayload(ctx context.Context, filter placemodel.HomeFilter) placemodel.HomePayload {
@@ -464,22 +475,53 @@ func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string
 	if limit <= 0 {
 		limit = 5
 	}
+	viewerID, _ := ctx.Value(httpx.UserIDContextKey).(string)
 
 	const sqlQuery = `
 		WITH candidates AS (
 			SELECT
 				e.id::text AS id,
 				'event' AS type,
+				e.title AS title,
 				e.title AS label,
+				NULL::text AS avatar_url,
+				false AS is_following,
 				similarity(lower(e.title), lower($1)) AS rank
 			FROM event e
 			WHERE lower(e.title) LIKE '%' || lower($1) || '%'
 			   OR e.title % $1
 			UNION ALL
 			SELECT
+				u.id::text AS id,
+				'user' AS type,
+				concat_ws(' ', u.username, u.user_surname) AS title,
+				'@' || u.username AS label,
+				u.avatar_url AS avatar_url,
+				EXISTS (
+					SELECT 1
+					FROM user_follow uf
+					WHERE uf.follower_user_id::text = $3
+					  AND uf.followed_user_id = u.id
+				) AS is_following,
+				GREATEST(
+					similarity(lower(u.username), lower($1)),
+					similarity(lower(u.user_surname), lower($1)),
+					similarity(lower(concat_ws(' ', u.username, u.user_surname)), lower($1))
+				) AS rank
+			FROM user_account u
+			WHERE lower(u.username) LIKE '%' || lower($1) || '%'
+			   OR lower(u.user_surname) LIKE '%' || lower($1) || '%'
+			   OR lower(concat_ws(' ', u.username, u.user_surname)) LIKE '%' || lower($1) || '%'
+			   OR u.username % $1
+			   OR u.user_surname % $1
+			UNION ALL
+			SELECT
 				c.id::text AS id,
 				'category' AS type,
+				c.name AS title,
 				c.name AS label,
+				NULL::text AS avatar_url,
+				false AS is_following,
 				similarity(lower(c.name), lower($1)) AS rank
 			FROM category c
 			WHERE lower(c.name) LIKE '%' || lower($1) || '%'
@@ -488,23 +530,26 @@ func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string
 			SELECT
 				t.id::text AS id,
 				'tag' AS type,
+				t.name AS title,
 				t.name AS label,
+				NULL::text AS avatar_url,
+				false AS is_following,
 				similarity(lower(t.name), lower($1)) AS rank
 			FROM tag t
 			WHERE lower(t.name) LIKE '%' || lower($1) || '%'
 			   OR t.name % $1
 		)
-		SELECT id, type, label
+		SELECT id, type, title, label, avatar_url, is_following
 		FROM candidates
 		ORDER BY
-			CASE WHEN lower(label) LIKE lower($1) || '%' THEN 0 ELSE 1 END,
+			CASE WHEN lower(title) LIKE lower($1) || '%' THEN 0 ELSE 1 END,
 			rank DESC,
-			char_length(label) ASC,
-			label ASC
+			char_length(title) ASC,
+			title ASC
 		LIMIT $2
 	`
 
-	rows, err := r.pool.Query(ctx, sqlQuery, query, limit)
+	rows, err := r.pool.Query(ctx, sqlQuery, query, limit, viewerID)
 	if err != nil {
 		return nil, err
 	}
@@ -513,10 +558,17 @@ func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string
 	items := make([]placemodel.SearchSuggestion, 0, limit)
 	for rows.Next() {
 		var row searchSuggestionRow
-		if err := rows.Scan(&row.ID, &row.Type, &row.Label); err != nil {
+		if err := rows.Scan(&row.ID, &row.Type, &row.Title, &row.Label, &row.AvatarURL, &row.IsFollowing); err != nil {
 			return nil, err
 		}
-		items = append(items, placemodel.SearchSuggestion{ID: row.ID, Type: row.Type, Label: row.Label})
+		items = append(items, placemodel.SearchSuggestion{
+			ID:          row.ID,
+			Type:        row.Type,
+			Title:       row.Title,
+			Label:       row.Label,
+			AvatarURL:   row.AvatarURL,
+			IsFollowing: row.IsFollowing,
+		})
 	}
 	if rows.Err() != nil {
 		return nil, rows.Err()
@@ -536,7 +588,27 @@ func (r *PostgresRepository) ListEvents(ctx context.Context, filter placemodel.E
 	total := 0
 	for rows.Next() {
 		var row eventListRow
-		if err := rows.Scan(&row.ID, &row.Title, &row.ShortDesc, &row.CoverImageURL, &row.TagIDs, &row.TagNames, &row.StartAt, &row.PlaceName, &row.AddressLine, &row.TotalCount, &row.IsFavorite, &row.Popularity); err != nil {
+		if err := rows.Scan(
+			&row.ID,
+			&row.Title,
+			&row.ShortDesc,
+			&row.CoverImageURL,
+			&row.TagIDs,
+			&row.TagNames,
+			&row.StartAt,
+			&row.PlaceID,
+			&row.PlaceName,
+			&row.AddressLine,
+			&row.Latitude,
+			&row.Longitude,
+			&row.CityID,
+			&row.CityName,
+			&row.CountryName,
+			&row.Timezone,
+			&row.TotalCount,
+			&row.IsFavorite,
+			&row.Popularity,
+		); err != nil {
 			return nil, 0, err
 		}
 		total = row.TotalCount
@@ -901,14 +973,22 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 			SELECT
 				es.event_id,
 				es.start_at,
+				p.id::text AS place_id,
 				p.name AS place_name,
 				p.address_line,
+				p.latitude::float8,
+				p.longitude::float8,
+				c.id::text AS city_id,
+				c.name AS city_name,
+				c.country_name,
+				c.timezone,
 				ROW_NUMBER() OVER (PARTITION BY es.event_id ORDER BY es.start_at ASC, es.id ASC) AS rn
 			FROM event_session es
 			JOIN place p ON p.id = es.place_id
+			JOIN city c ON c.id = p.city_id
 		),
 		next_session AS (
-			SELECT event_id, start_at, place_name, address_line
+			SELECT event_id, start_at, place_id, place_name, address_line, latitude, longitude, city_id, city_name, country_name, timezone
 			FROM ranked_next_session
 			WHERE rn = 1
 		),
@@ -944,8 +1024,15 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 				COALESCE(tags.tag_ids, '{}'::text[]) AS tag_ids,
 				COALESCE(tags.tag_names, '{}'::text[]) AS tag_names,
 				ns.start_at,
+				COALESCE(ns.place_id, '') AS place_id,
 				COALESCE(ns.place_name, '') AS place_name,
 				COALESCE(ns.address_line, '') AS address_line,
+				COALESCE(ns.latitude, 0)::float8 AS latitude,
+				COALESCE(ns.longitude, 0)::float8 AS longitude,
+				COALESCE(ns.city_id, '') AS city_id,
+				COALESCE(ns.city_name, '') AS city_name,
+				COALESCE(ns.country_name, '') AS country_name,
+				COALESCE(ns.timezone, '') AS timezone,
 				COUNT(*) OVER()::int AS total_count,
 				%s,
 				COALESCE(fc.favorite_count, 0)::int AS popularity
@@ -967,8 +1054,15 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 			tag_ids,
 			tag_names,
 			start_at,
+			place_id,
 			place_name,
 			address_line,
+			latitude,
+			longitude,
+			city_id,
+			city_name,
+			country_name,
+			timezone,
 			total_count,
 			is_favorite,
 			popularity
@@ -1206,6 +1300,15 @@ func toEventCard(row eventListRow) placemodel.EventCardView {
 			Place: placemodel.EventCardNextSessionPlace{
 				Name:        row.PlaceName,
 				AddressLine: row.AddressLine,
+				ID:          row.PlaceID,
+				Latitude:    row.Latitude,
+				Longitude:   row.Longitude,
+				City: placemodel.EventSessionPlaceCityView{
+					ID:          row.CityID,
+					Name:        row.CityName,
+					CountryName: row.CountryName,
+					Timezone:    row.Timezone,
+				},
 			},
 		}
 	}
@@ -1235,14 +1338,22 @@ func (r *PostgresRepository) fetchCollectionEvents(ctx context.Context, collecti
 			SELECT
 				es.event_id,
 				es.start_at,
+				p.id::text AS place_id,
 				p.name AS place_name,
 				p.address_line,
+				p.latitude::float8,
+				p.longitude::float8,
+				c.id::text AS city_id,
+				c.name AS city_name,
+				c.country_name,
+				c.timezone,
 				ROW_NUMBER() OVER (PARTITION BY es.event_id ORDER BY es.start_at ASC, es.id ASC) AS rn
 			FROM event_session es
 			JOIN place p ON p.id = es.place_id
+			JOIN city c ON c.id = p.city_id
 		),
 		next_session AS (
-			SELECT event_id, start_at, place_name, address_line
+			SELECT event_id, start_at, place_id, place_name, address_line, latitude, longitude, city_id, city_name, country_name, timezone
 			FROM ranked_next_session
 			WHERE rn = 1
 		),
@@ -1270,8 +1381,15 @@ func (r *PostgresRepository) fetchCollectionEvents(ctx context.Context, collecti
 			COALESCE(tags.tag_ids, '{}'::text[]) AS tag_ids,
 			COALESCE(tags.tag_names, '{}'::text[]) AS tag_names,
 				ns.start_at,
+				COALESCE(ns.place_id, '') AS place_id,
 				COALESCE(ns.place_name, '') AS place_name,
 				COALESCE(ns.address_line, '') AS address_line,
+				COALESCE(ns.latitude, 0)::float8 AS latitude,
+				COALESCE(ns.longitude, 0)::float8 AS longitude,
+				COALESCE(ns.city_id, '') AS city_id,
+				COALESCE(ns.city_name, '') AS city_name,
+				COALESCE(ns.country_name, '') AS country_name,
+				COALESCE(ns.timezone, '') AS timezone,
 				0 AS total_count,
 				false AS is_favorite,
 				COALESCE(fc.favorite_count, 0)::int AS popularity
@@ -1294,7 +1412,27 @@ func (r *PostgresRepository) fetchCollectionEvents(ctx context.Context, collecti
 	items := make([]placemodel.EventCardView, 0)
 	for rows.Next() {
 		var row eventListRow
-		if err := rows.Scan(&row.ID, &row.Title, &row.ShortDesc, &row.CoverImageURL, &row.TagIDs, &row.TagNames, &row.StartAt, &row.PlaceName, &row.AddressLine, &row.TotalCount, &row.IsFavorite, &row.Popularity); err != nil {
+		if err := rows.Scan(
+			&row.ID,
+			&row.Title,
+			&row.ShortDesc,
+			&row.CoverImageURL,
+			&row.TagIDs,
+			&row.TagNames,
+			&row.StartAt,
+			&row.PlaceID,
+			&row.PlaceName,
+			&row.AddressLine,
+			&row.Latitude,
+			&row.Longitude,
+			&row.CityID,
+			&row.CityName,
+			&row.CountryName,
+			&row.Timezone,
+			&row.TotalCount,
+			&row.IsFavorite,
+			&row.Popularity,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, toEventCard(row))

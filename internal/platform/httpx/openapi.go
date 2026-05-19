@@ -20,6 +20,7 @@ tags:
   - name: Search
   - name: Tags
   - name: Collections
+  - name: Organizer
   - name: Support
 paths:
   /api/health:
@@ -703,6 +704,123 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/organizer/applications:
+    post:
+      tags: [Organizer]
+      summary: Create organizer application
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizerApplicationRequest'
+      responses:
+        "201":
+          description: Organizer application created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizerApplicationCreateResponse'
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: CSRF token mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "409":
+          description: Active application already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/organizer/applications/me:
+    get:
+      tags: [Organizer]
+      summary: Get current user's organizer application
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Organizer application
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizerApplication'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Organizer application not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/organizer/applications/{applicationId}:
+    patch:
+      tags: [Organizer]
+      summary: Update organizer application status
+      security:
+        - accessCookie: []
+      parameters:
+        - in: path
+          name: applicationId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganizerApplicationStatusRequest'
+      responses:
+        "200":
+          description: Organizer application status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizerApplicationStatusResponse'
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: Forbidden or CSRF token mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Organizer application not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/support/tickets:
     get:
       tags: [Support]
@@ -1141,7 +1259,7 @@ components:
           type: string
         role:
           type: string
-          enum: [user, admin]
+          enum: [user, organizer, admin]
         birthday:
           type: string
           format: date
@@ -1166,7 +1284,7 @@ components:
           type: string
         role:
           type: string
-          enum: [user, admin]
+          enum: [user, organizer, admin]
         birthday:
           type: string
           format: date
@@ -1239,10 +1357,18 @@ components:
     EventCardNextSessionPlace:
       type: object
       properties:
+        id:
+          type: string
         name:
           type: string
         addressLine:
           type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        city:
+          $ref: '#/components/schemas/EventSessionPlaceCity'
     EventCardNextSession:
       type: object
       properties:
@@ -1601,7 +1727,112 @@ components:
         items:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/SearchSuggestion'
+    SearchSuggestion:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [user, event, category, tag]
+        title:
+          type: string
+        label:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        isFollowing:
+          type: boolean
+    CreateOrganizerApplicationRequest:
+      type: object
+      required: [name, email, phone, city, projectName, categories, about, consent]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        city:
+          type: string
+        projectName:
+          type: string
+        categories:
+          type: string
+        links:
+          type: string
+        about:
+          type: string
+        consent:
+          type: boolean
+    UpdateOrganizerApplicationStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, needs_info, approved, rejected]
+        reviewComment:
+          type: string
+    OrganizerApplicationCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [pending, needs_info, approved, rejected]
+        createdAt:
+          type: string
+          format: date-time
+    OrganizerApplication:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [pending, needs_info, approved, rejected]
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        city:
+          type: string
+        projectName:
+          type: string
+        categories:
+          type: string
+        links:
+          type: string
+        about:
+          type: string
+        reviewComment:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    OrganizerApplicationStatusResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [pending, needs_info, approved, rejected]
+        reviewComment:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
     SupportTicket:
       type: object
       properties:

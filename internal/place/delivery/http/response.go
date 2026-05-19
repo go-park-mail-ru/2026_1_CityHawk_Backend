@@ -7,8 +7,12 @@ type taxonomyItemResponse struct {
 }
 
 type eventCardNextSessionPlaceResponse struct {
-	Name        string `json:"name"`
-	AddressLine string `json:"addressLine"`
+	Name        string                        `json:"name"`
+	AddressLine string                        `json:"addressLine"`
+	ID          string                        `json:"id"`
+	Latitude    float64                       `json:"latitude"`
+	Longitude   float64                       `json:"longitude"`
+	City        eventSessionPlaceCityResponse `json:"city"`
 }
 
 type eventCardNextSessionResponse struct {
@@ -131,9 +135,12 @@ type collectionDetailsResponse struct {
 }
 
 type searchSuggestionResponse struct {
-	ID    string `json:"id"`
-	Type  string `json:"type"`
-	Label string `json:"label"`
+	ID          string  `json:"id"`
+	Type        string  `json:"type"`
+	Title       string  `json:"title"`
+	Label       string  `json:"label"`
+	AvatarURL   *string `json:"avatarUrl,omitempty"`
+	IsFollowing bool    `json:"isFollowing,omitempty"`
 }
 
 type searchSuggestionsResponse struct {

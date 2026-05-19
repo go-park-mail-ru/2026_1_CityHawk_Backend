@@ -217,9 +217,9 @@ func (r *InMemoryRepository) SearchSuggestions(_ context.Context, query string, 
 	seen := map[string]struct{}{}
 	items := make([]placemodel.SearchSuggestion, 0)
 
-	add := func(id, kind, label string) {
+	add := func(id, kind, title string) {
 		key := kind + ":" + strings.ToLower(strings.TrimSpace(id))
-		labelKey := strings.ToLower(strings.TrimSpace(label))
+		labelKey := strings.ToLower(strings.TrimSpace(title))
 		if key == "" {
 			return
 		}
@@ -230,7 +230,7 @@ func (r *InMemoryRepository) SearchSuggestions(_ context.Context, query string, 
 			return
 		}
 		seen[key] = struct{}{}
-		items = append(items, placemodel.SearchSuggestion{ID: id, Type: kind, Label: label})
+		items = append(items, placemodel.SearchSuggestion{ID: id, Type: kind, Title: title, Label: title})
 	}
 
 	for _, id := range r.order {
@@ -245,7 +245,7 @@ func (r *InMemoryRepository) SearchSuggestions(_ context.Context, query string, 
 	}
 
 	sort.Slice(items, func(i, j int) bool {
-		return strings.ToLower(items[i].Label) < strings.ToLower(items[j].Label)
+		return strings.ToLower(items[i].Title) < strings.ToLower(items[j].Title)
 	})
 	if len(items) > limit {
 		items = items[:limit]

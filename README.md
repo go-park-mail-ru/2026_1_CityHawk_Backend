@@ -89,10 +89,10 @@ docker compose up -d postgres photon cityhawk-auth-service cityhawk-profile-serv
 
 ## Мониторинг
 
-Prometheus и Grafana поднимаются вместе с проектом:
+Prometheus, Grafana, node-exporter и cAdvisor вынесены в отдельный Docker Compose profile, чтобы обычный запуск приложения не зависел от мониторинга:
 
 ```bash
-docker compose up -d
+docker compose --profile monitoring up -d
 ```
 
 Grafana доступна на `http://localhost:3000` (`admin` / `admin` по умолчанию), Prometheus - на `http://localhost:9090`.
