@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -38,10 +39,10 @@ const (
 				WHERE ur.user_id = u.id
 			), 'user') AS role,
 			COALESCE((
-				SELECT array_agg(uit.tag_id::text ORDER BY uit.tag_id::text)
+				SELECT jsonb_agg(uit.tag_id::text ORDER BY uit.tag_id::text)
 				FROM user_interest_tag uit
 				WHERE uit.user_id = u.id
-			), '{}'::text[]) AS interest_tag_ids,
+			), '[]'::jsonb)::text AS interest_tag_ids,
 			u.created_at, u.updated_at,
 			c.id, c.name, c.country_name, c.timezone
 		FROM user_account u
@@ -61,10 +62,10 @@ const (
 				WHERE ur.user_id = u.id
 			), 'user') AS role,
 			COALESCE((
-				SELECT array_agg(uit.tag_id::text ORDER BY uit.tag_id::text)
+				SELECT jsonb_agg(uit.tag_id::text ORDER BY uit.tag_id::text)
 				FROM user_interest_tag uit
 				WHERE uit.user_id = u.id
-			), '{}'::text[]) AS interest_tag_ids,
+			), '[]'::jsonb)::text AS interest_tag_ids,
 			u.created_at, u.updated_at,
 			c.id, c.name, c.country_name, c.timezone
 		FROM user_account u
@@ -292,7 +293,7 @@ func scanUser(row userScanner) (usermodel.User, error) {
 	var cityName sql.NullString
 	var countryName sql.NullString
 	var timezone sql.NullString
-	var interestTagIDs textArray
+	var interestTagIDs sql.NullString
 
 	err := row.Scan(
 		&u.ID,
@@ -336,7 +337,13 @@ func scanUser(row userScanner) (usermodel.User, error) {
 	if u.Role == "" {
 		u.Role = usermodel.RoleUser
 	}
-	u.InterestTagIDs = append([]string(nil), interestTagIDs...)
+	if interestTagIDs.Valid {
+		tagIDs, err := parseInterestTagIDs(interestTagIDs.String)
+		if err != nil {
+			return usermodel.User{}, err
+		}
+		u.InterestTagIDs = tagIDs
+	}
 	if cityRecordID.Valid {
 		u.City = &usermodel.City{
 			ID:          cityRecordID.String,
@@ -349,40 +356,22 @@ func scanUser(row userScanner) (usermodel.User, error) {
 	return u, nil
 }
 
-type textArray []string
-
-func (a *textArray) Scan(src any) error {
-	switch v := src.(type) {
-	case nil:
-		*a = nil
-		return nil
-	case []string:
-		*a = append((*a)[:0], v...)
-		return nil
-	case string:
-		*a = parsePostgresTextArray(v)
-		return nil
-	case []byte:
-		*a = parsePostgresTextArray(string(v))
-		return nil
-	default:
-		return fmt.Errorf("unsupported text array type %T", src)
-	}
-}
-
-func parsePostgresTextArray(raw string) []string {
+func parseInterestTagIDs(raw string) ([]string, error) {
 	raw = strings.TrimSpace(raw)
-	if raw == "" || raw == "{}" {
-		return nil
+	if raw == "" || raw == "[]" {
+		return nil, nil
 	}
-	raw = strings.TrimPrefix(strings.TrimSuffix(raw, "}"), "{")
-	parts := strings.Split(raw, ",")
-	out := make([]string, 0, len(parts))
-	for _, part := range parts {
-		value := strings.Trim(part, `"`)
+
+	var tagIDs []string
+	if err := json.Unmarshal([]byte(raw), &tagIDs); err != nil {
+		return nil, fmt.Errorf("parse interest tag ids: %w", err)
+	}
+	out := make([]string, 0, len(tagIDs))
+	for _, tagID := range tagIDs {
+		value := strings.TrimSpace(tagID)
 		if value != "" {
 			out = append(out, value)
 		}
 	}
-	return out
+	return out, nil
 }
