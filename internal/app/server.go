@@ -225,7 +225,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	mux.HandleFunc("GET /s/", socialHandler.ShareRedirect)
 	if placeLookupHandler != nil {
 		mux.HandleFunc("GET /api/place-suggestions", placeLookupHandler.Suggestions)
-		mux.Handle("POST /api/places/resolve", withAuth(placeLookupHandler.Resolve))
+		mux.Handle("POST /api/places/resolve", withAuthAndCSRF(placeLookupHandler.Resolve))
 	}
 	mux.Handle("GET /api/events/{eventId}/invitees/search", withOptionalAuth(socialHandler.InviteesSearch))
 	mux.Handle("POST /api/events/{eventId}/invitations", withAuthAndCSRF(socialHandler.EventInvitations))

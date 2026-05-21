@@ -31,6 +31,23 @@ erDiagram
         datetime updated_at
     }
 
+    ORGANIZER_APPLICATION {
+        uuid id PK
+        uuid user_id FK
+        text status
+        text name
+        text email
+        text phone
+        text city
+        text project_name
+        text categories
+        text links
+        text about
+        text review_comment
+        datetime created_at
+        datetime updated_at
+    }
+
     REFRESH_SESSION {
         text token_hash PK
         uuid user_id FK
@@ -177,11 +194,15 @@ erDiagram
     EVENT_INVITATION_EVENT {
         uuid invitation_id PK, FK
         uuid event_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     EVENT_INVITATION_SESSION {
         uuid invitation_id PK, FK
         uuid event_session_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     SHARE_LINK {
@@ -195,11 +216,15 @@ erDiagram
     SHARE_LINK_EVENT {
         uuid share_link_id PK, FK
         uuid event_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     SHARE_LINK_COLLECTION {
         uuid share_link_id PK, FK
         uuid collection_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     NOTIFICATION {
@@ -215,26 +240,36 @@ erDiagram
     NOTIFICATION_ACTOR {
         uuid notification_id PK, FK
         uuid author_user_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     NOTIFICATION_EVENT {
         uuid notification_id PK, FK
         uuid event_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     NOTIFICATION_EVENT_SESSION {
         uuid notification_id PK, FK
         uuid event_session_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     NOTIFICATION_INVITATION {
         uuid notification_id PK, FK
         uuid invitation_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     NOTIFICATION_COLLECTION {
         uuid notification_id PK, FK
         uuid collection_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     SUPPORT_TICKET {
@@ -261,6 +296,7 @@ erDiagram
     USER_ACCOUNT }o--|| CITY : "city_id FK"
     USER_ROLE }o--|| USER_ACCOUNT : "user_id FK"
     ORGANIZER_PROFILE ||--|| USER_ACCOUNT : "user_id FK"
+    ORGANIZER_APPLICATION }o--|| USER_ACCOUNT : "user_id FK"
     REFRESH_SESSION }o--|| USER_ACCOUNT : "user_id FK"
     PLACE }o--|| CITY : "city_id FK"
 

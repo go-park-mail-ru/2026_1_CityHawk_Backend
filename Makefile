@@ -8,7 +8,7 @@ GO_CACHE_DIR ?= $(CURDIR)/.cache/go-build
 GO_TMP_DIR ?= $(CURDIR)/.cache/gotmp
 DATABASE_URL ?= postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable
 
-.PHONY: test coverage coverage-check proto build-services clean db-schema db-seed db-reset
+.PHONY: test coverage coverage-check generate proto build-services clean db-schema db-seed db-reset
 
 define GO_ENV
 export GOCACHE="$(GO_CACHE_DIR)" GOTMPDIR="$(GO_TMP_DIR)" GOTOOLCHAIN="$(TOOLCHAIN)";
@@ -17,6 +17,10 @@ endef
 test:
 	@mkdir -p "$(GO_CACHE_DIR)" "$(GO_TMP_DIR)"
 	@$(GO_ENV) go test ./...
+
+generate:
+	@mkdir -p "$(GO_CACHE_DIR)" "$(GO_TMP_DIR)"
+	@$(GO_ENV) ./scripts/generate_easyjson.sh
 
 proto:
 	PATH="$$(go env GOPATH)/bin:$$PATH" protoc -I proto \
@@ -40,16 +44,16 @@ build-services:
 
 coverage:
 	@mkdir -p "$(GO_CACHE_DIR)" "$(GO_TMP_DIR)"
-	@$(GO_ENV) coverpkgs=$$(go list ./... | grep -v '/cmd$$' | grep -v '/internal/mocks$$' | paste -sd ',' -); \
+	@$(GO_ENV) coverpkgs=$$(go list ./... | grep -v '/cmd' | grep -v '/internal/mocks$$' | grep -v '/pkg/pb/' | paste -sd ',' -); \
 	go test -count=1 ./... -covermode=atomic -coverpkg="$$coverpkgs" -coverprofile="$(RAW)"; \
-	cp "$(RAW)" "$(OUT)"; \
+	grep -vE '(_easyjson\.go|_mock\.go|/internal/mocks/|/pkg/pb/)' "$(RAW)" > "$(OUT)"; \
 	go tool cover -func="$(OUT)"
 
 coverage-check:
 	@mkdir -p "$(GO_CACHE_DIR)" "$(GO_TMP_DIR)"
-	@$(GO_ENV) coverpkgs=$$(go list ./... | grep -v '/cmd$$' | grep -v '/internal/mocks$$' | paste -sd ',' -); \
+	@$(GO_ENV) coverpkgs=$$(go list ./... | grep -v '/cmd' | grep -v '/internal/mocks$$' | grep -v '/pkg/pb/' | paste -sd ',' -); \
 	go test -count=1 ./... -covermode=atomic -coverpkg="$$coverpkgs" -coverprofile="$(RAW)" >/dev/null; \
-	cp "$(RAW)" "$(OUT)"; \
+	grep -vE '(_easyjson\.go|_mock\.go|/internal/mocks/|/pkg/pb/)' "$(RAW)" > "$(OUT)"; \
 	total=$$(go tool cover -func="$(OUT)" | awk '/^total:/ {gsub("%","",$$3); print $$3}'); \
 	echo "Total coverage: $$total%"; \
 	awk -v total="$$total" -v threshold="$(THRESHOLD)" 'BEGIN { if (total + 0 < threshold + 0) exit 1 }'

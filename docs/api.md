@@ -38,6 +38,10 @@ API приложения CityHawk построено по REST-подходу.
 - `POST /api/auth/refresh`
 - `POST /api/auth/logout`
 - `PATCH /api/me`
+- `POST /api/me/favorites/{eventId}`
+- `DELETE /api/me/favorites/{eventId}`
+- `POST /api/users/{userId}/follow`
+- `DELETE /api/users/{userId}/follow`
 - `POST /api/events`
 - `PATCH /api/events/{eventId}`
 - `DELETE /api/events/{eventId}`
@@ -46,6 +50,14 @@ API приложения CityHawk построено по REST-подходу.
 - `POST /api/me/notifications/{notificationId}/read`
 - `POST /api/me/notifications/read-all`
 - `POST /api/events/{eventId}/share-links`
+- `POST /api/collections/{collectionId}/share-links`
+- `POST /api/organizer/applications`
+- `PATCH /api/admin/organizer/applications/{applicationId}`
+- `POST /api/places/resolve`
+- `POST /api/support/tickets`
+- `PATCH /api/support/tickets/{ticketId}`
+- `PATCH /api/support/tickets/{ticketId}/status`
+- `POST /api/support/tickets/{ticketId}/messages`
 
 После успешного `register`, `login`, `refresh` и OAuth callback сервер также дублирует токен в response header `X-CSRF-Token`, чтобы фронтенд мог сохранить его и отправлять дальше.
 
@@ -259,162 +271,19 @@ window.__APP_CONFIG__ = {
 }
 ```
 
-## Social API (Followers & Friends)
-
-Раздел для подписок пользователей друг на друга и поиска друзей.
-
-### GET /api/me/followers
-
-Список пользователей, которые подписаны на текущего пользователя.
-
-Query-параметры:
-
-- `limit` (number, optional, default: `100`)
-- `offset` (number, optional, default: `0`)
-
-Успешный ответ `200 OK`:
-
-```json
-{
-  "items": [
-    {
-      "id": "uuid",
-      "username": "Мария",
-      "userSurname": "Соколова",
-      "avatarUrl": "https://.../avatar.jpg",
-      "city": {
-        "id": "uuid",
-        "name": "Москва",
-        "countryName": "Россия",
-        "timezone": "Europe/Moscow"
-      },
-      "isFollowing": true
-    }
-  ],
-  "total": 1,
-  "limit": 100,
-  "offset": 0
-}
-```
-
-Возможные ошибки:
-
-- `401 Unauthorized`
-
-### GET /api/me/following
-
-Список пользователей, на которых подписан текущий пользователь.
-
-Query-параметры:
-
-- `limit` (number, optional, default: `100`)
-- `offset` (number, optional, default: `0`)
-
-Успешный ответ `200 OK`:
-
-```json
-{
-  "items": [],
-  "total": 0,
-  "limit": 100,
-  "offset": 0
-}
-```
-
-Возможные ошибки:
-
-- `401 Unauthorized`
-
-### POST /api/users/{userId}/follow
-
-Подписаться на пользователя.
-
-Path-параметры:
-
-- `userId` (uuid|string, required)
-
-Успешный ответ `200 OK`:
-
-```json
-{
-  "ok": true
-}
-```
-
-Возможные ошибки:
-
-- `400 Invalid userId`
-- `401 Unauthorized`
-- `404 User not found`
-- `409 Already following`
-
-### DELETE /api/users/{userId}/follow
-
-Отписаться от пользователя.
-
-Path-параметры:
-
-- `userId` (uuid|string, required)
-
-Успешный ответ `200 OK`:
-
-```json
-{
-  "ok": true
-}
-```
-
-Возможные ошибки:
-
-- `400 Invalid userId`
-- `401 Unauthorized`
-- `404 User not found`
-
-## Search API
-
-### GET /api/search
-
-Поиск по пользователям и событиям для строки поиска (используется в хедере и для поиска друзей).
-
-Query-параметры:
-
-- `query` (string, required)
-- `limit` (number, optional, default: `5`)
-
-Успешный ответ `200 OK`:
-
-```json
-{
-  "items": [
-    {
-      "id": "uuid",
-      "type": "user",
-      "title": "Мария Соколова",
-      "label": "@maria"
-    },
-    {
-      "id": "uuid",
-      "type": "event",
-      "title": "Futurione",
-      "label": "Выставка"
-    }
-  ]
-}
-```
-
-Примечания для backend:
-
-- `items` может содержать как объекты, так и строки (для совместимости со старым клиентом).
-- Для `type=user` желательно возвращать `id`, чтобы frontend мог переходить на профиль.
-- Для `type=event` желательно возвращать `id`, чтобы frontend мог переходить на страницу события.
-
-## Organizer Applications API (draft)
+## Organizer Applications API
 
 Раздел для страницы `/organizer/apply`.
 
 ### POST /api/organizer/applications
 
 Создать заявку на роль организатора.
+
+Требования:
+
+- cookie `access_token`
+- cookie `csrf_token`
+- header `X-CSRF-Token`
 
 Тело запроса:
 
@@ -446,6 +315,7 @@ Query-параметры:
 
 - `400 Validation failed`
 - `401 Unauthorized`
+- `403 CSRF token mismatch`
 - `409 Active application already exists`
 
 Frontend integration (текущее поведение клиента):
@@ -483,6 +353,12 @@ Frontend integration (текущее поведение клиента):
 
 Админ меняет статус заявки.
 
+Требования:
+
+- cookie `access_token`
+- cookie `csrf_token`
+- header `X-CSRF-Token`
+
 Тело запроса:
 
 ```json
@@ -499,15 +375,13 @@ Frontend integration (текущее поведение клиента):
 - `approved`
 - `rejected`
 
-Побочные эффекты:
-
-- сервер очищает `access_token`, `refresh_token`, `csrf_token`
-
 Возможные ошибки:
 
-- `401 Session expired`
+- `400 Validation failed`
+- `401 Unauthorized`
 - `403 CSRF token mismatch`
-- `403 Invalid origin`
+- `403 Forbidden`
+- `404 Organizer application not found`
 
 ### OAuth endpoint'ы
 
@@ -532,7 +406,7 @@ Frontend integration (текущее поведение клиента):
 - `/profile`:
   - обязательно: `GET /api/me`
   - мои события: `GET /api/events?authorId=<me.id>&limit=4&offset=0`
-  - избранное (целевая схема): `GET /api/me/favorites?limit=4&offset=0`
+  - избранное: `GET /api/me/favorites?limit=4&offset=0`
 - `/profile/settings`:
   - загрузка формы: `GET /api/me` + `GET /api/cities`
   - сохранение: `PATCH /api/me` (json или multipart с `avatar`)
@@ -1599,6 +1473,11 @@ API для коротких ссылок и аналитики шаринга с
 
 Создает короткую ссылку на подборку.
 
+Требования:
+
+- cookie `csrf_token`
+- header `X-CSRF-Token`
+
 Тело запроса:
 
 ```json
@@ -1964,9 +1843,11 @@ Query параметры:
 
 Преобразует suggestion-token в постоянное место в БД.
 
-Требование:
+Требования:
 
 - cookie `access_token`
+- cookie `csrf_token`
+- header `X-CSRF-Token`
 
 Тело запроса:
 
@@ -1997,6 +1878,7 @@ Query параметры:
 - `400 Validation failed`
 - `400 invalid place suggestion`
 - `401 Unauthorized`
+- `403 CSRF token mismatch`
 
 ## Support API
 
@@ -2273,10 +2155,12 @@ Endpoint'ы, которые реально используются текущи
 - `POST /api/auth/logout`
 - `GET /api/me`
 - `PATCH /api/me` (`application/json` и `multipart/form-data`)
+- `GET /api/me/favorites`
 - `POST /api/me/favorites/{eventId}`
 - `DELETE /api/me/favorites/{eventId}`
 - `GET /api/me/followers`
 - `GET /api/me/following`
+- `GET /api/me/collections`
 - `POST /api/users/{userId}/follow`
 - `DELETE /api/users/{userId}/follow`
 - `GET /api/home`
@@ -2302,9 +2186,9 @@ Endpoint'ы, которые реально используются текущи
 
 Профиль:
 
-- текущая реализация блока "избранное" на `/profile` временно использует `GET /api/events`
-- целевой API для профиля: `GET /api/me/favorites` и `GET /api/me/collections`
-- кнопка сердца на карточках уже использует `POST/DELETE /api/me/favorites/{eventId}` без перезагрузки страницы
+- блок "избранное" использует `GET /api/me/favorites`
+- блок "подборки" использует `GET /api/me/collections`
+- кнопка сердца на карточках использует `POST/DELETE /api/me/favorites/{eventId}` без перезагрузки страницы
 
 Примечание по карте:
 
@@ -2328,10 +2212,8 @@ Endpoint'ы, которые реально используются текущи
 
 ## Планируемый API-бэклог
 
-Endpoint'ы для следующих итераций (когда избранное/подборки/друзья будут расширяться в профиле):
+Endpoint'ы для следующих итераций, когда подборки будут редактироваться из профиля:
 
-- `GET /api/me/favorites`
-- `GET /api/me/collections`
 - `POST /api/me/collections`
 - `PATCH /api/me/collections/{collectionId}`
 - `DELETE /api/me/collections/{collectionId}`
