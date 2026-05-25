@@ -30,7 +30,7 @@ func (r *PostgresRepository) SearchInvitees(ctx context.Context, eventID, viewer
 		)
 		SELECT
 			u.id::text,
-			u.username,
+			COALESCE(NULLIF(btrim(u.username), ''), u.email) AS username,
 			u.user_surname,
 			u.avatar_url,
 			c.id::text,
@@ -51,7 +51,7 @@ func (r *PostgresRepository) SearchInvitees(ctx context.Context, eventID, viewer
 				OR lower(u.user_surname) LIKE '%' || lower($3) || '%'
 				OR lower(u.email) LIKE '%' || lower($3) || '%'
 			)
-		ORDER BY u.username ASC, u.user_surname ASC, u.id ASC
+		ORDER BY COALESCE(NULLIF(btrim(u.username), ''), u.email) ASC, u.user_surname ASC, u.id ASC
 		LIMIT $4
 	`, eventID, viewerID, query, limit)
 	if err != nil {
