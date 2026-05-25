@@ -76,6 +76,7 @@ type EventDetailsView struct {
 	AgeLimit         int
 	SourceURL        *string
 	Author           EventAuthorView
+	Place            *EventSessionPlaceView
 	Categories       []EventTaxonomyItem
 	Tags             []EventTaxonomyItem
 	Images           []EventImageView
@@ -124,6 +125,8 @@ type EventWriteInput struct {
 	CategoryIDs      *[]string
 	TagIDs           *[]string
 	ImageURLs        *[]string
+	PlaceID          *string
+	ClearPlace       bool
 	Sessions         *[]EventSessionInput
 }
 

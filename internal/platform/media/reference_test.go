@@ -37,11 +37,19 @@ func TestReferencePredicates(t *testing.T) {
 	})
 
 	t.Run("public url", func(t *testing.T) {
-		if got := PublicURL("/uploads/avatars/image.jpg"); got != "http://cityhawk.ru:8080/uploads/avatars/image.jpg" {
-			t.Fatalf("PublicURL() = %q, want absolute cityhawk uploads URL", got)
+		t.Setenv("PUBLIC_BASE_URL", "https://static.cityhawk.ru/")
+		if got := PublicURL("/uploads/avatars/image.jpg"); got != "https://static.cityhawk.ru/uploads/avatars/image.jpg" {
+			t.Fatalf("PublicURL() = %q, want configured uploads URL", got)
 		}
 		if got := PublicURL("https://example.com/image.jpg"); got != "https://example.com/image.jpg" {
 			t.Fatalf("PublicURL() changed external URL: %q", got)
+		}
+	})
+
+	t.Run("public url default", func(t *testing.T) {
+		t.Setenv("PUBLIC_BASE_URL", "")
+		if got := PublicURL("/uploads/avatars/image.jpg"); got != "http://cityhawk.ru:8080/uploads/avatars/image.jpg" {
+			t.Fatalf("PublicURL() = %q, want default cityhawk uploads URL", got)
 		}
 	})
 }

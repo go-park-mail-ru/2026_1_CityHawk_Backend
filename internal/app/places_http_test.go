@@ -255,14 +255,8 @@ func TestEventsHandlers(t *testing.T) {
 			}
 			return c.Value
 		}).ServeHTTP(createRec, createReq)
-		if createRec.Code != http.StatusBadRequest {
-			t.Fatalf("create without sessions status = %d, want %d body=%s", createRec.Code, http.StatusBadRequest, createRec.Body.String())
-		}
-
-		payload := decodeJSONMap(t, createRec.Body)
-		details, ok := payload["details"].(map[string]any)
-		if !ok || details["sessions"] != "sessions is required" {
-			t.Fatalf("unexpected create validation response: %+v", payload)
+		if createRec.Code != http.StatusCreated {
+			t.Fatalf("create without sessions status = %d, want %d body=%s", createRec.Code, http.StatusCreated, createRec.Body.String())
 		}
 	})
 }

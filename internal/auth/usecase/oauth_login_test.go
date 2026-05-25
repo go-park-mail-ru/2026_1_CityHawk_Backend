@@ -13,27 +13,26 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
-func TestOAuthLoginServiceLoginWithGoogleSuccess(t *testing.T) {
+func TestOAuthLoginServiceLoginWithYandexSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	google := mocks.NewMockOAuthGateway(ctrl)
 	yandex := mocks.NewMockOAuthGateway(ctrl)
 	vk := mocks.NewMockOAuthGateway(ctrl)
 	users := mocks.NewMockOAuthUserFinder(ctrl)
 	issuer := mocks.NewMockOAuthTokenIssuer(ctrl)
-	svc := authusecase.NewOAuthLoginService(google, yandex, vk, users, issuer)
+	svc := authusecase.NewOAuthLoginService(yandex, vk, users, issuer)
 
 	identity := authmodel.OAuthIdentity{Email: "user@example.com", SubjectID: "sub-1"}
 	user := usermodel.User{ID: "user-1", Email: "user@example.com"}
 
-	google.EXPECT().FetchIdentity(gomock.Any(), "code").Return(identity, nil)
+	yandex.EXPECT().FetchIdentity(gomock.Any(), "code").Return(identity, nil)
 	users.EXPECT().FindOrCreateFromOAuth(gomock.Any(), identity).Return(user, nil)
 	issuer.EXPECT().IssueTokenPair(gomock.Any(), user).Return(authmodel.TokenPair{AccessToken: "token"}, nil)
 
-	pair, err := svc.LoginWithGoogle(context.Background(), "code")
+	pair, err := svc.LoginWithYandex(context.Background(), "code")
 	if err != nil {
-		t.Fatalf("LoginWithGoogle() error = %v", err)
+		t.Fatalf("LoginWithYandex() error = %v", err)
 	}
 	if pair.AccessToken != "token" {
 		t.Fatalf("unexpected token pair: %+v", pair)
@@ -45,15 +44,14 @@ func TestOAuthLoginServiceMapsErrors(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		google := mocks.NewMockOAuthGateway(ctrl)
 		yandex := mocks.NewMockOAuthGateway(ctrl)
 		vk := mocks.NewMockOAuthGateway(ctrl)
 		users := mocks.NewMockOAuthUserFinder(ctrl)
 		issuer := mocks.NewMockOAuthTokenIssuer(ctrl)
-		svc := authusecase.NewOAuthLoginService(google, yandex, vk, users, issuer)
+		svc := authusecase.NewOAuthLoginService(yandex, vk, users, issuer)
 
-		google.EXPECT().FetchIdentity(gomock.Any(), "bad-code").Return(authmodel.OAuthIdentity{}, errors.New("oauth failed"))
-		_, err := svc.LoginWithGoogle(context.Background(), "bad-code")
+		yandex.EXPECT().FetchIdentity(gomock.Any(), "bad-code").Return(authmodel.OAuthIdentity{}, errors.New("oauth failed"))
+		_, err := svc.LoginWithYandex(context.Background(), "bad-code")
 		if err == nil {
 			t.Fatal("expected oauth error")
 		}
@@ -63,12 +61,11 @@ func TestOAuthLoginServiceMapsErrors(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		google := mocks.NewMockOAuthGateway(ctrl)
 		yandex := mocks.NewMockOAuthGateway(ctrl)
 		vk := mocks.NewMockOAuthGateway(ctrl)
 		users := mocks.NewMockOAuthUserFinder(ctrl)
 		issuer := mocks.NewMockOAuthTokenIssuer(ctrl)
-		svc := authusecase.NewOAuthLoginService(google, yandex, vk, users, issuer)
+		svc := authusecase.NewOAuthLoginService(yandex, vk, users, issuer)
 
 		identity := authmodel.OAuthIdentity{Email: "user@example.com", SubjectID: "sub-1"}
 		yandex.EXPECT().FetchIdentity(gomock.Any(), "code").Return(identity, nil)
@@ -83,12 +80,11 @@ func TestOAuthLoginServiceMapsErrors(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		google := mocks.NewMockOAuthGateway(ctrl)
 		yandex := mocks.NewMockOAuthGateway(ctrl)
 		vk := mocks.NewMockOAuthGateway(ctrl)
 		users := mocks.NewMockOAuthUserFinder(ctrl)
 		issuer := mocks.NewMockOAuthTokenIssuer(ctrl)
-		svc := authusecase.NewOAuthLoginService(google, yandex, vk, users, issuer)
+		svc := authusecase.NewOAuthLoginService(yandex, vk, users, issuer)
 
 		identity := authmodel.OAuthIdentity{Email: "user@example.com", SubjectID: "sub-1"}
 		user := usermodel.User{ID: "user-1", Email: "user@example.com"}

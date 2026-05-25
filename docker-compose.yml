@@ -54,9 +54,10 @@ services:
       - PHOTON_REQUEST_TIMEOUT=${PHOTON_REQUEST_TIMEOUT:-5s}
       - PHOTON_DEFAULT_COUNTRY=${PHOTON_DEFAULT_COUNTRY:-Russia}
       - PHOTON_DEFAULT_TIMEZONE=${PHOTON_DEFAULT_TIMEZONE:-Europe/Moscow}
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:8080}
       #  - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost}  # only for local development
     volumes:
-      - uploads_data:/app/uploads
+      - ./uploads:/app/uploads
     user: "0:0"
     restart: unless-stopped
     healthcheck:
@@ -263,6 +264,5 @@ services:
 volumes:
   postgres_data:
   photon_data:
-  uploads_data:
   prometheus_data:
   grafana_data:

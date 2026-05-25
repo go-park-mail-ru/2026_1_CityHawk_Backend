@@ -155,6 +155,16 @@ WHERE NOT EXISTS (
       AND es.end_at = gs.end_at
 );
 
+INSERT INTO event_place (event_id, place_id)
+SELECT DISTINCT ON (e.id)
+    e.id,
+    es.place_id
+FROM event e
+JOIN event_session es ON es.event_id = e.id
+WHERE e.source_url LIKE 'https://seed.cityhawk.local/events/%'
+ORDER BY e.id, es.start_at ASC, es.id ASC
+ON CONFLICT (event_id) DO NOTHING;
+
 WITH generated_images AS (
     SELECT
         gs AS n,

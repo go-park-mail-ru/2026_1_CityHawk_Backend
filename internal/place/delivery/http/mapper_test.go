@@ -98,8 +98,21 @@ func TestResponseMappers(t *testing.T) {
 		if len(resp.Sessions) != 1 || resp.Sessions[0].Place.City.Timezone != "Europe/Moscow" {
 			t.Fatalf("unexpected sessions response: %+v", resp.Sessions)
 		}
+		if resp.Place == nil || resp.Place.ID != "place-1" || resp.Place.Name != "Main &lt;Hall&gt;" {
+			t.Fatalf("unexpected top-level place response: %+v", resp.Place)
+		}
 		if resp.CreatedAt != "2026-04-15T10:00:00Z" || resp.UpdatedAt != "2026-04-15T11:00:00Z" {
 			t.Fatalf("unexpected timestamps: created=%q updated=%q", resp.CreatedAt, resp.UpdatedAt)
+		}
+	})
+
+	t.Run("event details falls back to first session place", func(t *testing.T) {
+		item := details
+		item.Place = nil
+
+		resp := toEventDetailsResponse(item)
+		if resp.Place == nil || resp.Place.ID != "place-1" || resp.Place.AddressLine != "Lenina &lt;1&gt;" {
+			t.Fatalf("unexpected fallback place response: %+v", resp.Place)
 		}
 	})
 

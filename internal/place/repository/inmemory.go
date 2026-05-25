@@ -318,6 +318,7 @@ func (r *InMemoryRepository) CreateEvent(_ context.Context, input placemodel.Eve
 		Categories: categoryItems,
 		Tags:       tagItems,
 		Images:     buildImageItemsWithIDs(imageURLs, imageIDs),
+		Place:      buildPlaceItem(input.PlaceID),
 		Sessions:   buildSessionItemsWithIDs(sessionInputs, sessionIDs),
 		CreatedAt:  now,
 		UpdatedAt:  now,
@@ -414,6 +415,12 @@ func (r *InMemoryRepository) UpdateEvent(_ context.Context, input placemodel.Eve
 	}
 	if input.ImageURLs != nil {
 		event.Images = imageItems
+	}
+	if input.PlaceID != nil {
+		event.Place = buildPlaceItem(input.PlaceID)
+	}
+	if input.ClearPlace {
+		event.Place = nil
 	}
 	if input.Sessions != nil {
 		event.Sessions = sessionItems
@@ -558,6 +565,13 @@ func buildImageItemsWithIDs(urls, ids []string) []placemodel.EventImageView {
 
 func buildSessionItems(sessions []placemodel.EventSessionInput, next *int) []placemodel.EventSessionView {
 	return buildSessionItemsWithIDs(sessions, reserveIDs("session", next, len(sessions)))
+}
+
+func buildPlaceItem(placeID *string) *placemodel.EventSessionPlaceView {
+	if placeID == nil || strings.TrimSpace(*placeID) == "" {
+		return nil
+	}
+	return &placemodel.EventSessionPlaceView{ID: strings.TrimSpace(*placeID)}
 }
 
 func buildSessionItemsWithIDs(sessions []placemodel.EventSessionInput, ids []string) []placemodel.EventSessionView {

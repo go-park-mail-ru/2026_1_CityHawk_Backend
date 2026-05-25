@@ -198,6 +198,12 @@ func easyjson3c9d2b01DecodeCityhawkBackendInternalPlaceDeliveryHttp(in *jlexer.L
 					in.Delim(']')
 				}
 			}
+		case "placeId":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				(out.PlaceID).UnmarshalEasyJSON(in)
+			}
 		case "sessions":
 			if in.IsNull() {
 				in.Skip()
@@ -213,7 +219,7 @@ func easyjson3c9d2b01DecodeCityhawkBackendInternalPlaceDeliveryHttp(in *jlexer.L
 					in.Delim('[')
 					if *out.Sessions == nil {
 						if !in.IsDelim(']') {
-							*out.Sessions = make([]eventSessionRequest, 0, 1)
+							*out.Sessions = make([]eventSessionRequest, 0, 0)
 						} else {
 							*out.Sessions = []eventSessionRequest{}
 						}
@@ -353,6 +359,11 @@ func easyjson3c9d2b01EncodeCityhawkBackendInternalPlaceDeliveryHttp(out *jwriter
 		}
 	}
 	{
+		const prefix string = ",\"placeId\":"
+		out.RawString(prefix)
+		(in.PlaceID).MarshalEasyJSON(out)
+	}
+	{
 		const prefix string = ",\"sessions\":"
 		out.RawString(prefix)
 		if in.Sessions == nil {
@@ -482,6 +493,12 @@ func easyjson3c9d2b01DecodeCityhawkBackendInternalPlaceDeliveryHttp2(in *jlexer.
 			} else {
 				out.PlaceID = string(in.String())
 			}
+		case "placeName":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.PlaceName = string(in.String())
+			}
 		case "startAt":
 			if in.IsNull() {
 				in.Skip()
@@ -522,6 +539,11 @@ func easyjson3c9d2b01EncodeCityhawkBackendInternalPlaceDeliveryHttp2(out *jwrite
 		const prefix string = ",\"placeId\":"
 		out.RawString(prefix[1:])
 		out.String(string(in.PlaceID))
+	}
+	{
+		const prefix string = ",\"placeName\":"
+		out.RawString(prefix)
+		out.String(string(in.PlaceName))
 	}
 	{
 		const prefix string = ",\"startAt\":"
@@ -691,6 +713,20 @@ func easyjson3c9d2b01DecodeCityhawkBackendInternalPlaceDeliveryHttp3(in *jlexer.
 				}
 				in.Delim(']')
 			}
+		case "placeId":
+			if in.IsNull() {
+				in.Skip()
+				out.PlaceID = nil
+			} else {
+				if out.PlaceID == nil {
+					out.PlaceID = new(string)
+				}
+				if in.IsNull() {
+					in.Skip()
+				} else {
+					*out.PlaceID = string(in.String())
+				}
+			}
 		case "sessions":
 			if in.IsNull() {
 				in.Skip()
@@ -699,7 +735,7 @@ func easyjson3c9d2b01DecodeCityhawkBackendInternalPlaceDeliveryHttp3(in *jlexer.
 				in.Delim('[')
 				if out.Sessions == nil {
 					if !in.IsDelim(']') {
-						out.Sessions = make([]eventSessionRequest, 0, 1)
+						out.Sessions = make([]eventSessionRequest, 0, 0)
 					} else {
 						out.Sessions = []eventSessionRequest{}
 					}
@@ -815,6 +851,15 @@ func easyjson3c9d2b01EncodeCityhawkBackendInternalPlaceDeliveryHttp3(out *jwrite
 				out.String(string(v22))
 			}
 			out.RawByte(']')
+		}
+	}
+	{
+		const prefix string = ",\"placeId\":"
+		out.RawString(prefix)
+		if in.PlaceID == nil {
+			out.RawString("null")
+		} else {
+			out.String(string(*in.PlaceID))
 		}
 	}
 	{

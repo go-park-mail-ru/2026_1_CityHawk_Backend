@@ -22,7 +22,7 @@ func TestServerAuthFlow(t *testing.T) {
 	if resp, err := server.Login(context.Background(), &authv1.LoginRequest{Email: user.Email, Password: "password"}); err != nil || resp.GetTokens().GetAccessToken() != "access" {
 		t.Fatalf("Login() = (%+v, %v)", resp, err)
 	}
-	if resp, err := server.OAuthLogin(context.Background(), &authv1.OAuthLoginRequest{Provider: authv1.OAuthProvider_OAUTH_PROVIDER_GOOGLE, Code: "code"}); err != nil || resp.GetUserId() != user.ID {
+	if resp, err := server.OAuthLogin(context.Background(), &authv1.OAuthLoginRequest{Provider: authv1.OAuthProvider_OAUTH_PROVIDER_YANDEX, Code: "code"}); err != nil || resp.GetUserId() != user.ID {
 		t.Fatalf("OAuthLogin() = (%+v, %v)", resp, err)
 	}
 	if resp, err := server.Refresh(context.Background(), &authv1.RefreshRequest{RefreshToken: "old"}); err != nil || resp.GetTokens().GetRefreshToken() != "refresh" {
@@ -74,9 +74,6 @@ func (f fakeRefresh) RevokeRefresh(context.Context, string) error { return nil }
 
 type fakeOAuth struct{ tokens authmodel.TokenPair }
 
-func (f fakeOAuth) LoginWithGoogle(context.Context, string) (authmodel.TokenPair, error) {
-	return f.tokens, nil
-}
 func (f fakeOAuth) LoginWithYandex(context.Context, string) (authmodel.TokenPair, error) {
 	return f.tokens, nil
 }

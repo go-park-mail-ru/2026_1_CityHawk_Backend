@@ -2101,6 +2101,12 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalPlaceDeliveryHttp18(in *jlexer
 			} else {
 				out.Price = int(in.Int())
 			}
+		case "placeName":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.PlaceName = string(in.String())
+			}
 		case "place":
 			if in.IsNull() {
 				in.Skip()
@@ -2140,6 +2146,11 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalPlaceDeliveryHttp18(out *jwrit
 		const prefix string = ",\"price\":"
 		out.RawString(prefix)
 		out.Int(int(in.Price))
+	}
+	{
+		const prefix string = ",\"placeName\":"
+		out.RawString(prefix)
+		out.String(string(in.PlaceName))
 	}
 	{
 		const prefix string = ",\"place\":"
@@ -2725,6 +2736,26 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalPlaceDeliveryHttp24(in *jlexer
 			} else {
 				(out.Author).UnmarshalEasyJSON(in)
 			}
+		case "placeName":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.PlaceName = string(in.String())
+			}
+		case "place":
+			if in.IsNull() {
+				in.Skip()
+				out.Place = nil
+			} else {
+				if out.Place == nil {
+					out.Place = new(eventSessionPlaceResponse)
+				}
+				if in.IsNull() {
+					in.Skip()
+				} else {
+					(*out.Place).UnmarshalEasyJSON(in)
+				}
+			}
 		case "categories":
 			if in.IsNull() {
 				in.Skip()
@@ -2909,6 +2940,16 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalPlaceDeliveryHttp24(out *jwrit
 		const prefix string = ",\"author\":"
 		out.RawString(prefix)
 		(in.Author).MarshalEasyJSON(out)
+	}
+	if in.PlaceName != "" {
+		const prefix string = ",\"placeName\":"
+		out.RawString(prefix)
+		out.String(string(in.PlaceName))
+	}
+	if in.Place != nil {
+		const prefix string = ",\"place\":"
+		out.RawString(prefix)
+		(*in.Place).MarshalEasyJSON(out)
 	}
 	{
 		const prefix string = ",\"categories\":"

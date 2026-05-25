@@ -29,8 +29,8 @@ COMMENT ON TABLE city IS 'Справочник городов. Значения 
 CREATE TABLE IF NOT EXISTS user_account (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     email text NOT NULL,
-    username text NOT NULL,
-    user_surname text NOT NULL,
+    username text NOT NULL DEFAULT '',
+    user_surname text NOT NULL DEFAULT '',
     password_hash text NOT NULL,
     birthday date,
     city_id uuid,
@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS user_account (
     CONSTRAINT user_account_email_key UNIQUE (email),
     CONSTRAINT user_account_email_format CHECK (position('@' in email) > 1 AND position(' ' in email) = 0),
     CONSTRAINT user_account_email_valid CHECK (char_length(btrim(email)) BETWEEN 1 AND 254),
-    CONSTRAINT user_account_username_valid CHECK (char_length(btrim(username)) BETWEEN 3 AND 64),
-    CONSTRAINT user_account_user_surname_valid CHECK (char_length(btrim(user_surname)) BETWEEN 1 AND 64),
+    CONSTRAINT user_account_username_valid CHECK (char_length(btrim(username)) = 0 OR char_length(btrim(username)) BETWEEN 3 AND 64),
+    CONSTRAINT user_account_user_surname_valid CHECK (char_length(btrim(user_surname)) = 0 OR char_length(btrim(user_surname)) BETWEEN 1 AND 64),
     CONSTRAINT user_account_password_hash_valid CHECK (char_length(btrim(password_hash)) BETWEEN 1 AND 255),
     CONSTRAINT user_account_avatar_url_format CHECK (avatar_url IS NULL OR avatar_url ~ '^(https?://|/uploads/)'),
     CONSTRAINT user_account_avatar_url_length CHECK (avatar_url IS NULL OR char_length(avatar_url) <= 2048),
@@ -173,6 +173,25 @@ CREATE TABLE IF NOT EXISTS event_session (
 );
 
 COMMENT ON TABLE event_session IS 'Конкретные сеансы событий. price по умолчанию равен 0 для бесплатных событий; EXCLUDE запрещает пересечение интервалов в одном месте проведения.';
+
+CREATE TABLE IF NOT EXISTS event_place (
+    event_id uuid PRIMARY KEY,
+    place_id uuid NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT event_place_event_id_fkey
+        FOREIGN KEY (event_id)
+        REFERENCES event(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT event_place_place_id_fkey
+        FOREIGN KEY (place_id)
+        REFERENCES place(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+COMMENT ON TABLE event_place IS 'Основное место события для отображения на карте независимо от расписания и сеансов.';
 
 CREATE TABLE IF NOT EXISTS event_image (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -596,6 +615,11 @@ EXECUTE FUNCTION set_updated_at();
 
 CREATE TRIGGER set_event_session_updated_at
 BEFORE UPDATE ON event_session
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER set_event_place_updated_at
+BEFORE UPDATE ON event_place
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 

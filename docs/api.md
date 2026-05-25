@@ -387,8 +387,6 @@ Frontend integration (текущее поведение клиента):
 
 Эти endpoint'ы регистрируются только если соответствующий OAuth provider настроен в конфиге.
 
-- `GET /api/auth/google/login`
-- `GET /api/auth/google/callback`
 - `GET /api/auth/yandex/login`
 - `GET /api/auth/yandex/callback`
 - `GET /api/auth/vk/login`

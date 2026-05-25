@@ -3,13 +3,9 @@ package validation
 import "testing"
 
 func TestValidateRegisterSuccess(t *testing.T) {
-	email, username, surname, password, birthday, cityID, err := ValidateRegister(
+	email, password, err := ValidateRegister(
 		" Tester@Example.com ",
-		"user_01",
-		"Иванов",
 		"verysecret",
-		"2000-01-02",
-		"11111111-1111-1111-1111-111111111111",
 	)
 	if err != nil {
 		t.Fatalf("ValidateRegister() error = %v", err)
@@ -17,24 +13,18 @@ func TestValidateRegisterSuccess(t *testing.T) {
 	if email != "tester@example.com" {
 		t.Fatalf("email = %q, want normalized value", email)
 	}
-	if username != "user_01" || surname != "Иванов" || password != "verysecret" {
-		t.Fatalf("unexpected normalized values: %q %q %q", username, surname, password)
-	}
-	if birthday == nil || birthday.Format("2006-01-02") != "2000-01-02" {
-		t.Fatalf("birthday = %#v, want parsed date", birthday)
-	}
-	if cityID == nil || *cityID != "11111111-1111-1111-1111-111111111111" {
-		t.Fatalf("cityID = %#v, want normalized uuid", cityID)
+	if password != "verysecret" {
+		t.Fatalf("password = %q, want normalized value", password)
 	}
 }
 
 func TestValidateRegisterValidationError(t *testing.T) {
-	_, _, _, _, _, _, err := ValidateRegister("", "!", "", "123", "bad-date", "bad-uuid")
+	_, _, err := ValidateRegister("", "123")
 	validationErr, ok := err.(ValidationError)
 	if !ok {
 		t.Fatalf("error type = %T, want ValidationError", err)
 	}
-	for _, key := range []string{"email", "username", "userSurname", "password", "birthday", "cityId"} {
+	for _, key := range []string{"email", "password"} {
 		if _, exists := validationErr.Details[key]; !exists {
 			t.Fatalf("missing validation detail for %q: %+v", key, validationErr.Details)
 		}

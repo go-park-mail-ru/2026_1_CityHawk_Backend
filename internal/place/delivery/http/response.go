@@ -65,29 +65,32 @@ type eventSessionPlaceResponse struct {
 }
 
 type eventSessionResponse struct {
-	ID      string                    `json:"id"`
-	StartAt string                    `json:"startAt"`
-	EndAt   string                    `json:"endAt"`
-	Price   int                       `json:"price"`
-	Place   eventSessionPlaceResponse `json:"place"`
+	ID        string                    `json:"id"`
+	StartAt   string                    `json:"startAt"`
+	EndAt     string                    `json:"endAt"`
+	Price     int                       `json:"price"`
+	PlaceName string                    `json:"placeName"`
+	Place     eventSessionPlaceResponse `json:"place"`
 }
 
 type eventDetailsResponse struct {
-	ID               string                 `json:"id"`
-	Title            string                 `json:"title"`
-	ShortDescription string                 `json:"shortDescription"`
-	FullDescription  string                 `json:"fullDescription"`
-	AgeLimit         int                    `json:"ageLimit"`
-	SourceURL        *string                `json:"sourceUrl"`
-	Author           eventAuthorResponse    `json:"author"`
-	Categories       []taxonomyItemResponse `json:"categories"`
-	Tags             []taxonomyItemResponse `json:"tags"`
-	Images           []eventImageResponse   `json:"images"`
-	Sessions         []eventSessionResponse `json:"sessions"`
-	CreatedAt        string                 `json:"createdAt"`
-	UpdatedAt        string                 `json:"updatedAt"`
-	IsFavorite       bool                   `json:"isFavorite"`
-	IsOwner          bool                   `json:"isOwner"`
+	ID               string                     `json:"id"`
+	Title            string                     `json:"title"`
+	ShortDescription string                     `json:"shortDescription"`
+	FullDescription  string                     `json:"fullDescription"`
+	AgeLimit         int                        `json:"ageLimit"`
+	SourceURL        *string                    `json:"sourceUrl"`
+	Author           eventAuthorResponse        `json:"author"`
+	PlaceName        string                     `json:"placeName,omitempty"`
+	Place            *eventSessionPlaceResponse `json:"place,omitempty"`
+	Categories       []taxonomyItemResponse     `json:"categories"`
+	Tags             []taxonomyItemResponse     `json:"tags"`
+	Images           []eventImageResponse       `json:"images"`
+	Sessions         []eventSessionResponse     `json:"sessions"`
+	CreatedAt        string                     `json:"createdAt"`
+	UpdatedAt        string                     `json:"updatedAt"`
+	IsFavorite       bool                       `json:"isFavorite"`
+	IsOwner          bool                       `json:"isOwner"`
 }
 
 type eventIDResponse struct {

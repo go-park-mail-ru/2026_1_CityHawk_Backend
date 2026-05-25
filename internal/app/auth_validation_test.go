@@ -148,12 +148,8 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	meHandler := userdelivery.NewMeHandler(deps.store, avatarStore)
 
 	registerReq := httptest.NewRequest(http.MethodPost, "/api/auth/register", mustJSONBody(t, map[string]any{
-		"email":       "Tester@example.com ",
-		"password":    "verysecret",
-		"username":    "тест_user-1",
-		"userSurname": "Иванова",
-		"birthday":    "2004-01-12",
-		"cityId":      "11111111-1111-1111-1111-111111111111",
+		"email":    "Tester@example.com ",
+		"password": "verysecret",
 	}))
 	registerRec := httptest.NewRecorder()
 	http.HandlerFunc(authFlowHandler.Register).ServeHTTP(registerRec, registerReq)
@@ -162,7 +158,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	}
 
 	registerPayload := decodeJSONMap(t, registerRec.Body)
-	if registerPayload["email"] != "tester@example.com" || registerPayload["userSurname"] != "Иванова" {
+	if registerPayload["email"] != "tester@example.com" || registerPayload["username"] != "" || registerPayload["userSurname"] != "" {
 		t.Fatalf("unexpected register response: %+v", registerPayload)
 	}
 
@@ -199,17 +195,16 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 
 	mePayload := decodeJSONMap(t, meRec.Body)
 	username, ok := mePayload["username"].(string)
-	if !ok || username != "тест_user-1" {
+	if !ok || username != "" {
 		t.Fatalf("unexpected username: %+v", mePayload)
 	}
-	if mePayload["userSurname"] != "Иванова" {
+	if mePayload["userSurname"] != "" {
 		t.Fatalf("unexpected me surname: %+v", mePayload)
 	}
-	if mePayload["birthday"] != "2004-01-12" {
+	if mePayload["birthday"] != nil {
 		t.Fatalf("unexpected me birthday: %+v", mePayload)
 	}
-	city, ok := mePayload["city"].(map[string]any)
-	if !ok || city["id"] != "11111111-1111-1111-1111-111111111111" || city["name"] != "Moscow" {
+	if mePayload["city"] != nil {
 		t.Fatalf("unexpected me city: %+v", mePayload)
 	}
 
@@ -316,10 +311,8 @@ func TestRegisterWithOnlyRequiredFields(t *testing.T) {
 	authFlowHandler := authdelivery.NewAuthHandler(deps.authFlowUC, deps.accessTTL, deps.refreshTTL)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/register", mustJSONBody(t, map[string]any{
-		"email":       "minimal@example.com",
-		"password":    "verysecret",
-		"username":    "minimal_user",
-		"userSurname": "Смирнова",
+		"email":    "minimal@example.com",
+		"password": "verysecret",
 	}))
 	rec := httptest.NewRecorder()
 	http.HandlerFunc(authFlowHandler.Register).ServeHTTP(rec, req)
@@ -337,6 +330,9 @@ func TestRegisterWithOnlyRequiredFields(t *testing.T) {
 	}
 	if user.CityID != nil {
 		t.Fatalf("cityID = %v, want nil", user.CityID)
+	}
+	if user.Username != "" || user.UserSurname != "" {
+		t.Fatalf("profile names = %q %q, want empty", user.Username, user.UserSurname)
 	}
 }
 
@@ -544,35 +540,14 @@ func TestRegisterAndLoginValidation(t *testing.T) {
 		{
 			name:   "register bad email",
 			h:      register,
-			body:   `{"email":"wrong","password":"verysecret","username":"user","userSurname":"Ivanova","birthday":"2004-01-12","cityId":"11111111-1111-1111-1111-111111111111"}`,
+			body:   `{"email":"wrong","password":"verysecret"}`,
 			status: http.StatusBadRequest,
 			errMsg: "Validation failed",
 		},
 		{
 			name:   "register short password",
 			h:      register,
-			body:   `{"email":"a@b.com","password":"short","username":"user","userSurname":"Ivanova","birthday":"2004-01-12","cityId":"11111111-1111-1111-1111-111111111111"}`,
-			status: http.StatusBadRequest,
-			errMsg: "Validation failed",
-		},
-		{
-			name:   "register bad username",
-			h:      register,
-			body:   `{"email":"a@b.com","password":"verysecret","username":"имя пробел","userSurname":"Ivanova","birthday":"2004-01-12","cityId":"11111111-1111-1111-1111-111111111111"}`,
-			status: http.StatusBadRequest,
-			errMsg: "Validation failed",
-		},
-		{
-			name:   "register bad city id",
-			h:      register,
-			body:   `{"email":"a@b.com","password":"verysecret","username":"user","userSurname":"Ivanova","birthday":"2004-01-12","cityId":"bad-id"}`,
-			status: http.StatusBadRequest,
-			errMsg: "Validation failed",
-		},
-		{
-			name:   "register bad birthday",
-			h:      register,
-			body:   `{"email":"a@b.com","password":"verysecret","username":"user","userSurname":"Ivanova","birthday":"12-01-2004","cityId":"11111111-1111-1111-1111-111111111111"}`,
+			body:   `{"email":"a@b.com","password":"short"}`,
 			status: http.StatusBadRequest,
 			errMsg: "Validation failed",
 		},
@@ -614,37 +589,15 @@ func TestRegisterAndLoginValidation(t *testing.T) {
 }
 
 func TestValidationHelpersAndSecurity(t *testing.T) {
-	email, username, userSurname, pass, birthday, cityID, err := authvalidation.ValidateRegister(
+	email, pass, err := authvalidation.ValidateRegister(
 		" USER@Example.com ",
-		"Юзер_1",
-		"Иванова",
 		"12345678",
-		"2004-01-12",
-		"11111111-1111-1111-1111-111111111111",
 	)
 	if err != nil {
 		t.Fatalf("ValidateRegister: %v", err)
 	}
-	if birthday == nil || cityID == nil {
-		t.Fatalf("expected optional values to be filled: birthday=%v cityID=%v", birthday, cityID)
-	}
-	if email != "user@example.com" || pass != "12345678" || username != "Юзер_1" || userSurname != "Иванова" || *cityID != "11111111-1111-1111-1111-111111111111" || birthday.Format("2006-01-02") != "2004-01-12" {
-		t.Fatalf("unexpected normalized values: %q %q %q %q %q %s", email, pass, username, userSurname, *cityID, birthday.Format("2006-01-02"))
-	}
-
-	_, _, _, _, emptyBirthday, emptyCityID, err := authvalidation.ValidateRegister(
-		" USER@Example.com ",
-		"Юзер_1",
-		"Иванова",
-		"12345678",
-		"",
-		"",
-	)
-	if err != nil {
-		t.Fatalf("ValidateRegister with optional empty fields: %v", err)
-	}
-	if emptyBirthday != nil || emptyCityID != nil {
-		t.Fatalf("expected nil optional values, got birthday=%v cityID=%v", emptyBirthday, emptyCityID)
+	if email != "user@example.com" || pass != "12345678" {
+		t.Fatalf("unexpected normalized values: %q %q", email, pass)
 	}
 
 	passwordService := platformsecurity.NewBcryptPasswordService()

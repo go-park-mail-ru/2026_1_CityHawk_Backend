@@ -21,7 +21,6 @@ type OAuthTokenIssuer interface {
 }
 
 type OAuthLoginService struct {
-	google OAuthGateway
 	yandex OAuthGateway
 	vk     OAuthGateway
 	users  OAuthUserFinder
@@ -29,23 +28,17 @@ type OAuthLoginService struct {
 }
 
 func NewOAuthLoginService(
-	google OAuthGateway,
 	yandex OAuthGateway,
 	vk OAuthGateway,
 	users OAuthUserFinder,
 	issuer OAuthTokenIssuer,
 ) *OAuthLoginService {
 	return &OAuthLoginService{
-		google: google,
 		yandex: yandex,
 		vk:     vk,
 		users:  users,
 		issuer: issuer,
 	}
-}
-
-func (s *OAuthLoginService) LoginWithGoogle(ctx context.Context, code string) (authmodel.TokenPair, error) {
-	return s.loginWithIdentity(ctx, code, s.google)
 }
 
 func (s *OAuthLoginService) LoginWithYandex(ctx context.Context, code string) (authmodel.TokenPair, error) {

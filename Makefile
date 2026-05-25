@@ -66,12 +66,18 @@ db-schema:
 	psql "$(DATABASE_URL)" -f db/migrations/0006_support_ticket_messages.up.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0007_user_roles.up.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0008_profile_social_schema.up.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0009_organizer_applications.up.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0010_invitations_notifications_share_links.up.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0011_event_place.up.sql
 
 db-seed:
 	psql "$(DATABASE_URL)" -f db/migrations/0002_seed.up.sql
 
 db-reset:
 	psql "$(DATABASE_URL)" -f db/migrations/0002_seed.down.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0011_event_place.down.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0010_invitations_notifications_share_links.down.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0009_organizer_applications.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0008_profile_social_schema.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0007_user_roles.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0006_support_ticket_messages.down.sql

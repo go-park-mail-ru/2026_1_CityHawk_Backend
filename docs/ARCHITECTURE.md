@@ -10,7 +10,7 @@
 - хранит данные в PostgreSQL;
 - умеет регистрировать и логинить пользователей;
 - поддерживает refresh/access токены через cookie;
-- умеет логинить через OAuth (`Google`, `Yandex`, `VK`);
+- умеет логинить через OAuth (`Yandex`, `VK`);
 - отдает данные для каталога мест/событий (`/places`, `/api/home`, `/places/best`, `/places/category/...`);
 - содержит основу для дальнейшего роста: в схеме БД уже есть коллекции, подписки, приглашения, шаринг и уведомления, хотя не все эти сущности еще выведены в API.
 
@@ -107,7 +107,6 @@ flowchart LR
     end
 
     DB[(PostgreSQL)]
-    Google[Google OAuth]
     Yandex[Yandex OAuth]
     VK[VK OAuth]
 
@@ -134,7 +133,6 @@ flowchart LR
     PlaceRepo --> PG
     PG --> DB
 
-    OAuthGW --> Google
     OAuthGW --> Yandex
     OAuthGW --> VK
     AuthHTTP --> HTTPX
@@ -239,7 +237,7 @@ flowchart LR
 - регистрацию по email/password;
 - логин по email/password;
 - refresh/logout;
-- OAuth login через Google/Yandex/VK;
+- OAuth login через Yandex/VK;
 - установку `access_token` и `refresh_token` в cookie.
 
 Внутреннее разбиение:

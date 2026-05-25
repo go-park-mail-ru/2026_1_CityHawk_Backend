@@ -50,10 +50,11 @@ func toEventDetailsResponse(item placemodel.EventDetailsView) eventDetailsRespon
 	sessions := make([]eventSessionResponse, 0, len(item.Sessions))
 	for _, session := range item.Sessions {
 		sessions = append(sessions, eventSessionResponse{
-			ID:      session.ID,
-			StartAt: session.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
-			EndAt:   session.EndAt.UTC().Format("2006-01-02T15:04:05Z"),
-			Price:   session.Price,
+			ID:        session.ID,
+			StartAt:   session.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
+			EndAt:     session.EndAt.UTC().Format("2006-01-02T15:04:05Z"),
+			Price:     session.Price,
+			PlaceName: safety.EscapeText(session.Place.Name),
 			Place: eventSessionPlaceResponse{
 				ID:          session.Place.ID,
 				Name:        safety.EscapeText(session.Place.Name),
@@ -70,6 +71,13 @@ func toEventDetailsResponse(item placemodel.EventDetailsView) eventDetailsRespon
 		})
 	}
 
+	var place *eventSessionPlaceResponse
+	placeName := ""
+	if eventPlace := primaryEventPlace(item); eventPlace != nil {
+		place = toEventSessionPlaceResponse(*eventPlace)
+		placeName = place.Name
+	}
+
 	return eventDetailsResponse{
 		ID:               item.ID,
 		Title:            safety.EscapeText(item.Title),
@@ -82,6 +90,8 @@ func toEventDetailsResponse(item placemodel.EventDetailsView) eventDetailsRespon
 			Username:  safety.EscapeText(item.Author.Username),
 			AvatarURL: media.PublicURLPtr(item.Author.AvatarURL),
 		},
+		PlaceName:  placeName,
+		Place:      place,
 		Categories: categories,
 		Tags:       tags,
 		Images:     images,
@@ -90,6 +100,32 @@ func toEventDetailsResponse(item placemodel.EventDetailsView) eventDetailsRespon
 		UpdatedAt:  item.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 		IsFavorite: item.IsFavorite,
 		IsOwner:    item.IsOwner,
+	}
+}
+
+func primaryEventPlace(item placemodel.EventDetailsView) *placemodel.EventSessionPlaceView {
+	if item.Place != nil {
+		return item.Place
+	}
+	if len(item.Sessions) == 0 || item.Sessions[0].Place.ID == "" {
+		return nil
+	}
+	return &item.Sessions[0].Place
+}
+
+func toEventSessionPlaceResponse(item placemodel.EventSessionPlaceView) *eventSessionPlaceResponse {
+	return &eventSessionPlaceResponse{
+		ID:          item.ID,
+		Name:        safety.EscapeText(item.Name),
+		AddressLine: safety.EscapeText(item.AddressLine),
+		Latitude:    item.Latitude,
+		Longitude:   item.Longitude,
+		City: eventSessionPlaceCityResponse{
+			ID:          item.City.ID,
+			Name:        safety.EscapeText(item.City.Name),
+			CountryName: safety.EscapeText(item.City.CountryName),
+			Timezone:    item.City.Timezone,
+		},
 	}
 }
 
@@ -187,13 +223,18 @@ func toHomePayloadResponse(p placemodel.HomePayload) homePayloadResponse {
 			})
 		}
 
+		startAt := ""
+		if !item.NextSession.StartAt.IsZero() {
+			startAt = item.NextSession.StartAt.UTC().Format("2006-01-02T15:04:05Z")
+		}
+
 		featuredEvents = append(featuredEvents, homeFeaturedEventResponse{
 			ID:            item.ID,
 			Title:         safety.EscapeText(item.Title),
 			CoverImageURL: media.PublicURL(item.CoverImageURL),
 			Tags:          tags,
 			NextSession: homeNextSessionResponse{
-				StartAt: item.NextSession.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
+				StartAt: startAt,
 				Place: homeNextSessionPlaceResponse{
 					Name:        safety.EscapeText(item.NextSession.Place.Name),
 					AddressLine: safety.EscapeText(item.NextSession.Place.AddressLine),

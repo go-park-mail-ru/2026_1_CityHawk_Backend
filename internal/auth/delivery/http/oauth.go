@@ -10,7 +10,6 @@ import (
 	"time"
 
 	gatewaycommon "cityhawk/backend/internal/auth/gateway/common"
-	gatewaygoogle "cityhawk/backend/internal/auth/gateway/google"
 	gatewayvk "cityhawk/backend/internal/auth/gateway/vk"
 	gatewayyandex "cityhawk/backend/internal/auth/gateway/yandex"
 	authmodel "cityhawk/backend/internal/auth/model"
@@ -21,7 +20,6 @@ import (
 )
 
 type OAuthLoginUsecase interface {
-	LoginWithGoogle(ctx context.Context, code string) (authmodel.TokenPair, error)
 	LoginWithYandex(ctx context.Context, code string) (authmodel.TokenPair, error)
 	LoginWithVK(ctx context.Context, code string) (authmodel.TokenPair, error)
 }
@@ -35,24 +33,6 @@ type oauthCallbackConfig struct {
 	login              oauthCallbackFunc
 	denyQueryError     string
 	denyErrorMessage   string
-}
-
-func GoogleLoginHandler(cfg *oauth2.Config) http.HandlerFunc {
-	return newOAuthLoginHandler(
-		gatewaygoogle.StateCookieName,
-		func(state string) string {
-			return cfg.AuthCodeURL(state, oauth2.AccessTypeOnline)
-		},
-	)
-}
-
-func GoogleCallbackHandler(oauthUC OAuthLoginUsecase, accessTTL, refreshTTL time.Duration) http.HandlerFunc {
-	return newOAuthCallbackHandler(accessTTL, refreshTTL, oauthCallbackConfig{
-		stateCookieName:    gatewaygoogle.StateCookieName,
-		successMessage:     "google login successful",
-		profileFetchErrMsg: "failed to fetch google profile",
-		login:              oauthUC.LoginWithGoogle,
-	})
 }
 
 func YandexLoginHandler(cfg *oauth2.Config) http.HandlerFunc {

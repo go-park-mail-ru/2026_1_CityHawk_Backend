@@ -7,7 +7,6 @@ import (
 	"time"
 
 	authdelivery "cityhawk/backend/internal/auth/delivery/http"
-	gatewaygoogle "cityhawk/backend/internal/auth/gateway/google"
 	gatewayvk "cityhawk/backend/internal/auth/gateway/vk"
 	gatewayyandex "cityhawk/backend/internal/auth/gateway/yandex"
 	authrepo "cityhawk/backend/internal/auth/repository"
@@ -85,6 +84,11 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		pool.Close()
 		return nil, nil, err
 	}
+	collectionImageStore, err := media.NewLocalStorage("uploads/collections", "/uploads/collections")
+	if err != nil {
+		pool.Close()
+		return nil, nil, err
+	}
 	placeHandler := placedelivery.NewHandler(placeUC, eventImageStore)
 	authFlowHandler := authdelivery.NewAuthHandler(authFlowUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL)
 	authRefreshHandler := authdelivery.NewRefreshHandler(authUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL)
@@ -105,14 +109,9 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	if err != nil {
 		log.Printf("yandex oauth disabled: %v", err)
 	}
-	googleOAuthCfg, err := gatewaygoogle.NewOAuthConfig(cfg.OAuth.Google)
-	if err != nil {
-		log.Printf("google oauth disabled: %v", err)
-	}
-	googleGateway := gatewaygoogle.NewGateway(googleOAuthCfg)
 	yandexGateway := gatewayyandex.NewGateway(yandexOAuthCfg)
 	vkGateway := gatewayvk.NewGateway(vkOAuthCfg)
-	oauthLoginUC := authusecase.NewOAuthLoginService(googleGateway, yandexGateway, vkGateway, oauthUsers, authUC)
+	oauthLoginUC := authusecase.NewOAuthLoginService(yandexGateway, vkGateway, oauthUsers, authUC)
 	parseAccessToken := func(token string) (string, string, error) {
 		claims, err := tokenService.Parse(token)
 		if err != nil {
@@ -170,6 +169,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	})
 	mux.HandleFunc("GET /api/health", healthHandler)
 	mux.Handle("GET /uploads/events/", media.NewLocalFileHandler(eventImageStore.Dir(), "/uploads/events"))
+	mux.Handle("GET /uploads/collections/", media.NewLocalFileHandler(collectionImageStore.Dir(), "/uploads/collections"))
 	mux.Handle("GET /uploads/avatars/", media.NewLocalFileHandler(avatarStore.Dir(), "/uploads/avatars"))
 	mux.HandleFunc("POST /api/auth/register", authFlowHandler.Register)
 	mux.HandleFunc("POST /api/auth/login", authFlowHandler.Login)
@@ -180,10 +180,6 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	if yandexOAuthCfg != nil {
 		mux.HandleFunc("GET /api/auth/yandex/login", authdelivery.YandexLoginHandler(yandexOAuthCfg))
 		mux.HandleFunc("GET /api/auth/yandex/callback", authdelivery.YandexCallbackHandler(oauthLoginUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL))
-	}
-	if googleOAuthCfg != nil {
-		mux.HandleFunc("GET /api/auth/google/login", authdelivery.GoogleLoginHandler(googleOAuthCfg))
-		mux.HandleFunc("GET /api/auth/google/callback", authdelivery.GoogleCallbackHandler(oauthLoginUC, cfg.Auth.AccessTTL, cfg.Auth.RefreshTTL))
 	}
 	mux.Handle("POST /api/auth/refresh", withCSRF(http.HandlerFunc(authRefreshHandler.Refresh)))
 	mux.Handle("POST /api/auth/logout", withCSRF(http.HandlerFunc(authRefreshHandler.Logout)))
@@ -198,8 +194,8 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	mux.Handle("GET /api/me/notifications", withAuth(socialHandler.Notifications))
 	mux.Handle("POST /api/me/notifications/read-all", withAuthAndCSRF(socialHandler.NotificationsReadAll))
 	mux.Handle("POST /api/me/notifications/{notificationId}/read", withAuthAndCSRF(socialHandler.NotificationByID))
-	mux.Handle("POST /api/users/", withAuthAndCSRF(socialHandler.FollowByID))
-	mux.Handle("DELETE /api/users/", withAuthAndCSRF(socialHandler.FollowByID))
+	mux.Handle("POST /api/users/{userId}/follow", withAuthAndCSRF(socialHandler.FollowByID))
+	mux.Handle("DELETE /api/users/{userId}/follow", withAuthAndCSRF(socialHandler.FollowByID))
 	mux.Handle("GET /api/events", withOptionalAuth(placeHandler.Events))
 	mux.Handle("POST /api/events", withAuthAndCSRF(placeHandler.Events))
 	mux.HandleFunc("GET /api/home", placeHandler.Home)

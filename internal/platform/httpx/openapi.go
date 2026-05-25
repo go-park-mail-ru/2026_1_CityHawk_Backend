@@ -93,59 +93,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/auth/google/login:
-    get:
-      tags: [Auth]
-      summary: Start Google OAuth flow
-      responses:
-        "302":
-          description: Redirect to Google OAuth consent page
-        "405":
-          description: Method not allowed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /api/auth/google/callback:
-    get:
-      tags: [Auth]
-      summary: Google OAuth callback
-      parameters:
-        - in: query
-          name: state
-          required: true
-          schema:
-            type: string
-        - in: query
-          name: code
-          required: true
-          schema:
-            type: string
-      responses:
-        "302":
-          description: Redirect to frontend home page
-          headers:
-            Location:
-              schema:
-                type: string
-        "400":
-          description: Missing oauth code
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        "401":
-          description: Invalid oauth state/code or profile fetch failure
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        "405":
-          description: Method not allowed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /api/auth/yandex/login:
     get:
       tags: [Auth]
@@ -1172,23 +1119,12 @@ components:
   schemas:
     RegisterRequest:
       type: object
-      required: [email, username, userSurname, password]
+      required: [email, password]
       properties:
         email:
           type: string
-        username:
-          type: string
-        userSurname:
-          type: string
         password:
           type: string
-        birthday:
-          type: string
-          format: date
-          nullable: true
-        cityId:
-          type: string
-          nullable: true
     RegisterResponse:
       type: object
       properties:
@@ -1463,6 +1399,8 @@ components:
           format: date-time
         price:
           type: integer
+        placeName:
+          type: string
         place:
           $ref: '#/components/schemas/EventSessionPlace'
     EventDetails:
@@ -1483,6 +1421,11 @@ components:
           nullable: true
         author:
           $ref: '#/components/schemas/EventAuthor'
+        placeName:
+          type: string
+        place:
+          $ref: '#/components/schemas/EventSessionPlace'
+          nullable: true
         categories:
           type: array
           items:
@@ -1515,6 +1458,8 @@ components:
       properties:
         placeId:
           type: string
+        placeName:
+          type: string
         startAt:
           type: string
           format: date-time
@@ -1525,7 +1470,7 @@ components:
           type: integer
     CreateEventRequest:
       type: object
-      required: [title, shortDescription, fullDescription, categoryIds, sessions]
+      required: [title, shortDescription, fullDescription, categoryIds]
       properties:
         title:
           type: string
@@ -1550,6 +1495,9 @@ components:
           type: array
           items:
             type: string
+        placeId:
+          type: string
+          nullable: true
         sessions:
           type: array
           items:
@@ -1580,13 +1528,16 @@ components:
           type: array
           items:
             type: string
+        placeId:
+          type: string
+          nullable: true
         sessions:
           type: array
           items:
             $ref: '#/components/schemas/EventSessionInput'
     CreateEventMultipartRequest:
       type: object
-      required: [title, shortDescription, fullDescription, categoryIds, sessions]
+      required: [title, shortDescription, fullDescription, categoryIds]
       properties:
         title:
           type: string
@@ -1608,6 +1559,9 @@ components:
         imageUrls:
           type: string
           description: JSON array of strings
+        placeId:
+          type: string
+          nullable: true
         sessions:
           type: string
           description: JSON array of session objects
@@ -1639,6 +1593,9 @@ components:
         imageUrls:
           type: string
           description: JSON array of strings
+        placeId:
+          type: string
+          nullable: true
         sessions:
           type: string
           description: JSON array of session objects

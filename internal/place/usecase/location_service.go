@@ -119,6 +119,9 @@ func (s *PlaceLookupService) Resolve(ctx context.Context, input placemodel.Place
 	if err != nil {
 		return placemodel.PlaceResolved{}, err
 	}
+	if name := strings.TrimSpace(input.Name); name != "" {
+		payload.Name = name
+	}
 
 	return s.repo.EnsurePlace(ctx, placerepo.PlaceLookupWriteInput{
 		CityName:    payload.CityName,

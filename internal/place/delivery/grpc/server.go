@@ -274,7 +274,7 @@ func (s *Server) ResolvePlace(ctx context.Context, req *eventsv1.ResolvePlaceReq
 	if s.lookup == nil {
 		return nil, status.Error(codes.Unimplemented, "place resolve is disabled")
 	}
-	place, err := s.lookup.Resolve(ctx, placemodel.PlaceResolveInput{Token: req.GetToken()})
+	place, err := s.lookup.Resolve(ctx, placemodel.PlaceResolveInput{Token: req.GetToken(), Name: req.GetName()})
 	if err != nil {
 		if errors.Is(err, placeusecase.ErrInvalidPlaceSuggestion) {
 			return nil, grpcconv.InvalidArgument("invalid place suggestion")
@@ -329,10 +329,11 @@ func eventDetailsToProto(item placemodel.EventDetailsView) *eventsv1.EventDetail
 	sessions := make([]*eventsv1.EventSession, 0, len(item.Sessions))
 	for _, session := range item.Sessions {
 		sessions = append(sessions, &eventsv1.EventSession{
-			Id:      session.ID,
-			StartAt: grpcconv.TimeToProto(session.StartAt),
-			EndAt:   grpcconv.TimeToProto(session.EndAt),
-			Price:   int32(session.Price),
+			Id:        session.ID,
+			StartAt:   grpcconv.TimeToProto(session.StartAt),
+			EndAt:     grpcconv.TimeToProto(session.EndAt),
+			Price:     int32(session.Price),
+			PlaceName: session.Place.Name,
 			Place: &eventsv1.Place{
 				Id:          session.Place.ID,
 				Name:        session.Place.Name,
@@ -343,7 +344,7 @@ func eventDetailsToProto(item placemodel.EventDetailsView) *eventsv1.EventDetail
 		})
 	}
 
-	return &eventsv1.EventDetails{
+	resp := &eventsv1.EventDetails{
 		Id:               item.ID,
 		Title:            item.Title,
 		ShortDescription: item.ShortDescription,
@@ -364,6 +365,27 @@ func eventDetailsToProto(item placemodel.EventDetailsView) *eventsv1.EventDetail
 		IsFavorite: item.IsFavorite,
 		IsOwner:    item.IsOwner,
 	}
+	if place := primaryEventDetailsPlace(item); place != nil {
+		resp.PlaceName = &place.Name
+		resp.Place = &eventsv1.Place{
+			Id:          place.ID,
+			Name:        place.Name,
+			AddressLine: place.AddressLine,
+			Coordinates: &eventsv1.Coordinates{Latitude: place.Latitude, Longitude: place.Longitude},
+			City:        cityToProto(place.City.ID, place.City.Name, place.City.CountryName, place.City.Timezone),
+		}
+	}
+	return resp
+}
+
+func primaryEventDetailsPlace(item placemodel.EventDetailsView) *placemodel.EventSessionPlaceView {
+	if item.Place != nil {
+		return item.Place
+	}
+	if len(item.Sessions) == 0 || item.Sessions[0].Place.ID == "" {
+		return nil
+	}
+	return &item.Sessions[0].Place
 }
 
 func homeToProto(payload placemodel.HomePayload) *eventsv1.HomeResponse {

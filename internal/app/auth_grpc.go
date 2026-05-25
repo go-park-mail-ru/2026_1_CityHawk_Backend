@@ -4,7 +4,6 @@ import (
 	"log"
 
 	authgrpc "cityhawk/backend/internal/auth/delivery/grpc"
-	gatewaygoogle "cityhawk/backend/internal/auth/gateway/google"
 	gatewayvk "cityhawk/backend/internal/auth/gateway/vk"
 	gatewayyandex "cityhawk/backend/internal/auth/gateway/yandex"
 	authrepo "cityhawk/backend/internal/auth/repository"
@@ -39,12 +38,7 @@ func NewAuthGRPCServer(cfg appconfig.Config) (*grpc.Server, func(), error) {
 	if err != nil {
 		log.Printf("yandex oauth disabled: %v", err)
 	}
-	googleOAuthCfg, err := gatewaygoogle.NewOAuthConfig(cfg.OAuth.Google)
-	if err != nil {
-		log.Printf("google oauth disabled: %v", err)
-	}
 	oauthUC := authusecase.NewOAuthLoginService(
-		gatewaygoogle.NewGateway(googleOAuthCfg),
 		gatewayyandex.NewGateway(yandexOAuthCfg),
 		gatewayvk.NewGateway(vkOAuthCfg),
 		oauthUsers,

@@ -8,7 +8,8 @@ option go_package = "cityhawk/backend/pkg/pb/auth/v1;authv1";
 
 enum OAuthProvider {
   OAUTH_PROVIDER_UNSPECIFIED = 0;
-  OAUTH_PROVIDER_GOOGLE = 1;
+  reserved 1;
+  reserved "OAUTH_PROVIDER_GOOGLE";
   OAUTH_PROVIDER_YANDEX = 2;
   OAUTH_PROVIDER_VK = 3;
 }

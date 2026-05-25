@@ -33,7 +33,7 @@ func (e ValidationError) Error() string {
 	return "validation failed"
 }
 
-func ValidateRegister(email, username, userSurname, password, birthday, cityID string) (string, string, string, string, *time.Time, *string, error) {
+func ValidateRegister(email, password string) (string, string, error) {
 	details := make(map[string]string)
 
 	normalizedEmail, err := normalizeAndValidateEmail(email)
@@ -41,46 +41,16 @@ func ValidateRegister(email, username, userSurname, password, birthday, cityID s
 		details["email"] = err.Error()
 	}
 
-	normalizedUsername, err := normalizeAndValidateUsername(username)
-	if err != nil {
-		details["username"] = err.Error()
-	}
-
-	normalizedSurname, err := normalizeAndValidateSurname(userSurname)
-	if err != nil {
-		details["userSurname"] = err.Error()
-	}
-
 	normalizedPassword, err := normalizeAndValidatePassword(password)
 	if err != nil {
 		details["password"] = err.Error()
 	}
 
-	var normalizedBirthday *time.Time
-	if strings.TrimSpace(birthday) != "" {
-		value, err := normalizeAndValidateBirthday(birthday)
-		if err != nil {
-			details["birthday"] = err.Error()
-		} else {
-			normalizedBirthday = &value
-		}
-	}
-
-	var normalizedCityID *string
-	if strings.TrimSpace(cityID) != "" {
-		value, err := normalizeAndValidateUUID(cityID, "cityId")
-		if err != nil {
-			details["cityId"] = err.Error()
-		} else {
-			normalizedCityID = &value
-		}
-	}
-
 	if len(details) > 0 {
-		return "", "", "", "", nil, nil, ValidationError{Details: details}
+		return "", "", ValidationError{Details: details}
 	}
 
-	return normalizedEmail, normalizedUsername, normalizedSurname, normalizedPassword, normalizedBirthday, normalizedCityID, nil
+	return normalizedEmail, normalizedPassword, nil
 }
 
 func ValidateLogin(email, password string) (string, string, error) {

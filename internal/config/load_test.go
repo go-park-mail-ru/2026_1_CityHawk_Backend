@@ -28,7 +28,6 @@ func TestLoadFromEnvAndParsers(t *testing.T) {
 	t.Setenv("PHOTON_REQUEST_TIMEOUT", "7s")
 	t.Setenv("PHOTON_DEFAULT_COUNTRY", "Russia")
 	t.Setenv("PHOTON_DEFAULT_TIMEZONE", "Europe/Moscow")
-	t.Setenv("GOOGLE_OAUTH_REDIRECT_URL", "http://cityhawk.ru:8080/auth/google/callback")
 	t.Setenv("VK_OAUTH_REDIRECT_URL", "http://cityhawk.ru:8080/api/auth/vk/callback")
 	t.Setenv("YANDEX_OAUTH_REDIRECT_URL", "http://cityhawk.ru:8080/auth/yandex/callback")
 
@@ -55,9 +54,6 @@ func TestLoadFromEnvAndParsers(t *testing.T) {
 	}
 	if !cfg.Photon.Enabled || cfg.Photon.BaseURL != "http://photon" {
 		t.Fatalf("unexpected photon config: %+v", cfg.Photon)
-	}
-	if cfg.OAuth.Google.RedirectURL != "http://cityhawk.ru:8080/api/auth/google/callback" {
-		t.Fatalf("unexpected google redirect url: %q", cfg.OAuth.Google.RedirectURL)
 	}
 	if cfg.OAuth.VK.RedirectURL != "http://cityhawk.ru:8080/api/auth/vk/callback" {
 		t.Fatalf("unexpected vk redirect url: %q", cfg.OAuth.VK.RedirectURL)

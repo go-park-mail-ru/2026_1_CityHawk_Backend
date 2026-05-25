@@ -30,7 +30,6 @@ type RefreshTokenManager interface {
 }
 
 type OAuthLogin interface {
-	LoginWithGoogle(ctx context.Context, code string) (authmodel.TokenPair, error)
 	LoginWithYandex(ctx context.Context, code string) (authmodel.TokenPair, error)
 	LoginWithVK(ctx context.Context, code string) (authmodel.TokenPair, error)
 }
@@ -100,8 +99,6 @@ func (s *Server) OAuthLogin(ctx context.Context, req *authv1.OAuthLoginRequest) 
 	)
 
 	switch req.GetProvider() {
-	case authv1.OAuthProvider_OAUTH_PROVIDER_GOOGLE:
-		tokens, err = s.oauth.LoginWithGoogle(ctx, req.GetCode())
 	case authv1.OAuthProvider_OAUTH_PROVIDER_YANDEX:
 		tokens, err = s.oauth.LoginWithYandex(ctx, req.GetCode())
 	case authv1.OAuthProvider_OAUTH_PROVIDER_VK:

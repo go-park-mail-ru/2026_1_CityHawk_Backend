@@ -98,6 +98,7 @@ message EventSession {
   google.protobuf.Timestamp end_at = 3;
   int32 price = 4;
   Place place = 5;
+  string place_name = 6;
 }
 
 message EventDetails {
@@ -117,6 +118,8 @@ message EventDetails {
   bool is_favorite = 14;
   bool is_owner = 15;
   optional double distance_km = 16;
+  optional Place place = 17;
+  optional string place_name = 18;
 }
 
 message EventSessionInput {
@@ -124,6 +127,7 @@ message EventSessionInput {
   google.protobuf.Timestamp start_at = 2;
   google.protobuf.Timestamp end_at = 3;
   int32 price = 4;
+  optional string place_name = 5;
 }
 
 message GetHomeRequest {
@@ -317,6 +321,7 @@ message SuggestPlacesResponse {
 message ResolvePlaceRequest {
   cityhawk.common.v1.UserContext actor = 1;
   string token = 2;
+  optional string name = 3;
 }
 
 message CreatePlaceRequest {

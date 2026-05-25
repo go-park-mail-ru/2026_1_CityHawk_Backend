@@ -1,11 +1,12 @@
 package media
 
 import (
+	"os"
 	"path"
 	"strings"
 )
 
-const publicBaseURL = "http://cityhawk.ru:8080/"
+const defaultPublicBaseURL = "http://cityhawk.ru:8080"
 
 func IsHTTPURL(value string) bool {
 	return strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://")
@@ -26,7 +27,11 @@ func IsFileReference(value string) bool {
 
 func PublicURL(value string) string {
 	if IsUploadPath(value) {
-		return publicBaseURL + strings.TrimPrefix(value, "/")
+		baseURL := strings.TrimRight(strings.TrimSpace(os.Getenv("PUBLIC_BASE_URL")), "/")
+		if baseURL == "" {
+			baseURL = defaultPublicBaseURL
+		}
+		return baseURL + value
 	}
 	return value
 }
