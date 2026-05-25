@@ -531,8 +531,11 @@ func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string
 			SELECT
 				u.id::text AS id,
 				'user' AS type,
-				concat_ws(' ', u.username, u.user_surname) AS title,
-				'@' || u.username AS label,
+				COALESCE(NULLIF(btrim(concat_ws(' ', u.username, u.user_surname)), ''), u.email) AS title,
+				CASE
+					WHEN btrim(u.username) <> '' THEN '@' || u.username
+					ELSE u.email
+				END AS label,
 				u.avatar_url AS avatar_url,
 				EXISTS (
 					SELECT 1
@@ -543,14 +546,17 @@ func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string
 				GREATEST(
 					similarity(lower(u.username), lower($1)),
 					similarity(lower(u.user_surname), lower($1)),
-					similarity(lower(concat_ws(' ', u.username, u.user_surname)), lower($1))
+					similarity(lower(concat_ws(' ', u.username, u.user_surname)), lower($1)),
+					similarity(lower(u.email), lower($1))
 				) AS rank
 			FROM user_account u
 			WHERE lower(u.username) LIKE '%' || lower($1) || '%'
 			   OR lower(u.user_surname) LIKE '%' || lower($1) || '%'
 			   OR lower(concat_ws(' ', u.username, u.user_surname)) LIKE '%' || lower($1) || '%'
+			   OR lower(u.email) LIKE '%' || lower($1) || '%'
 			   OR u.username % $1
 			   OR u.user_surname % $1
+			   OR u.email % $1
 			UNION ALL
 			SELECT
 				c.id::text AS id,
