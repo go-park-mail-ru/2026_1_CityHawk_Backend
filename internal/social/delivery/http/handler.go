@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -571,6 +572,10 @@ func mapShareLinkError(err error, notFound string) error {
 }
 
 func shareURL(r *http.Request, token string) string {
+	if baseURL := configuredShareBaseURL(); baseURL != "" {
+		return baseURL + "/s/" + token
+	}
+
 	scheme := "http"
 	if r.TLS != nil {
 		scheme = "https"
@@ -579,6 +584,15 @@ func shareURL(r *http.Request, token string) string {
 		scheme = strings.Split(proto, ",")[0]
 	}
 	return scheme + "://" + r.Host + "/s/" + token
+}
+
+func configuredShareBaseURL() string {
+	for _, name := range []string{"SHARE_BASE_URL", "PUBLIC_BASE_URL"} {
+		if value := strings.TrimRight(strings.TrimSpace(os.Getenv(name)), "/"); value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func mapSocialWriteError(err error, notFound string, conflict string) error {

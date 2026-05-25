@@ -6,7 +6,7 @@ OUT ?= coverage.out
 TOOLCHAIN ?= go1.25.0
 GO_CACHE_DIR ?= $(CURDIR)/.cache/go-build
 GO_TMP_DIR ?= $(CURDIR)/.cache/gotmp
-DATABASE_URL ?= postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable
+DATABASE_URL ?= postgres://cityhawk:cityhawk@localhost:5433/cityhawk?sslmode=disable
 
 .PHONY: test coverage coverage-check generate proto build-services clean db-schema db-seed db-reset
 

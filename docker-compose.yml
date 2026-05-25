@@ -41,9 +41,24 @@ services:
         condition: service_healthy
       photon:
         condition: service_started
+      cityhawk-auth-service:
+        condition: service_started
+      cityhawk-profile-service:
+        condition: service_started
+      cityhawk-events-service:
+        condition: service_started
+      cityhawk-support-service:
+        condition: service_started
+      cityhawk-social-service:
+        condition: service_started
     environment:
       # defaults mirror the code's fallbacks
       - PORT=8080
+      - AUTH_GRPC_ADDR=cityhawk-auth-service:50051
+      - PROFILE_GRPC_ADDR=cityhawk-profile-service:50052
+      - EVENTS_GRPC_ADDR=cityhawk-events-service:50053
+      - SUPPORT_GRPC_ADDR=cityhawk-support-service:50054
+      - SOCIAL_GRPC_ADDR=cityhawk-social-service:50055
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-cityhawk}
@@ -55,6 +70,7 @@ services:
       - PHOTON_DEFAULT_COUNTRY=${PHOTON_DEFAULT_COUNTRY:-Russia}
       - PHOTON_DEFAULT_TIMEZONE=${PHOTON_DEFAULT_TIMEZONE:-Europe/Moscow}
       - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:8080}
+      - SHARE_BASE_URL=${SHARE_BASE_URL:-http://localhost:3000}
       #  - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost}  # only for local development
     volumes:
       - ./uploads:/app/uploads

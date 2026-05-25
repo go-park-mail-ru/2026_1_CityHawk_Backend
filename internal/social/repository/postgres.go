@@ -267,7 +267,7 @@ func (r *PostgresRepository) listProfiles(ctx context.Context, viewerID, fromSQL
 	query := `
 		SELECT
 			u.id::text,
-			u.username,
+			COALESCE(NULLIF(btrim(u.username), ''), u.email) AS username,
 			u.user_surname,
 			u.avatar_url,
 			c.id::text,
