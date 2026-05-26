@@ -156,7 +156,6 @@ window.__APP_CONFIG__ = {
 {
   "email": "user@mail.com",
   "username": "Alice",
-  "userSurname": "Ivanova",
   "password": "Secret123!",
   "birthday": "2004-01-12",
   "cityId": "11111111-1111-1111-1111-111111111111"
@@ -165,7 +164,7 @@ window.__APP_CONFIG__ = {
 
 Поля:
 
-- `email`, `username`, `userSurname`, `password` обязательны
+- `email`, `username, `password` обязательны
 - `birthday`, `cityId` опциональны
 
 Успешный ответ `201 Created`:
@@ -175,7 +174,6 @@ window.__APP_CONFIG__ = {
   "id": "uuid",
   "email": "user@mail.com",
   "username": "Alice",
-  "userSurname": "Ivanova",
   "avatarUrl": null,
   "createdAt": "2026-03-23T10:00:00Z"
 }
@@ -433,7 +431,6 @@ Frontend integration (текущее поведение клиента):
   "id": "uuid",
   "email": "user@mail.com",
   "username": "Alice",
-  "userSurname": "Ivanova",
   "role": "user",
   "birthday": "2004-01-12",
   "bio": "Люблю джаз, выставки и прогулки по городу",
@@ -523,7 +520,6 @@ Frontend integration (текущее поведение клиента):
 {
   "email": "new-user@mail.com",
   "username": "Alice",
-  "userSurname": "Ivanova",
   "birthday": "2004-01-12",
   "cityId": "11111111-1111-1111-1111-111111111111",
   "bio": "Люблю джаз, выставки и прогулки по городу",
@@ -541,7 +537,6 @@ Frontend integration (текущее поведение клиента):
 ```text
 username=Alice
 email=new-user@mail.com
-userSurname=Ivanova
 birthday=2004-01-12
 cityId=11111111-1111-1111-1111-111111111111
 bio=Люблю джаз, выставки и прогулки по городу
@@ -566,7 +561,6 @@ avatar=<binary file>
   "id": "uuid",
   "email": "user@mail.com",
   "username": "Alice",
-  "userSurname": "Ivanova",
   "role": "organizer",
   "birthday": "2004-01-12",
   "bio": "Люблю джаз, выставки и прогулки по городу",
@@ -654,7 +648,6 @@ Query параметры:
     {
       "id": "uuid",
       "username": "Maria",
-      "userSurname": "Sokolova",
       "avatarUrl": "http://example.com/uploads/avatars/file.png",
       "city": {
         "id": "uuid",
@@ -696,7 +689,6 @@ Query параметры:
     {
       "id": "uuid",
       "username": "Elena",
-      "userSurname": "Pavlova",
       "avatarUrl": "http://example.com/uploads/avatars/file.png",
       "city": {
         "id": "uuid",
@@ -1115,7 +1107,11 @@ API для модалки "Пригласить" на странице собы�
 
 ### GET /api/events/{eventId}/invitees/search
 
-Поиск пользователей, которых можно пригласить на событие.
+Поиск пользователей, которых текущий пользователь может пригласить на событие.
+
+Требования:
+
+- cookie `access_token`
 
 Query параметры:
 
@@ -1130,7 +1126,6 @@ Query параметры:
     {
       "id": "uuid",
       "username": "Анна",
-      "userSurname": "Иванова",
       "avatarUrl": "http://example.com/uploads/avatars/anna.png",
       "city": {
         "id": "uuid",
@@ -1138,6 +1133,8 @@ Query параметры:
         "countryName": "Россия",
         "timezone": "Europe/Moscow"
       },
+      "isFollowing": true,
+      "isFriend": true,
       "invitationStatus": null
     }
   ]
@@ -1146,13 +1143,49 @@ Query параметры:
 
 Правила:
 
-- backend не возвращает автора события и текущего пользователя;
-- если пользователь уже приглашен на это событие, `invitationStatus` содержит текущий статус;
+- backend возвращает только пользователей, которые подписаны на текущего пользователя;
+- backend не возвращает автора события, текущего пользователя и уже приглашенных пользователей;
+- `isFriend: true` означает, что пользователя можно пригласить по правилу подписки;
 - frontend может использовать endpoint как более точную замену общего `GET /api/search` для модалки приглашения.
 
 Возможные ошибки:
 
 - `400 Validation failed`
+- `401 Unauthorized`
+- `404 Event not found`
+
+### GET /api/events/{eventId}/invitees
+
+Возвращает пользователей, уже приглашенных на событие.
+
+Требования:
+
+- cookie `access_token`
+
+Успешный ответ `200 OK`:
+
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "username": "Анна",
+      "avatarUrl": "http://example.com/uploads/avatars/anna.png",
+      "city": {
+        "id": "uuid",
+        "name": "Москва",
+        "countryName": "Россия",
+        "timezone": "Europe/Moscow"
+      },
+      "invitationStatus": "pending"
+    }
+  ]
+}
+```
+
+Возможные ошибки:
+
+- `401 Unauthorized`
 - `404 Event not found`
 
 ### POST /api/events/{eventId}/invitations
@@ -1265,6 +1298,7 @@ Query параметры:
 
 - backend выставляет `respondedAt`;
 - если статус `accepted`, отправителю создается уведомление типа `invitation_accepted`;
+- если статус `declined`, отправителю создается уведомление типа `invitation_declined`;
 - если статус `declined`, уведомление отправителю можно не создавать, чтобы не шуметь.
 
 Возможные ошибки:
@@ -1293,6 +1327,7 @@ API для колокольчика в шапке.
 
 - `event_invitation`
 - `invitation_accepted`
+- `invitation_declined`
 - `event_reminder`
 - `collection_shared`
 - `system`
@@ -1359,9 +1394,62 @@ Query параметры:
 Правила формирования:
 
 - `title`, `message`, `dateText`, `placeText` могут быть вычислены backend'ом из связанных таблиц;
-- для `type=invitations` backend возвращает `event_invitation` и `invitation_accepted`;
+- для `type=invitations` backend возвращает `event_invitation`, `invitation_accepted` и `invitation_declined`;
 - для `type=system` backend возвращает `system`, `event_reminder`, `collection_shared`;
 - если связанная сущность удалена, notification можно вернуть с `event: null` или скрыть из выдачи.
+
+Возможные ошибки:
+
+- `401 Unauthorized`
+
+### GET /api/me/notifications/events
+
+Возвращает события, связанные с уведомлениями текущего пользователя, в формате карточек событий.
+
+Требование:
+
+- cookie `access_token`
+
+Query параметры:
+
+- `limit` — положительное число, по умолчанию `4`, максимум `100`
+- `offset` — неотрицательное число, по умолчанию `0`
+
+Успешный ответ `200 OK`:
+
+```json
+{
+  "items": [
+    {
+      "id": "event-id",
+      "title": "Семейный фестиваль «Спортлэнд»",
+      "shortDescription": "...",
+      "coverImageUrl": "...",
+      "tags": [],
+      "nextSession": {
+        "startAt": "2026-06-01T12:00:00Z",
+        "place": {
+          "name": "Парк",
+          "addressLine": "Москва"
+        }
+      },
+      "isFavorite": false,
+      "invitedBy": {
+        "id": "user-id",
+        "username": "Алиса",
+        "avatarUrl": "http://example.com/uploads/avatars/alice.png"
+      },
+      "invitation": {
+        "id": "invitation-id",
+        "status": "accepted"
+      }
+    }
+  ],
+  "total": 1,
+  "limit": 4,
+  "offset": 0
+}
+```
 
 Возможные ошибки:
 
@@ -1388,6 +1476,8 @@ Query параметры:
 
 Возможные ошибки:
 
+- `400 Validation failed`
+- `403 only_friends_can_be_invited`
 - `401 Unauthorized`
 - `403 CSRF token mismatch`
 - `404 Notification not found`

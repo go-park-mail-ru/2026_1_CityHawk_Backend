@@ -43,12 +43,6 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp(in *jlexer.
 			} else {
 				out.Username = string(in.String())
 			}
-		case "userSurname":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.UserSurname = string(in.String())
-			}
 		case "avatarUrl":
 			if in.IsNull() {
 				in.Skip()
@@ -106,11 +100,6 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp(out *jwrite
 		const prefix string = ",\"username\":"
 		out.RawString(prefix)
 		out.String(string(in.Username))
-	}
-	{
-		const prefix string = ",\"userSurname\":"
-		out.RawString(prefix)
-		out.String(string(in.UserSurname))
 	}
 	{
 		const prefix string = ",\"avatarUrl\":"
@@ -183,7 +172,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp1(in *jlexer
 				in.Delim('[')
 				if out.Items == nil {
 					if !in.IsDelim(']') {
-						out.Items = make([]userProfileResponse, 0, 0)
+						out.Items = make([]userProfileResponse, 0, 1)
 					} else {
 						out.Items = []userProfileResponse{}
 					}
@@ -1326,7 +1315,457 @@ func (v *notificationEventResponse) UnmarshalJSON(data []byte) error {
 func (v *notificationEventResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp10(l, v)
 }
-func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp11(in *jlexer.Lexer, out *notificationCollectionResponse) {
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp11(in *jlexer.Lexer, out *notificationEventListResponse) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		switch key {
+		case "items":
+			if in.IsNull() {
+				in.Skip()
+				out.Items = nil
+			} else {
+				in.Delim('[')
+				if out.Items == nil {
+					if !in.IsDelim(']') {
+						out.Items = make([]notificationEventCardResponse, 0, 0)
+					} else {
+						out.Items = []notificationEventCardResponse{}
+					}
+				} else {
+					out.Items = (out.Items)[:0]
+				}
+				for !in.IsDelim(']') {
+					var v7 notificationEventCardResponse
+					if in.IsNull() {
+						in.Skip()
+					} else {
+						(v7).UnmarshalEasyJSON(in)
+					}
+					out.Items = append(out.Items, v7)
+					in.WantComma()
+				}
+				in.Delim(']')
+			}
+		case "total":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Total = int(in.Int())
+			}
+		case "limit":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Limit = int(in.Int())
+			}
+		case "offset":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Offset = int(in.Int())
+			}
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp11(out *jwriter.Writer, in notificationEventListResponse) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"items\":"
+		out.RawString(prefix[1:])
+		if in.Items == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+			out.RawString("null")
+		} else {
+			out.RawByte('[')
+			for v8, v9 := range in.Items {
+				if v8 > 0 {
+					out.RawByte(',')
+				}
+				(v9).MarshalEasyJSON(out)
+			}
+			out.RawByte(']')
+		}
+	}
+	{
+		const prefix string = ",\"total\":"
+		out.RawString(prefix)
+		out.Int(int(in.Total))
+	}
+	{
+		const prefix string = ",\"limit\":"
+		out.RawString(prefix)
+		out.Int(int(in.Limit))
+	}
+	{
+		const prefix string = ",\"offset\":"
+		out.RawString(prefix)
+		out.Int(int(in.Offset))
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v notificationEventListResponse) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp11(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v notificationEventListResponse) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp11(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *notificationEventListResponse) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp11(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *notificationEventListResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp11(l, v)
+}
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp12(in *jlexer.Lexer, out *notificationEventInvitedByResponse) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		switch key {
+		case "id":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.ID = string(in.String())
+			}
+		case "username":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Username = string(in.String())
+			}
+		case "avatarUrl":
+			if in.IsNull() {
+				in.Skip()
+				out.AvatarURL = nil
+			} else {
+				if out.AvatarURL == nil {
+					out.AvatarURL = new(string)
+				}
+				if in.IsNull() {
+					in.Skip()
+				} else {
+					*out.AvatarURL = string(in.String())
+				}
+			}
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp12(out *jwriter.Writer, in notificationEventInvitedByResponse) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"id\":"
+		out.RawString(prefix[1:])
+		out.String(string(in.ID))
+	}
+	{
+		const prefix string = ",\"username\":"
+		out.RawString(prefix)
+		out.String(string(in.Username))
+	}
+	{
+		const prefix string = ",\"avatarUrl\":"
+		out.RawString(prefix)
+		if in.AvatarURL == nil {
+			out.RawString("null")
+		} else {
+			out.String(string(*in.AvatarURL))
+		}
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v notificationEventInvitedByResponse) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp12(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v notificationEventInvitedByResponse) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp12(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *notificationEventInvitedByResponse) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp12(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *notificationEventInvitedByResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp12(l, v)
+}
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp13(in *jlexer.Lexer, out *notificationEventCardResponse) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		switch key {
+		case "id":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.ID = string(in.String())
+			}
+		case "title":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Title = string(in.String())
+			}
+		case "shortDescription":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.ShortDescription = string(in.String())
+			}
+		case "coverImageUrl":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.CoverImageURL = string(in.String())
+			}
+		case "isFavorite":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.IsFavorite = bool(in.Bool())
+			}
+		case "tags":
+			if in.IsNull() {
+				in.Skip()
+				out.Tags = nil
+			} else {
+				in.Delim('[')
+				if out.Tags == nil {
+					if !in.IsDelim(']') {
+						out.Tags = make([]taxonomyItemResponse, 0, 1)
+					} else {
+						out.Tags = []taxonomyItemResponse{}
+					}
+				} else {
+					out.Tags = (out.Tags)[:0]
+				}
+				for !in.IsDelim(']') {
+					var v10 taxonomyItemResponse
+					if in.IsNull() {
+						in.Skip()
+					} else {
+						(v10).UnmarshalEasyJSON(in)
+					}
+					out.Tags = append(out.Tags, v10)
+					in.WantComma()
+				}
+				in.Delim(']')
+			}
+		case "nextSession":
+			if in.IsNull() {
+				in.Skip()
+				out.NextSession = nil
+			} else {
+				if out.NextSession == nil {
+					out.NextSession = new(eventCardNextSessionResponse)
+				}
+				if in.IsNull() {
+					in.Skip()
+				} else {
+					(*out.NextSession).UnmarshalEasyJSON(in)
+				}
+			}
+		case "invitedBy":
+			if in.IsNull() {
+				in.Skip()
+				out.InvitedBy = nil
+			} else {
+				if out.InvitedBy == nil {
+					out.InvitedBy = new(notificationEventInvitedByResponse)
+				}
+				if in.IsNull() {
+					in.Skip()
+				} else {
+					(*out.InvitedBy).UnmarshalEasyJSON(in)
+				}
+			}
+		case "invitation":
+			if in.IsNull() {
+				in.Skip()
+				out.Invitation = nil
+			} else {
+				if out.Invitation == nil {
+					out.Invitation = new(notificationInvitationResponse)
+				}
+				if in.IsNull() {
+					in.Skip()
+				} else {
+					(*out.Invitation).UnmarshalEasyJSON(in)
+				}
+			}
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp13(out *jwriter.Writer, in notificationEventCardResponse) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"id\":"
+		out.RawString(prefix[1:])
+		out.String(string(in.ID))
+	}
+	{
+		const prefix string = ",\"title\":"
+		out.RawString(prefix)
+		out.String(string(in.Title))
+	}
+	{
+		const prefix string = ",\"shortDescription\":"
+		out.RawString(prefix)
+		out.String(string(in.ShortDescription))
+	}
+	{
+		const prefix string = ",\"coverImageUrl\":"
+		out.RawString(prefix)
+		out.String(string(in.CoverImageURL))
+	}
+	{
+		const prefix string = ",\"isFavorite\":"
+		out.RawString(prefix)
+		out.Bool(bool(in.IsFavorite))
+	}
+	{
+		const prefix string = ",\"tags\":"
+		out.RawString(prefix)
+		if in.Tags == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+			out.RawString("null")
+		} else {
+			out.RawByte('[')
+			for v11, v12 := range in.Tags {
+				if v11 > 0 {
+					out.RawByte(',')
+				}
+				(v12).MarshalEasyJSON(out)
+			}
+			out.RawByte(']')
+		}
+	}
+	{
+		const prefix string = ",\"nextSession\":"
+		out.RawString(prefix)
+		if in.NextSession == nil {
+			out.RawString("null")
+		} else {
+			(*in.NextSession).MarshalEasyJSON(out)
+		}
+	}
+	{
+		const prefix string = ",\"invitedBy\":"
+		out.RawString(prefix)
+		if in.InvitedBy == nil {
+			out.RawString("null")
+		} else {
+			(*in.InvitedBy).MarshalEasyJSON(out)
+		}
+	}
+	{
+		const prefix string = ",\"invitation\":"
+		out.RawString(prefix)
+		if in.Invitation == nil {
+			out.RawString("null")
+		} else {
+			(*in.Invitation).MarshalEasyJSON(out)
+		}
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v notificationEventCardResponse) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp13(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v notificationEventCardResponse) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp13(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *notificationEventCardResponse) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp13(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *notificationEventCardResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp13(l, v)
+}
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp14(in *jlexer.Lexer, out *notificationCollectionResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1368,7 +1807,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp11(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp11(out *jwriter.Writer, in notificationCollectionResponse) {
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp14(out *jwriter.Writer, in notificationCollectionResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1393,27 +1832,27 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp11(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v notificationCollectionResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp11(&w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp14(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v notificationCollectionResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp11(w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp14(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *notificationCollectionResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp11(&r, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp14(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *notificationCollectionResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp11(l, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp14(l, v)
 }
-func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp12(in *jlexer.Lexer, out *notificationActorResponse) {
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp15(in *jlexer.Lexer, out *notificationActorResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1463,7 +1902,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp12(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp12(out *jwriter.Writer, in notificationActorResponse) {
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp15(out *jwriter.Writer, in notificationActorResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1492,27 +1931,27 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp12(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v notificationActorResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp12(&w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp15(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v notificationActorResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp12(w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp15(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *notificationActorResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp12(&r, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp15(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *notificationActorResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp12(l, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp15(l, v)
 }
-func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp13(in *jlexer.Lexer, out *inviteeResponse) {
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp16(in *jlexer.Lexer, out *inviteeResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1537,12 +1976,6 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp13(in *jlexe
 				in.Skip()
 			} else {
 				out.Username = string(in.String())
-			}
-		case "userSurname":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.UserSurname = string(in.String())
 			}
 		case "avatarUrl":
 			if in.IsNull() {
@@ -1572,6 +2005,18 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp13(in *jlexe
 					(*out.City).UnmarshalEasyJSON(in)
 				}
 			}
+		case "isFollowing":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.IsFollowing = bool(in.Bool())
+			}
+		case "isFriend":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.IsFriend = bool(in.Bool())
+			}
 		case "invitationStatus":
 			if in.IsNull() {
 				in.Skip()
@@ -1596,7 +2041,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp13(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp13(out *jwriter.Writer, in inviteeResponse) {
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp16(out *jwriter.Writer, in inviteeResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1609,11 +2054,6 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp13(out *jwri
 		const prefix string = ",\"username\":"
 		out.RawString(prefix)
 		out.String(string(in.Username))
-	}
-	{
-		const prefix string = ",\"userSurname\":"
-		out.RawString(prefix)
-		out.String(string(in.UserSurname))
 	}
 	{
 		const prefix string = ",\"avatarUrl\":"
@@ -1633,6 +2073,16 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp13(out *jwri
 			(*in.City).MarshalEasyJSON(out)
 		}
 	}
+	if in.IsFollowing {
+		const prefix string = ",\"isFollowing\":"
+		out.RawString(prefix)
+		out.Bool(bool(in.IsFollowing))
+	}
+	if in.IsFriend {
+		const prefix string = ",\"isFriend\":"
+		out.RawString(prefix)
+		out.Bool(bool(in.IsFriend))
+	}
 	{
 		const prefix string = ",\"invitationStatus\":"
 		out.RawString(prefix)
@@ -1648,27 +2098,27 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp13(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v inviteeResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp13(&w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp16(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v inviteeResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp13(w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp16(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *inviteeResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp13(&r, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp16(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *inviteeResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp13(l, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp16(l, v)
 }
-func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp14(in *jlexer.Lexer, out *inviteeListResponse) {
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp17(in *jlexer.Lexer, out *inviteeListResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1690,7 +2140,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp14(in *jlexe
 				in.Delim('[')
 				if out.Items == nil {
 					if !in.IsDelim(']') {
-						out.Items = make([]inviteeResponse, 0, 0)
+						out.Items = make([]inviteeResponse, 0, 1)
 					} else {
 						out.Items = []inviteeResponse{}
 					}
@@ -1698,13 +2148,13 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp14(in *jlexe
 					out.Items = (out.Items)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v7 inviteeResponse
+					var v13 inviteeResponse
 					if in.IsNull() {
 						in.Skip()
 					} else {
-						(v7).UnmarshalEasyJSON(in)
+						(v13).UnmarshalEasyJSON(in)
 					}
-					out.Items = append(out.Items, v7)
+					out.Items = append(out.Items, v13)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -1719,7 +2169,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp14(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp14(out *jwriter.Writer, in inviteeListResponse) {
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp17(out *jwriter.Writer, in inviteeListResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1730,11 +2180,11 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp14(out *jwri
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v8, v9 := range in.Items {
-				if v8 > 0 {
+			for v14, v15 := range in.Items {
+				if v14 > 0 {
 					out.RawByte(',')
 				}
-				(v9).MarshalEasyJSON(out)
+				(v15).MarshalEasyJSON(out)
 			}
 			out.RawByte(']')
 		}
@@ -1745,27 +2195,27 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp14(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v inviteeListResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp14(&w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp17(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v inviteeListResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp14(w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp17(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *inviteeListResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp14(&r, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp17(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *inviteeListResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp14(l, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp17(l, v)
 }
-func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp15(in *jlexer.Lexer, out *invitationResponseBody) {
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp18(in *jlexer.Lexer, out *invitationResponseBody) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1865,7 +2315,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp15(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp15(out *jwriter.Writer, in invitationResponseBody) {
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp18(out *jwriter.Writer, in invitationResponseBody) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1929,27 +2379,27 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp15(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v invitationResponseBody) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp15(&w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp18(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v invitationResponseBody) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp15(w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp18(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *invitationResponseBody) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp15(&r, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp18(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *invitationResponseBody) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp15(l, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp18(l, v)
 }
-func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp16(in *jlexer.Lexer, out *invitationListResponse) {
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp19(in *jlexer.Lexer, out *invitationListResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1979,13 +2429,13 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp16(in *jlexe
 					out.Items = (out.Items)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v10 invitationResponseBody
+					var v16 invitationResponseBody
 					if in.IsNull() {
 						in.Skip()
 					} else {
-						(v10).UnmarshalEasyJSON(in)
+						(v16).UnmarshalEasyJSON(in)
 					}
-					out.Items = append(out.Items, v10)
+					out.Items = append(out.Items, v16)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -2000,7 +2450,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp16(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp16(out *jwriter.Writer, in invitationListResponse) {
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp19(out *jwriter.Writer, in invitationListResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -2011,11 +2461,11 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp16(out *jwri
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v11, v12 := range in.Items {
-				if v11 > 0 {
+			for v17, v18 := range in.Items {
+				if v17 > 0 {
 					out.RawByte(',')
 				}
-				(v12).MarshalEasyJSON(out)
+				(v18).MarshalEasyJSON(out)
 			}
 			out.RawByte(']')
 		}
@@ -2026,27 +2476,27 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp16(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v invitationListResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp16(&w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp19(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v invitationListResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp16(w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp19(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *invitationListResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp16(&r, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp19(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *invitationListResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp16(l, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp19(l, v)
 }
-func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp17(in *jlexer.Lexer, out *eventListResponse) {
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp20(in *jlexer.Lexer, out *eventListResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -2076,13 +2526,13 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp17(in *jlexe
 					out.Items = (out.Items)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v13 eventCardResponse
+					var v19 eventCardResponse
 					if in.IsNull() {
 						in.Skip()
 					} else {
-						(v13).UnmarshalEasyJSON(in)
+						(v19).UnmarshalEasyJSON(in)
 					}
-					out.Items = append(out.Items, v13)
+					out.Items = append(out.Items, v19)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -2115,7 +2565,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp17(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp17(out *jwriter.Writer, in eventListResponse) {
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp20(out *jwriter.Writer, in eventListResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -2126,11 +2576,11 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp17(out *jwri
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v14, v15 := range in.Items {
-				if v14 > 0 {
+			for v20, v21 := range in.Items {
+				if v20 > 0 {
 					out.RawByte(',')
 				}
-				(v15).MarshalEasyJSON(out)
+				(v21).MarshalEasyJSON(out)
 			}
 			out.RawByte(']')
 		}
@@ -2156,27 +2606,27 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp17(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v eventListResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp17(&w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp20(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v eventListResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp17(w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp20(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *eventListResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp17(&r, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp20(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *eventListResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp17(l, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp20(l, v)
 }
-func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp18(in *jlexer.Lexer, out *eventCardResponse) {
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp21(in *jlexer.Lexer, out *eventCardResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -2236,13 +2686,13 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp18(in *jlexe
 					out.Tags = (out.Tags)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v16 taxonomyItemResponse
+					var v22 taxonomyItemResponse
 					if in.IsNull() {
 						in.Skip()
 					} else {
-						(v16).UnmarshalEasyJSON(in)
+						(v22).UnmarshalEasyJSON(in)
 					}
-					out.Tags = append(out.Tags, v16)
+					out.Tags = append(out.Tags, v22)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -2271,7 +2721,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp18(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp18(out *jwriter.Writer, in eventCardResponse) {
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp21(out *jwriter.Writer, in eventCardResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -2307,11 +2757,11 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp18(out *jwri
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v17, v18 := range in.Tags {
-				if v17 > 0 {
+			for v23, v24 := range in.Tags {
+				if v23 > 0 {
 					out.RawByte(',')
 				}
-				(v18).MarshalEasyJSON(out)
+				(v24).MarshalEasyJSON(out)
 			}
 			out.RawByte(']')
 		}
@@ -2331,27 +2781,27 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp18(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v eventCardResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp18(&w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp21(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v eventCardResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp18(w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp21(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *eventCardResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp18(&r, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp21(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *eventCardResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp18(l, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp21(l, v)
 }
-func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp19(in *jlexer.Lexer, out *eventCardNextSessionResponse) {
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp22(in *jlexer.Lexer, out *eventCardNextSessionResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -2387,7 +2837,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp19(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp19(out *jwriter.Writer, in eventCardNextSessionResponse) {
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp22(out *jwriter.Writer, in eventCardNextSessionResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -2407,27 +2857,27 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp19(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v eventCardNextSessionResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp19(&w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp22(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v eventCardNextSessionResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp19(w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp22(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *eventCardNextSessionResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp19(&r, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp22(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *eventCardNextSessionResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp19(l, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp22(l, v)
 }
-func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp20(in *jlexer.Lexer, out *eventCardNextSessionPlaceResponse) {
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp23(in *jlexer.Lexer, out *eventCardNextSessionPlaceResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -2463,7 +2913,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp20(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp20(out *jwriter.Writer, in eventCardNextSessionPlaceResponse) {
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp23(out *jwriter.Writer, in eventCardNextSessionPlaceResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -2483,27 +2933,27 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp20(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v eventCardNextSessionPlaceResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp20(&w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp23(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v eventCardNextSessionPlaceResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp20(w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp23(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *eventCardNextSessionPlaceResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp20(&r, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp23(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *eventCardNextSessionPlaceResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp20(l, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp23(l, v)
 }
-func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp21(in *jlexer.Lexer, out *collectionListResponse) {
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp24(in *jlexer.Lexer, out *collectionListResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -2533,13 +2983,13 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp21(in *jlexe
 					out.Items = (out.Items)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v19 collectionCardResponse
+					var v25 collectionCardResponse
 					if in.IsNull() {
 						in.Skip()
 					} else {
-						(v19).UnmarshalEasyJSON(in)
+						(v25).UnmarshalEasyJSON(in)
 					}
-					out.Items = append(out.Items, v19)
+					out.Items = append(out.Items, v25)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -2572,7 +3022,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp21(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp21(out *jwriter.Writer, in collectionListResponse) {
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp24(out *jwriter.Writer, in collectionListResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -2583,11 +3033,11 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp21(out *jwri
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v20, v21 := range in.Items {
-				if v20 > 0 {
+			for v26, v27 := range in.Items {
+				if v26 > 0 {
 					out.RawByte(',')
 				}
-				(v21).MarshalEasyJSON(out)
+				(v27).MarshalEasyJSON(out)
 			}
 			out.RawByte(']')
 		}
@@ -2613,27 +3063,27 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp21(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v collectionListResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp21(&w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp24(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v collectionListResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp21(w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp24(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *collectionListResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp21(&r, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp24(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *collectionListResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp21(l, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp24(l, v)
 }
-func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp22(in *jlexer.Lexer, out *collectionCardResponse) {
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp25(in *jlexer.Lexer, out *collectionCardResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -2687,7 +3137,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp22(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp22(out *jwriter.Writer, in collectionCardResponse) {
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp25(out *jwriter.Writer, in collectionCardResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -2722,27 +3172,27 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp22(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v collectionCardResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp22(&w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp25(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v collectionCardResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp22(w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp25(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *collectionCardResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp22(&r, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp25(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *collectionCardResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp22(l, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp25(l, v)
 }
-func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp23(in *jlexer.Lexer, out *cityResponse) {
+func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp26(in *jlexer.Lexer, out *cityResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -2790,7 +3240,7 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp23(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp23(out *jwriter.Writer, in cityResponse) {
+func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp26(out *jwriter.Writer, in cityResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -2820,23 +3270,23 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp23(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v cityResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp23(&w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp26(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v cityResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp23(w, v)
+	easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp26(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *cityResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp23(&r, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp26(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *cityResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp23(l, v)
+	easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp26(l, v)
 }

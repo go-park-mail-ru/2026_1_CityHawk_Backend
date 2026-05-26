@@ -16,7 +16,7 @@ func TestServerAuthFlow(t *testing.T) {
 	tokens := authmodel.TokenPair{AccessToken: "access", RefreshToken: "refresh", ExpiresIn: 900}
 	server := NewServer(fakeAuthFlow{user: user, tokens: tokens}, fakeRefresh{tokens: tokens}, fakeOAuth{tokens: tokens}, fakeAuthUsers{user: user}, fakeParser{claims: platformsecurity.Claims{Type: "access", RegisteredClaims: jwt.RegisteredClaims{Subject: "user-1"}}})
 
-	if resp, err := server.Register(context.Background(), &authv1.RegisterRequest{Email: user.Email, Username: user.Username, UserSurname: "surname", Password: "password"}); err != nil || resp.GetUserId() != user.ID {
+	if resp, err := server.Register(context.Background(), &authv1.RegisterRequest{Email: user.Email, Username: user.Username, Password: "password"}); err != nil || resp.GetUserId() != user.ID {
 		t.Fatalf("Register() = (%+v, %v)", resp, err)
 	}
 	if resp, err := server.Login(context.Background(), &authv1.LoginRequest{Email: user.Email, Password: "password"}); err != nil || resp.GetTokens().GetAccessToken() != "access" {

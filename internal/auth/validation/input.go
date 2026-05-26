@@ -18,8 +18,6 @@ const (
 	maxPasswordLen = 72
 	minUsernameLen = 3
 	maxUsernameLen = 32
-	minSurnameLen  = 1
-	maxSurnameLen  = 64
 )
 
 var usernamePattern = regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ0-9_.-]+$`)
@@ -33,12 +31,17 @@ func (e ValidationError) Error() string {
 	return "validation failed"
 }
 
-func ValidateRegister(email, password string) (string, string, error) {
+func ValidateRegister(email, username, password string) (string, string, string, error) {
 	details := make(map[string]string)
 
 	normalizedEmail, err := normalizeAndValidateEmail(email)
 	if err != nil {
 		details["email"] = err.Error()
+	}
+
+	normalizedUsername, err := normalizeAndValidateUsername(username)
+	if err != nil {
+		details["username"] = err.Error()
 	}
 
 	normalizedPassword, err := normalizeAndValidatePassword(password)
@@ -47,10 +50,10 @@ func ValidateRegister(email, password string) (string, string, error) {
 	}
 
 	if len(details) > 0 {
-		return "", "", ValidationError{Details: details}
+		return "", "", "", ValidationError{Details: details}
 	}
 
-	return normalizedEmail, normalizedPassword, nil
+	return normalizedEmail, normalizedUsername, normalizedPassword, nil
 }
 
 func ValidateLogin(email, password string) (string, string, error) {
@@ -73,7 +76,7 @@ func ValidateLogin(email, password string) (string, string, error) {
 	return normalizedEmail, normalizedPassword, nil
 }
 
-func ValidateProfilePatch(email, username, userSurname, birthday, cityID, avatarURL, bio *string, interestTagIDs []string) (string, string, string, *time.Time, string, string, string, []string, error) {
+func ValidateProfilePatch(email, username, birthday, cityID, avatarURL, bio *string, interestTagIDs []string) (string, string, *time.Time, string, string, string, []string, error) {
 	details := make(map[string]string)
 
 	var normalizedEmail string
@@ -93,16 +96,6 @@ func ValidateProfilePatch(email, username, userSurname, birthday, cityID, avatar
 			details["username"] = err.Error()
 		} else {
 			normalizedUsername = value
-		}
-	}
-
-	var normalizedSurname string
-	if userSurname != nil {
-		value, err := normalizeAndValidateSurname(*userSurname)
-		if err != nil {
-			details["userSurname"] = err.Error()
-		} else {
-			normalizedSurname = value
 		}
 	}
 
@@ -160,10 +153,10 @@ func ValidateProfilePatch(email, username, userSurname, birthday, cityID, avatar
 	}
 
 	if len(details) > 0 {
-		return "", "", "", nil, "", "", "", nil, ValidationError{Details: details}
+		return "", "", nil, "", "", "", nil, ValidationError{Details: details}
 	}
 
-	return normalizedEmail, normalizedUsername, normalizedSurname, normalizedBirthday, normalizedCityID, normalizedAvatarURL, normalizedBio, normalizedInterestTagIDs, nil
+	return normalizedEmail, normalizedUsername, normalizedBirthday, normalizedCityID, normalizedAvatarURL, normalizedBio, normalizedInterestTagIDs, nil
 }
 
 func normalizeAndValidateEmail(raw string) (string, error) {
@@ -207,18 +200,6 @@ func normalizeAndValidateUsername(raw string) (string, error) {
 		return "", errors.New("username contains invalid characters")
 	}
 	return username, nil
-}
-
-func normalizeAndValidateSurname(raw string) (string, error) {
-	surname := strings.TrimSpace(raw)
-	if surname == "" {
-		return "", errors.New("userSurname is required")
-	}
-	surnameLen := utf8.RuneCountInString(surname)
-	if surnameLen < minSurnameLen || surnameLen > maxSurnameLen {
-		return "", errors.New("userSurname must be 1-64 characters")
-	}
-	return surname, nil
 }
 
 func normalizeAndValidateBirthday(raw string) (time.Time, error) {

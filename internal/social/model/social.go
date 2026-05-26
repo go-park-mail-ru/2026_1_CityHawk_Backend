@@ -7,6 +7,19 @@ type FavoriteEvent struct {
 	CreatedAt time.Time
 }
 
+type NotificationEventRef struct {
+	EventID    string
+	CreatedAt  time.Time
+	InvitedBy  *NotificationEventInviter
+	Invitation *NotificationInvitation
+}
+
+type NotificationEventInviter struct {
+	ID        string
+	Username  string
+	AvatarURL *string
+}
+
 type UserFollow struct {
 	UserID    string
 	CreatedAt time.Time
@@ -22,7 +35,6 @@ type City struct {
 type UserProfile struct {
 	ID          string
 	Username    string
-	UserSurname string
 	AvatarURL   *string
 	City        *City
 	IsFollowing bool
@@ -51,9 +63,10 @@ type FollowingFlag struct {
 type InviteeCandidate struct {
 	ID               string
 	Username         string
-	UserSurname      string
 	AvatarURL        *string
 	City             *City
+	IsFollowing      bool
+	IsFriend         bool
 	InvitationStatus *string
 }
 

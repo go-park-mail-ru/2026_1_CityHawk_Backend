@@ -43,8 +43,9 @@ func NewAuthFlowService(
 }
 
 func (s *AuthFlowService) Register(ctx context.Context, input authmodel.RegisterInput) (authmodel.RegistrationResult, error) {
-	normalizedEmail, normalizedPassword, err := authvalidation.ValidateRegister(
+	normalizedEmail, normalizedUsername, normalizedPassword, err := authvalidation.ValidateRegister(
 		input.Email,
+		input.Username,
 		input.Password,
 	)
 	if err != nil {
@@ -58,8 +59,7 @@ func (s *AuthFlowService) Register(ctx context.Context, input authmodel.Register
 
 	u := usermodel.User{
 		Email:        normalizedEmail,
-		Username:     "",
-		UserSurname:  "",
+		Username:     normalizedUsername,
 		PasswordHash: passwordHash,
 	}
 

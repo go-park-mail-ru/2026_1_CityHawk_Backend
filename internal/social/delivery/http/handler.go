@@ -34,10 +34,12 @@ type Repository interface {
 	ListFollowerProfiles(ctx context.Context, userID, viewerID string, limit, offset int) ([]socialmodel.UserProfile, int, error)
 	ListFollowingProfiles(ctx context.Context, userID, viewerID string, limit, offset int) ([]socialmodel.UserProfile, int, error)
 	UserCollections(ctx context.Context, userID string, limit, offset int) ([]socialmodel.CollectionCard, int, error)
+	ListInvitees(ctx context.Context, eventID string) ([]socialmodel.InviteeCandidate, error)
 	SearchInvitees(ctx context.Context, eventID, viewerID, query string, limit int) ([]socialmodel.InviteeCandidate, error)
 	CreateInvitations(ctx context.Context, senderID, eventID string, recipientIDs []string, message string, eventSessionID *string) ([]socialmodel.Invitation, error)
 	UpdateInvitationStatus(ctx context.Context, userID, invitationID, status string) (socialmodel.Invitation, error)
 	ListNotifications(ctx context.Context, userID, filterType string, unreadOnly bool, limit, offset int) ([]socialmodel.Notification, int, int, error)
+	ListNotificationEvents(ctx context.Context, userID string, limit, offset int) ([]socialmodel.NotificationEventRef, int, error)
 	MarkNotificationRead(ctx context.Context, userID, notificationID string) (int, error)
 	MarkAllNotificationsRead(ctx context.Context, userID string) (int, error)
 	CreateEventShareLink(ctx context.Context, creatorUserID, eventID, token string) (socialmodel.ShareLink, error)
@@ -51,6 +53,10 @@ type EventsReader interface {
 
 func (h *Handler) InviteesSearch(w http.ResponseWriter, r *http.Request) {
 	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		userID, err := requireUserID(r)
+		if err != nil {
+			return err
+		}
 		eventID, ok := eventSubpath(r.URL.Path, "invitees/search")
 		if !ok {
 			return httpx.NewHTTPError(http.StatusNotFound, "Event not found")
@@ -63,8 +69,25 @@ func (h *Handler) InviteesSearch(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
-		userID, _ := optionalUserID(r)
 		items, err := h.repo.SearchInvitees(r.Context(), eventID, userID, query, limit)
+		if err != nil {
+			if errors.Is(err, platformerrors.ErrInvalidReference) {
+				return httpx.NewHTTPError(http.StatusNotFound, "Event not found")
+			}
+			return err
+		}
+		httpx.WriteJSON(w, http.StatusOK, inviteeListResponse{Items: inviteesResponse(items)})
+		return nil
+	}).ServeHTTP(w, r)
+}
+
+func (h *Handler) Invitees(w http.ResponseWriter, r *http.Request) {
+	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		eventID, ok := eventSubpath(r.URL.Path, "invitees")
+		if !ok {
+			return httpx.NewHTTPError(http.StatusNotFound, "Event not found")
+		}
+		items, err := h.repo.ListInvitees(r.Context(), eventID)
 		if err != nil {
 			if errors.Is(err, platformerrors.ErrInvalidReference) {
 				return httpx.NewHTTPError(http.StatusNotFound, "Event not found")
@@ -105,6 +128,13 @@ func (h *Handler) EventInvitations(w http.ResponseWriter, r *http.Request) {
 		}
 		items, err := h.repo.CreateInvitations(r.Context(), userID, eventID, recipients, message, sessionID)
 		if err != nil {
+			if errors.Is(err, platformerrors.ErrOnlyFriendsInvite) {
+				httpx.WriteJSON(w, http.StatusForbidden, map[string]string{
+					"error":   "only_friends_can_be_invited",
+					"message": "Можно приглашать только друзей",
+				})
+				return nil
+			}
 			return mapInvitationWriteError(err)
 		}
 		httpx.WriteJSON(w, http.StatusCreated, invitationListResponse{Items: invitationsResponse(items)})
@@ -177,6 +207,36 @@ func (h *Handler) Notifications(w http.ResponseWriter, r *http.Request) {
 			Limit:       limit,
 			Offset:      offset,
 		})
+		return nil
+	}).ServeHTTP(w, r)
+}
+
+func (h *Handler) NotificationEvents(w http.ResponseWriter, r *http.Request) {
+	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		userID, err := requireUserID(r)
+		if err != nil {
+			return err
+		}
+		limit, offset, err := parsePage(r, 4, maxLimit)
+		if err != nil {
+			return err
+		}
+		refs, total, err := h.repo.ListNotificationEvents(r.Context(), userID, limit, offset)
+		if err != nil {
+			return err
+		}
+		items := make([]notificationEventCardResponse, 0, len(refs))
+		for _, ref := range refs {
+			event, ok, err := h.events.GetByID(r.Context(), ref.EventID, userID)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				continue
+			}
+			items = append(items, notificationEventCard(event, ref))
+		}
+		httpx.WriteJSON(w, http.StatusOK, notificationEventListResponse{Items: items, Total: total, Limit: limit, Offset: offset})
 		return nil
 	}).ServeHTTP(w, r)
 }
@@ -638,4 +698,31 @@ func eventDetailsToCard(item placemodel.EventDetailsView) eventCardResponse {
 		NextSession:      nextSession,
 		IsFavorite:       item.IsFavorite,
 	}
+}
+
+func notificationEventCard(item placemodel.EventDetailsView, ref socialmodel.NotificationEventRef) notificationEventCardResponse {
+	card := eventDetailsToCard(item)
+	resp := notificationEventCardResponse{
+		ID:               card.ID,
+		Title:            card.Title,
+		ShortDescription: card.ShortDescription,
+		CoverImageURL:    card.CoverImageURL,
+		IsFavorite:       card.IsFavorite,
+		Tags:             card.Tags,
+		NextSession:      card.NextSession,
+	}
+	if ref.InvitedBy != nil {
+		resp.InvitedBy = &notificationEventInvitedByResponse{
+			ID:        ref.InvitedBy.ID,
+			Username:  safety.EscapeText(ref.InvitedBy.Username),
+			AvatarURL: media.PublicURLPtr(ref.InvitedBy.AvatarURL),
+		}
+	}
+	if ref.Invitation != nil {
+		resp.Invitation = &notificationInvitationResponse{
+			ID:     ref.Invitation.ID,
+			Status: ref.Invitation.Status,
+		}
+	}
+	return resp
 }

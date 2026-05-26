@@ -4,7 +4,6 @@ type meResponse struct {
 	ID             string        `json:"id"`
 	Email          string        `json:"email"`
 	Username       string        `json:"username"`
-	UserSurname    string        `json:"userSurname"`
 	Role           string        `json:"role"`
 	Birthday       *string       `json:"birthday"`
 	Bio            *string       `json:"bio"`
@@ -18,7 +17,6 @@ type patchMeResponse struct {
 	ID             string   `json:"id"`
 	Email          string   `json:"email"`
 	Username       string   `json:"username"`
-	UserSurname    string   `json:"userSurname"`
 	Role           string   `json:"role"`
 	Birthday       *string  `json:"birthday"`
 	Bio            *string  `json:"bio"`

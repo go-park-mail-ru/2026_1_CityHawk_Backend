@@ -143,7 +143,6 @@ type RegisterRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
 	Username      string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
-	UserSurname   string                 `protobuf:"bytes,3,opt,name=user_surname,json=userSurname,proto3" json:"user_surname,omitempty"`
 	Password      string                 `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
 	Birthday      *string                `protobuf:"bytes,5,opt,name=birthday,proto3,oneof" json:"birthday,omitempty"`
 	CityId        *string                `protobuf:"bytes,6,opt,name=city_id,json=cityId,proto3,oneof" json:"city_id,omitempty"`
@@ -191,13 +190,6 @@ func (x *RegisterRequest) GetEmail() string {
 func (x *RegisterRequest) GetUsername() string {
 	if x != nil {
 		return x.Username
-	}
-	return ""
-}
-
-func (x *RegisterRequest) GetUserSurname() string {
-	if x != nil {
-		return x.UserSurname
 	}
 	return ""
 }
@@ -622,17 +614,16 @@ const file_cityhawk_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
 	"csrf_token\x18\x03 \x01(\tR\tcsrfToken\x12\x1d\n" +
 	"\n" +
-	"expires_in\x18\x04 \x01(\x03R\texpiresIn\"\xda\x01\n" +
+	"expires_in\x18\x04 \x01(\x03R\texpiresIn\"\xcb\x01\n" +
 	"\x0fRegisterRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\busername\x18\x02 \x01(\tR\busername\x12!\n" +
-	"\fuser_surname\x18\x03 \x01(\tR\vuserSurname\x12\x1a\n" +
+	"\busername\x18\x02 \x01(\tR\busername\x12\x1a\n" +
 	"\bpassword\x18\x04 \x01(\tR\bpassword\x12\x1f\n" +
 	"\bbirthday\x18\x05 \x01(\tH\x00R\bbirthday\x88\x01\x01\x12\x1c\n" +
 	"\acity_id\x18\x06 \x01(\tH\x01R\x06cityId\x88\x01\x01B\v\n" +
 	"\t_birthdayB\n" +
 	"\n" +
-	"\b_city_id\"@\n" +
+	"\b_city_idJ\x04\b\x03\x10\x04R\fuser_surname\"@\n" +
 	"\fLoginRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xac\x01\n" +

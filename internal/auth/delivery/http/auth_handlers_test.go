@@ -14,11 +14,11 @@ import (
 )
 
 func TestAuthHandlersFlow(t *testing.T) {
-	user := usermodel.User{ID: "user-1", Email: "user@example.com", Username: "user", UserSurname: "surname", CreatedAt: time.Date(2026, time.May, 4, 10, 0, 0, 0, time.UTC)}
+	user := usermodel.User{ID: "user-1", Email: "user@example.com", Username: "user", CreatedAt: time.Date(2026, time.May, 4, 10, 0, 0, 0, time.UTC)}
 	tokens := authmodel.TokenPair{AccessToken: "access", RefreshToken: "refresh", ExpiresIn: 900}
 	authHandler := NewAuthHandler(fakeHTTPAuthFlow{user: user, tokens: tokens}, time.Minute, time.Hour)
 
-	rec := performAuthJSON(t, authHandler.Register, registerRequest{Email: user.Email, Username: user.Username, UserSurname: user.UserSurname, Password: "password"})
+	rec := performAuthJSON(t, authHandler.Register, registerRequest{Email: user.Email, Username: user.Username, Password: "password"})
 	if rec.Code != http.StatusCreated || rec.Header().Get("Set-Cookie") == "" {
 		t.Fatalf("Register status=%d headers=%v body=%s", rec.Code, rec.Header(), rec.Body.String())
 	}

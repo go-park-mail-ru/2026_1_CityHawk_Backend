@@ -66,12 +66,11 @@ func NewServer(
 
 func (s *Server) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.SessionResponse, error) {
 	result, err := s.flow.Register(ctx, authmodel.RegisterInput{
-		Email:       req.GetEmail(),
-		Username:    req.GetUsername(),
-		UserSurname: req.GetUserSurname(),
-		Password:    req.GetPassword(),
-		Birthday:    req.GetBirthday(),
-		CityID:      req.GetCityId(),
+		Email:    req.GetEmail(),
+		Username: req.GetUsername(),
+		Password: req.GetPassword(),
+		Birthday: req.GetBirthday(),
+		CityID:   req.GetCityId(),
 	})
 	if err != nil {
 		return nil, authError(err)

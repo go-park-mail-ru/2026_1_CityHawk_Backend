@@ -30,7 +30,6 @@ type User struct {
 	ID             string
 	Email          string
 	Username       string
-	UserSurname    string
 	PasswordHash   string
 	Birthday       *time.Time
 	CityID         *string
@@ -46,7 +45,6 @@ type User struct {
 type ProfilePatch struct {
 	Email          *string
 	Username       *string
-	UserSurname    *string
 	Birthday       *time.Time
 	CityID         *string
 	AvatarURL      *string

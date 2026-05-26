@@ -14,7 +14,7 @@ func TestInMemoryUserRepositoryFlow(t *testing.T) {
 	repo := NewInMemoryUserRepository()
 	cityID := "11111111-1111-1111-1111-111111111111"
 	user, err := repo.Create(context.Background(), usermodel.User{
-		ID: "user-1", Email: "user@example.com", Username: "user", UserSurname: "surname", CityID: &cityID,
+		ID: "user-1", Email: "user@example.com", Username: "user", CityID: &cityID,
 	})
 	if err != nil {
 		t.Fatalf("Create() error = %v", err)
@@ -34,13 +34,12 @@ func TestInMemoryUserRepositoryFlow(t *testing.T) {
 
 	newEmail := "new@example.com"
 	username := "new"
-	surname := "surname2"
 	birthday := time.Date(2001, time.February, 3, 0, 0, 0, 0, time.UTC)
 	avatar := "/uploads/avatar.png"
 	bio := "Bio"
 	tags := []string{"tag-1", "tag-2"}
 	updated, ok, err := repo.UpdateProfile(context.Background(), "user-1", usermodel.ProfilePatch{
-		Email: &newEmail, Username: &username, UserSurname: &surname, Birthday: &birthday,
+		Email: &newEmail, Username: &username, Birthday: &birthday,
 		CityID: &cityID, AvatarURL: &avatar, Bio: &bio, InterestTagIDs: &tags,
 	})
 	if err != nil || !ok {

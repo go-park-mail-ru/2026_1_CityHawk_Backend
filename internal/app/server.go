@@ -192,6 +192,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	mux.Handle("GET /api/me/following", withAuth(socialHandler.Following))
 	mux.Handle("GET /api/me/collections", withAuth(socialHandler.Collections))
 	mux.Handle("GET /api/me/notifications", withAuth(socialHandler.Notifications))
+	mux.Handle("GET /api/me/notifications/events", withAuth(socialHandler.NotificationEvents))
 	mux.Handle("POST /api/me/notifications/read-all", withAuthAndCSRF(socialHandler.NotificationsReadAll))
 	mux.Handle("POST /api/me/notifications/{notificationId}/read", withAuthAndCSRF(socialHandler.NotificationByID))
 	mux.Handle("POST /api/users/{userId}/follow", withAuthAndCSRF(socialHandler.FollowByID))
@@ -223,7 +224,8 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 		mux.HandleFunc("GET /api/place-suggestions", placeLookupHandler.Suggestions)
 		mux.Handle("POST /api/places/resolve", withAuthAndCSRF(placeLookupHandler.Resolve))
 	}
-	mux.Handle("GET /api/events/{eventId}/invitees/search", withOptionalAuth(socialHandler.InviteesSearch))
+	mux.Handle("GET /api/events/{eventId}/invitees/search", withAuth(socialHandler.InviteesSearch))
+	mux.Handle("GET /api/events/{eventId}/invitees", withAuth(socialHandler.Invitees))
 	mux.Handle("POST /api/events/{eventId}/invitations", withAuthAndCSRF(socialHandler.EventInvitations))
 	mux.Handle("POST /api/events/{eventId}/share-links", withOptionalAuthAndCSRF(socialHandler.EventShareLinks))
 	mux.Handle("PATCH /api/invitations/{invitationId}", withAuthAndCSRF(socialHandler.InvitationByID))

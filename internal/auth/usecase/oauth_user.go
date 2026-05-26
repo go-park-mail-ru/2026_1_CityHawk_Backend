@@ -75,7 +75,6 @@ func (s *OAuthUserService) createOAuthUser(ctx context.Context, email, username 
 	u := usermodel.User{
 		Email:        email,
 		Username:     username,
-		UserSurname:  username,
 		PasswordHash: passwordHash,
 	}
 

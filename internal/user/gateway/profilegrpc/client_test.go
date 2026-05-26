@@ -19,13 +19,12 @@ func TestClientGetByIDMapsProfile(t *testing.T) {
 	birthday := "2000-01-02"
 	client := NewClient(fakeProfileClient{
 		profile: &profilev1.UserProfile{
-			Id:          "user-1",
-			Email:       "user@example.com",
-			Username:    "user",
-			UserSurname: "surname",
-			Role:        commonv1.UserRole_USER_ROLE_ADMIN,
-			Birthday:    &birthday,
-			AvatarUrl:   &avatarURL,
+			Id:        "user-1",
+			Email:     "user@example.com",
+			Username:  "user",
+			Role:      commonv1.UserRole_USER_ROLE_ADMIN,
+			Birthday:  &birthday,
+			AvatarUrl: &avatarURL,
 			City: &profilev1.ProfileCity{
 				Id:          "city-1",
 				Name:        "Moscow",

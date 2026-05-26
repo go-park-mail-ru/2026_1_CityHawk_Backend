@@ -24,13 +24,14 @@ message UserProfile {
   string id = 1;
   string email = 2;
   string username = 3;
-  string user_surname = 4;
   cityhawk.common.v1.UserRole role = 5;
   optional string birthday = 6;
   optional string avatar_url = 7;
   optional ProfileCity city = 8;
   google.protobuf.Timestamp created_at = 9;
   google.protobuf.Timestamp updated_at = 10;
+  reserved 4;
+  reserved "user_surname";
 }
 
 message GetMeRequest {
@@ -41,17 +42,17 @@ message UpdateMeRequest {
   cityhawk.common.v1.UserContext context = 1;
   optional string email = 2;
   optional string username = 3;
-  optional string user_surname = 4;
   optional string birthday = 5;
   optional string city_id = 6;
   optional string avatar_url = 7;
   bool clear_birthday = 8;
   bool clear_city_id = 9;
   bool clear_avatar_url = 10;
+  reserved 4;
+  reserved "user_surname";
 }
 
 message GetUserRequest {
   string user_id = 1;
   optional cityhawk.common.v1.UserContext viewer_context = 2;
 }
-

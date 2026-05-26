@@ -15,12 +15,11 @@ type okResponse struct {
 }
 
 type registerResponse struct {
-	ID          string    `json:"id"`
-	Email       string    `json:"email"`
-	Username    string    `json:"username"`
-	UserSurname string    `json:"userSurname"`
-	AvatarURL   *string   `json:"avatarUrl"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID        string    `json:"id"`
+	Email     string    `json:"email"`
+	Username  string    `json:"username"`
+	AvatarURL *string   `json:"avatarUrl"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type loginResponse struct {

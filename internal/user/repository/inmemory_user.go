@@ -97,9 +97,6 @@ func (r *InMemoryUserRepository) UpdateProfile(_ context.Context, id string, pat
 	if patch.Username != nil {
 		u.Username = *patch.Username
 	}
-	if patch.UserSurname != nil {
-		u.UserSurname = *patch.UserSurname
-	}
 	if patch.Birthday != nil {
 		birthday := patch.Birthday.UTC()
 		u.Birthday = &birthday

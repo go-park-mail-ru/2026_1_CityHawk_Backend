@@ -38,14 +38,12 @@ SET timezone = EXCLUDED.timezone,
 INSERT INTO user_account (
     email,
     username,
-    user_surname,
     password_hash,
     city_id
 )
 SELECT
     'seed.author@cityhawk.local',
     'CityHawk',
-    'Seed',
     'seed-password-hash',
     c.id
 FROM city c

@@ -390,7 +390,6 @@ Cookie: access_token=<jwt>
 Content-Type: multipart/form-data
 
 username=Alice
-userSurname=Ivanova
 avatar=<binary file>
 ```
 

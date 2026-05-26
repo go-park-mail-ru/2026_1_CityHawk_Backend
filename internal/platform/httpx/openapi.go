@@ -1119,9 +1119,11 @@ components:
   schemas:
     RegisterRequest:
       type: object
-      required: [email, password]
+      required: [email, username, password]
       properties:
         email:
+          type: string
+        username:
           type: string
         password:
           type: string
@@ -1133,8 +1135,6 @@ components:
         email:
           type: string
         username:
-          type: string
-        userSurname:
           type: string
         avatarUrl:
           type: string
@@ -1191,8 +1191,6 @@ components:
           type: string
         username:
           type: string
-        userSurname:
-          type: string
         role:
           type: string
           enum: [user, organizer, admin]
@@ -1216,8 +1214,6 @@ components:
           format: email
         username:
           type: string
-        userSurname:
-          type: string
         role:
           type: string
           enum: [user, organizer, admin]
@@ -1235,8 +1231,6 @@ components:
           type: string
           format: email
         username:
-          type: string
-        userSurname:
           type: string
         birthday:
           type: string
@@ -1256,8 +1250,6 @@ components:
         email:
           type: string
         username:
-          type: string
-        userSurname:
           type: string
         birthday:
           type: string

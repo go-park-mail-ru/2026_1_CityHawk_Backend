@@ -22,13 +22,13 @@ type PostgresUserRepository struct {
 
 const (
 	insertUserQuery = `
-		INSERT INTO user_account (email, username, user_surname, password_hash, birthday, city_id, avatar_url, bio)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO user_account (email, username, password_hash, birthday, city_id, avatar_url, bio)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id
 	`
 	getUserByEmailQuery = `
 		SELECT
-			u.id, u.email, u.username, u.user_surname, u.password_hash, u.birthday, u.city_id, u.avatar_url, u.bio,
+			u.id, u.email, u.username, u.password_hash, u.birthday, u.city_id, u.avatar_url, u.bio,
 			COALESCE((
 				SELECT CASE
 					WHEN bool_or(ur.role = 'admin') THEN 'admin'
@@ -51,7 +51,7 @@ const (
 	`
 	getUserByIDQuery = `
 		SELECT
-			u.id, u.email, u.username, u.user_surname, u.password_hash, u.birthday, u.city_id, u.avatar_url, u.bio,
+			u.id, u.email, u.username, u.password_hash, u.birthday, u.city_id, u.avatar_url, u.bio,
 			COALESCE((
 				SELECT CASE
 					WHEN bool_or(ur.role = 'admin') THEN 'admin'
@@ -91,7 +91,6 @@ func (r *PostgresUserRepository) Create(ctx context.Context, u usermodel.User) (
 		insertUserQuery,
 		u.Email,
 		u.Username,
-		u.UserSurname,
 		u.PasswordHash,
 		u.Birthday,
 		u.CityID,
@@ -177,11 +176,6 @@ func (r *PostgresUserRepository) UpdateProfile(ctx context.Context, id string, p
 	if patch.Username != nil {
 		setClauses = append(setClauses, fmt.Sprintf("username = $%d", argPos))
 		args = append(args, *patch.Username)
-		argPos++
-	}
-	if patch.UserSurname != nil {
-		setClauses = append(setClauses, fmt.Sprintf("user_surname = $%d", argPos))
-		args = append(args, *patch.UserSurname)
 		argPos++
 	}
 	if patch.Birthday != nil {
@@ -299,7 +293,6 @@ func scanUser(row userScanner) (usermodel.User, error) {
 		&u.ID,
 		&u.Email,
 		&u.Username,
-		&u.UserSurname,
 		&u.PasswordHash,
 		&birthday,
 		&cityID,

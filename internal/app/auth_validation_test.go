@@ -149,6 +149,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 
 	registerReq := httptest.NewRequest(http.MethodPost, "/api/auth/register", mustJSONBody(t, map[string]any{
 		"email":    "Tester@example.com ",
+		"username": "Алиса",
 		"password": "verysecret",
 	}))
 	registerRec := httptest.NewRecorder()
@@ -158,7 +159,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	}
 
 	registerPayload := decodeJSONMap(t, registerRec.Body)
-	if registerPayload["email"] != "tester@example.com" || registerPayload["username"] != "" || registerPayload["userSurname"] != "" {
+	if registerPayload["email"] != "tester@example.com" || registerPayload["username"] != "Алиса" {
 		t.Fatalf("unexpected register response: %+v", registerPayload)
 	}
 
@@ -195,11 +196,8 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 
 	mePayload := decodeJSONMap(t, meRec.Body)
 	username, ok := mePayload["username"].(string)
-	if !ok || username != "" {
+	if !ok || username != "Алиса" {
 		t.Fatalf("unexpected username: %+v", mePayload)
-	}
-	if mePayload["userSurname"] != "" {
-		t.Fatalf("unexpected me surname: %+v", mePayload)
 	}
 	if mePayload["birthday"] != nil {
 		t.Fatalf("unexpected me birthday: %+v", mePayload)
@@ -209,10 +207,9 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	}
 
 	patchBody, contentType := mustMultipartBody(t, map[string]string{
-		"email":       " Patched@example.COM ",
-		"username":    "patched_user",
-		"userSurname": "Петрова",
-		"birthday":    "2005-02-13",
+		"email":    " Patched@example.COM ",
+		"username": "patched_user",
+		"birthday": "2005-02-13",
 	}, "avatar", "avatar.png", []byte{
 		0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
 		0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
@@ -236,7 +233,7 @@ func TestRegisterLoginRefreshLogoutFlow(t *testing.T) {
 	}
 
 	patchPayload := decodeJSONMap(t, patchRec.Body)
-	if patchPayload["email"] != "patched@example.com" || patchPayload["username"] != "patched_user" || patchPayload["userSurname"] != "Петрова" {
+	if patchPayload["email"] != "patched@example.com" || patchPayload["username"] != "patched_user" {
 		t.Fatalf("unexpected patch response: %+v", patchPayload)
 	}
 	if _, ok := deps.store.GetByEmail(context.Background(), "tester@example.com"); ok {
@@ -312,6 +309,7 @@ func TestRegisterWithOnlyRequiredFields(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/register", mustJSONBody(t, map[string]any{
 		"email":    "minimal@example.com",
+		"username": "minimal_user",
 		"password": "verysecret",
 	}))
 	rec := httptest.NewRecorder()
@@ -331,8 +329,8 @@ func TestRegisterWithOnlyRequiredFields(t *testing.T) {
 	if user.CityID != nil {
 		t.Fatalf("cityID = %v, want nil", user.CityID)
 	}
-	if user.Username != "" || user.UserSurname != "" {
-		t.Fatalf("profile names = %q %q, want empty", user.Username, user.UserSurname)
+	if user.Username != "minimal_user" {
+		t.Fatalf("username = %q, want minimal_user", user.Username)
 	}
 }
 
@@ -343,12 +341,11 @@ func TestPatchMeValidation(t *testing.T) {
 	meHandler := userdelivery.NewMeHandler(deps.store, avatarStore)
 
 	registerReq := httptest.NewRequest(http.MethodPost, "/api/auth/register", mustJSONBody(t, map[string]any{
-		"email":       "patchme@example.com",
-		"password":    "verysecret",
-		"username":    "valid_user",
-		"userSurname": "Иванова",
-		"birthday":    "2004-01-12",
-		"cityId":      "11111111-1111-1111-1111-111111111111",
+		"email":    "patchme@example.com",
+		"password": "verysecret",
+		"username": "valid_user",
+		"birthday": "2004-01-12",
+		"cityId":   "11111111-1111-1111-1111-111111111111",
 	}))
 	registerRec := httptest.NewRecorder()
 	http.HandlerFunc(authFlowHandler.Register).ServeHTTP(registerRec, registerReq)
@@ -363,10 +360,9 @@ func TestPatchMeValidation(t *testing.T) {
 	csrfCookie := requireCookie(t, registerRec.Result().Cookies(), authdelivery.CSRFCookieName)
 
 	takenEmailReq := httptest.NewRequest(http.MethodPost, "/api/auth/register", mustJSONBody(t, map[string]any{
-		"email":       "taken@example.com",
-		"password":    "verysecret",
-		"username":    "taken_user",
-		"userSurname": "Петров",
+		"email":    "taken@example.com",
+		"password": "verysecret",
+		"username": "taken_user",
 	}))
 	takenEmailRec := httptest.NewRecorder()
 	http.HandlerFunc(authFlowHandler.Register).ServeHTTP(takenEmailRec, takenEmailReq)
@@ -442,10 +438,9 @@ func TestPatchMeRejectsUnsupportedAvatar(t *testing.T) {
 	meHandler := userdelivery.NewMeHandler(deps.store, avatarStore)
 
 	registerReq := httptest.NewRequest(http.MethodPost, "/api/auth/register", mustJSONBody(t, map[string]any{
-		"email":       "avatar-invalid@example.com",
-		"password":    "verysecret",
-		"username":    "valid_user",
-		"userSurname": "Иванова",
+		"email":    "avatar-invalid@example.com",
+		"password": "verysecret",
+		"username": "valid_user",
 	}))
 	registerRec := httptest.NewRecorder()
 	http.HandlerFunc(authFlowHandler.Register).ServeHTTP(registerRec, registerReq)
@@ -490,10 +485,9 @@ func TestCSRFMiddlewareRejectsMissingToken(t *testing.T) {
 	meHandler := userdelivery.NewMeHandler(deps.store, avatarStore)
 
 	registerReq := httptest.NewRequest(http.MethodPost, "/api/auth/register", mustJSONBody(t, map[string]any{
-		"email":       "csrf@example.com",
-		"password":    "verysecret",
-		"username":    "valid_user",
-		"userSurname": "Иванова",
+		"email":    "csrf@example.com",
+		"password": "verysecret",
+		"username": "valid_user",
 	}))
 	registerRec := httptest.NewRecorder()
 	http.HandlerFunc(authFlowHandler.Register).ServeHTTP(registerRec, registerReq)
@@ -533,7 +527,7 @@ func TestRegisterAndLoginValidation(t *testing.T) {
 		{
 			name:   "register unknown field",
 			h:      register,
-			body:   `{"email":"a@b.com","password":"verysecret","username":"user","userSurname":"Ivanova","birthday":"2004-01-12","cityId":"11111111-1111-1111-1111-111111111111","role":"admin"}`,
+			body:   `{"email":"a@b.com","password":"verysecret","username":"user","birthday":"2004-01-12","cityId":"11111111-1111-1111-1111-111111111111","role":"admin"}`,
 			status: http.StatusBadRequest,
 			errMsg: "invalid json",
 		},
@@ -589,15 +583,16 @@ func TestRegisterAndLoginValidation(t *testing.T) {
 }
 
 func TestValidationHelpersAndSecurity(t *testing.T) {
-	email, pass, err := authvalidation.ValidateRegister(
+	email, username, pass, err := authvalidation.ValidateRegister(
 		" USER@Example.com ",
+		" Алиса ",
 		"12345678",
 	)
 	if err != nil {
 		t.Fatalf("ValidateRegister: %v", err)
 	}
-	if email != "user@example.com" || pass != "12345678" {
-		t.Fatalf("unexpected normalized values: %q %q", email, pass)
+	if email != "user@example.com" || username != "Алиса" || pass != "12345678" {
+		t.Fatalf("unexpected normalized values: %q %q %q", email, username, pass)
 	}
 
 	passwordService := platformsecurity.NewBcryptPasswordService()

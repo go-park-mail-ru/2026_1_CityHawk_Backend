@@ -25,6 +25,7 @@ var (
 	ErrAlreadyExists      = errors.New("already exists")
 	ErrInvalidCity        = errors.New("invalid city")
 	ErrForbidden          = errors.New("forbidden")
+	ErrOnlyFriendsInvite  = errors.New("only friends can be invited")
 	ErrInvalidReference   = errors.New("invalid reference")
 	ErrNotFound           = errors.New("not found")
 )

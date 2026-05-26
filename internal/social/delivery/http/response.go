@@ -45,6 +45,31 @@ type eventListResponse struct {
 	Offset int                 `json:"offset"`
 }
 
+type notificationEventInvitedByResponse struct {
+	ID        string  `json:"id"`
+	Username  string  `json:"username"`
+	AvatarURL *string `json:"avatarUrl"`
+}
+
+type notificationEventCardResponse struct {
+	ID               string                              `json:"id"`
+	Title            string                              `json:"title"`
+	ShortDescription string                              `json:"shortDescription"`
+	CoverImageURL    string                              `json:"coverImageUrl"`
+	IsFavorite       bool                                `json:"isFavorite"`
+	Tags             []taxonomyItemResponse              `json:"tags"`
+	NextSession      *eventCardNextSessionResponse       `json:"nextSession"`
+	InvitedBy        *notificationEventInvitedByResponse `json:"invitedBy"`
+	Invitation       *notificationInvitationResponse     `json:"invitation"`
+}
+
+type notificationEventListResponse struct {
+	Items  []notificationEventCardResponse `json:"items"`
+	Total  int                             `json:"total"`
+	Limit  int                             `json:"limit"`
+	Offset int                             `json:"offset"`
+}
+
 type cityResponse struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
@@ -55,7 +80,6 @@ type cityResponse struct {
 type userProfileResponse struct {
 	ID          string        `json:"id"`
 	Username    string        `json:"username"`
-	UserSurname string        `json:"userSurname"`
 	AvatarURL   *string       `json:"avatarUrl"`
 	City        *cityResponse `json:"city"`
 	IsFollowing bool          `json:"isFollowing"`
@@ -86,9 +110,10 @@ type collectionListResponse struct {
 type inviteeResponse struct {
 	ID               string        `json:"id"`
 	Username         string        `json:"username"`
-	UserSurname      string        `json:"userSurname"`
 	AvatarURL        *string       `json:"avatarUrl"`
 	City             *cityResponse `json:"city"`
+	IsFollowing      bool          `json:"isFollowing,omitempty"`
+	IsFriend         bool          `json:"isFriend,omitempty"`
 	InvitationStatus *string       `json:"invitationStatus"`
 }
 
@@ -196,7 +221,6 @@ func userProfilesResponse(items []socialmodel.UserProfile) []userProfileResponse
 		responses = append(responses, userProfileResponse{
 			ID:          item.ID,
 			Username:    safety.EscapeText(item.Username),
-			UserSurname: safety.EscapeText(item.UserSurname),
 			AvatarURL:   media.PublicURLPtr(item.AvatarURL),
 			City:        city,
 			IsFollowing: item.IsFollowing,
@@ -234,9 +258,10 @@ func inviteesResponse(items []socialmodel.InviteeCandidate) []inviteeResponse {
 		responses = append(responses, inviteeResponse{
 			ID:               item.ID,
 			Username:         safety.EscapeText(item.Username),
-			UserSurname:      safety.EscapeText(item.UserSurname),
 			AvatarURL:        media.PublicURLPtr(item.AvatarURL),
 			City:             city,
+			IsFollowing:      item.IsFollowing,
+			IsFriend:         item.IsFriend,
 			InvitationStatus: item.InvitationStatus,
 		})
 	}
@@ -344,6 +369,8 @@ func notificationTitle(item socialmodel.Notification) string {
 		return safety.EscapeText(actor + " пригласил вас на " + event)
 	case "invitation_accepted":
 		return safety.EscapeText(actor + " принял приглашение")
+	case "invitation_declined":
+		return safety.EscapeText(actor + " отклонил приглашение")
 	case "collection_shared":
 		return "С вами поделились подборкой"
 	case "event_reminder":

@@ -31,27 +31,36 @@ func (r *PostgresRepository) SearchInvitees(ctx context.Context, eventID, viewer
 		SELECT
 			u.id::text,
 			COALESCE(NULLIF(btrim(u.username), ''), u.email) AS username,
-			u.user_surname,
 			u.avatar_url,
 			c.id::text,
 			c.name,
 			c.country_name,
 			c.timezone,
+			EXISTS (
+				SELECT 1
+				FROM user_follow viewer_follow
+				WHERE viewer_follow.follower_user_id::text = $2
+					AND viewer_follow.followed_user_id = u.id
+			) AS is_following,
+			true AS is_friend,
 			li.status
 		FROM user_account u
 		LEFT JOIN city c ON c.id = u.city_id
 		LEFT JOIN latest_invitation li ON li.recipient_user_id = u.id
+		JOIN user_follow eligible_follow
+			ON eligible_follow.follower_user_id = u.id
+			AND eligible_follow.followed_user_id::text = $2
 		WHERE u.id::text <> $2
 			AND NOT EXISTS (
 				SELECT 1 FROM event e
 				WHERE e.id::text = $1 AND e.author_user_id = u.id
 			)
+			AND li.recipient_user_id IS NULL
 			AND (
 				lower(u.username) LIKE '%' || lower($3) || '%'
-				OR lower(u.user_surname) LIKE '%' || lower($3) || '%'
 				OR lower(u.email) LIKE '%' || lower($3) || '%'
 			)
-		ORDER BY COALESCE(NULLIF(btrim(u.username), ''), u.email) ASC, u.user_surname ASC, u.id ASC
+		ORDER BY COALESCE(NULLIF(btrim(u.username), ''), u.email) ASC, u.id ASC
 		LIMIT $4
 	`, eventID, viewerID, query, limit)
 	if err != nil {
@@ -59,11 +68,15 @@ func (r *PostgresRepository) SearchInvitees(ctx context.Context, eventID, viewer
 	}
 	defer rows.Close()
 
+	return scanInviteeCandidates(rows)
+}
+
+func scanInviteeCandidates(rows pgx.Rows) ([]socialmodel.InviteeCandidate, error) {
 	items := make([]socialmodel.InviteeCandidate, 0)
 	for rows.Next() {
 		var item socialmodel.InviteeCandidate
 		var avatarURL, cityID, cityName, countryName, timezone, status sql.NullString
-		if err := rows.Scan(&item.ID, &item.Username, &item.UserSurname, &avatarURL, &cityID, &cityName, &countryName, &timezone, &status); err != nil {
+		if err := rows.Scan(&item.ID, &item.Username, &avatarURL, &cityID, &cityName, &countryName, &timezone, &item.IsFollowing, &item.IsFriend, &status); err != nil {
 			return nil, err
 		}
 		if avatarURL.Valid {
@@ -80,6 +93,47 @@ func (r *PostgresRepository) SearchInvitees(ctx context.Context, eventID, viewer
 		items = append(items, item)
 	}
 	return items, rows.Err()
+}
+
+func (r *PostgresRepository) ListInvitees(ctx context.Context, eventID string) ([]socialmodel.InviteeCandidate, error) {
+	if ok, err := r.eventExists(ctx, eventID); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, platformerrors.ErrInvalidReference
+	}
+
+	rows, err := r.pool.Query(ctx, `
+		WITH latest_invitation AS (
+			SELECT DISTINCT ON (ei.recipient_user_id)
+				ei.recipient_user_id,
+				ei.status
+			FROM event_invitation ei
+			JOIN event_invitation_event eie ON eie.invitation_id = ei.id
+			WHERE eie.event_id::text = $1
+			ORDER BY ei.recipient_user_id, ei.created_at DESC, ei.id DESC
+		)
+		SELECT
+			u.id::text,
+			COALESCE(NULLIF(btrim(u.username), ''), u.email) AS username,
+			u.avatar_url,
+			c.id::text,
+			c.name,
+			c.country_name,
+			c.timezone,
+			false AS is_following,
+			true AS is_friend,
+			li.status
+		FROM latest_invitation li
+		JOIN user_account u ON u.id = li.recipient_user_id
+		LEFT JOIN city c ON c.id = u.city_id
+		ORDER BY COALESCE(NULLIF(btrim(u.username), ''), u.email) ASC, u.id ASC
+	`, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanInviteeCandidates(rows)
 }
 
 func (r *PostgresRepository) CreateInvitations(ctx context.Context, senderID, eventID string, recipientIDs []string, message string, eventSessionID *string) ([]socialmodel.Invitation, error) {
@@ -102,6 +156,9 @@ func (r *PostgresRepository) CreateInvitations(ctx context.Context, senderID, ev
 		} else if !exists {
 			return nil, platformerrors.ErrInvalidReference
 		}
+	}
+	if err := validateInviteRecipientsAreFriends(ctx, tx, senderID, recipientIDs); err != nil {
+		return nil, err
 	}
 
 	items := make([]socialmodel.Invitation, 0, len(recipientIDs))
@@ -152,6 +209,26 @@ func (r *PostgresRepository) CreateInvitations(ctx context.Context, senderID, ev
 		return nil, err
 	}
 	return items, nil
+}
+
+func validateInviteRecipientsAreFriends(ctx context.Context, tx pgx.Tx, senderID string, recipientIDs []string) error {
+	if len(recipientIDs) == 0 {
+		return nil
+	}
+
+	var eligibleCount int
+	if err := tx.QueryRow(ctx, `
+		SELECT count(DISTINCT uf.follower_user_id)
+		FROM user_follow uf
+		WHERE uf.followed_user_id::text = $1
+			AND uf.follower_user_id::text = ANY($2::text[])
+	`, senderID, recipientIDs).Scan(&eligibleCount); err != nil {
+		return err
+	}
+	if eligibleCount != len(recipientIDs) {
+		return platformerrors.ErrOnlyFriendsInvite
+	}
+	return nil
 }
 
 func (r *PostgresRepository) UpdateInvitationStatus(ctx context.Context, userID, invitationID, status string) (socialmodel.Invitation, error) {
@@ -211,8 +288,10 @@ func (r *PostgresRepository) UpdateInvitationStatus(ctx context.Context, userID,
 		value := respondedAt.Time.UTC()
 		item.RespondedAt = &value
 	}
-	if status == "accepted" {
-		if err := createNotification(ctx, tx, item.SenderID, "invitation_accepted", userID, item.EventID, item.EventSessionID, item.ID, nil); err != nil {
+	switch status {
+	case "accepted", "declined":
+		notificationType := "invitation_" + status
+		if err := createNotification(ctx, tx, item.SenderID, notificationType, userID, item.EventID, item.EventSessionID, item.ID, nil); err != nil {
 			return socialmodel.Invitation{}, err
 		}
 	}
@@ -226,7 +305,7 @@ func (r *PostgresRepository) ListNotifications(ctx context.Context, userID, filt
 	typeWhere := ``
 	switch filterType {
 	case "invitations":
-		typeWhere = `AND n.notification_type IN ('event_invitation', 'invitation_accepted')`
+		typeWhere = `AND n.notification_type IN ('event_invitation', 'invitation_accepted', 'invitation_declined')`
 	case "system":
 		typeWhere = `AND n.notification_type IN ('system', 'event_reminder', 'collection_shared')`
 	}
@@ -258,7 +337,7 @@ func (r *PostgresRepository) ListNotifications(ctx context.Context, userID, filt
 			n.created_at,
 			COALESCE(ei.message_text, ''),
 			actor.id::text,
-			concat_ws(' ', actor.username, actor.user_surname),
+			COALESCE(NULLIF(btrim(actor.username), ''), actor.email, 'CityHawk'),
 			actor.avatar_url,
 			e.id::text,
 			e.title,
@@ -359,6 +438,92 @@ func (r *PostgresRepository) MarkNotificationRead(ctx context.Context, userID, n
 		return 0, platformerrors.ErrNotFound
 	}
 	return r.unreadNotifications(ctx, userID)
+}
+
+func (r *PostgresRepository) ListNotificationEvents(ctx context.Context, userID string, limit, offset int) ([]socialmodel.NotificationEventRef, int, error) {
+	rows, err := r.pool.Query(ctx, `
+		WITH latest_notification_events AS (
+			SELECT DISTINCT ON (ne.event_id)
+				ne.event_id,
+				n.created_at AS last_notification_at,
+				ei.id AS invitation_id,
+				ei.status AS invitation_status,
+				inviter.id AS inviter_id,
+				COALESCE(NULLIF(btrim(inviter.username), ''), inviter.email, 'CityHawk') AS inviter_username,
+				inviter.avatar_url AS inviter_avatar_url
+			FROM notification n
+			JOIN notification_event ne ON ne.notification_id = n.id
+			LEFT JOIN notification_invitation ni ON ni.notification_id = n.id
+			LEFT JOIN event_invitation ei ON ei.id = ni.invitation_id
+			LEFT JOIN user_account inviter ON inviter.id = ei.sender_user_id
+			WHERE n.recipient_user_id::text = $1
+			ORDER BY ne.event_id, n.created_at DESC, n.id DESC
+		),
+		notification_events AS (
+			SELECT
+				event_id,
+				last_notification_at,
+				invitation_id,
+				invitation_status,
+				inviter_id,
+				inviter_username,
+				inviter_avatar_url
+			FROM latest_notification_events
+		)
+		SELECT
+			event_id::text,
+			last_notification_at,
+			invitation_id::text,
+			invitation_status,
+			inviter_id::text,
+			inviter_username,
+			inviter_avatar_url,
+			count(*) OVER() AS total_count
+		FROM notification_events
+		ORDER BY last_notification_at DESC, event_id ASC
+		LIMIT $2 OFFSET $3
+	`, userID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	items := make([]socialmodel.NotificationEventRef, 0)
+	total := 0
+	for rows.Next() {
+		var item socialmodel.NotificationEventRef
+		var invitationID, invitationStatus, inviterID, inviterUsername, inviterAvatarURL sql.NullString
+		if err := rows.Scan(
+			&item.EventID,
+			&item.CreatedAt,
+			&invitationID,
+			&invitationStatus,
+			&inviterID,
+			&inviterUsername,
+			&inviterAvatarURL,
+			&total,
+		); err != nil {
+			return nil, 0, err
+		}
+		if invitationID.Valid {
+			item.Invitation = &socialmodel.NotificationInvitation{
+				ID:     invitationID.String,
+				Status: invitationStatus.String,
+			}
+		}
+		if inviterID.Valid {
+			item.InvitedBy = &socialmodel.NotificationEventInviter{
+				ID:       inviterID.String,
+				Username: inviterUsername.String,
+			}
+			if inviterAvatarURL.Valid {
+				value := inviterAvatarURL.String
+				item.InvitedBy.AvatarURL = &value
+			}
+		}
+		items = append(items, item)
+	}
+	return items, total, rows.Err()
 }
 
 func (r *PostgresRepository) MarkAllNotificationsRead(ctx context.Context, userID string) (int, error) {

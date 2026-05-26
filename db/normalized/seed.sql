@@ -5,11 +5,10 @@ VALUES
     ('Москва', 'Россия', 'Europe/Moscow')
 ON CONFLICT (country_name, name) DO NOTHING;
 
-INSERT INTO user_account (email, username, user_surname, password_hash, city_id, avatar_url)
+INSERT INTO user_account (email, username, password_hash, city_id, avatar_url)
 SELECT
     'seed.author@cityhawk.local',
     'seed_author',
-    'CityHawk',
     '$2a$10$wJv1PLbF6XJz5lG1fV64VeGQFQf5d3M3K2Y6DzG6Q8rB3Yj8wYF1W',
     c.id,
     'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80'

@@ -59,20 +59,6 @@ func easyjson3c9d2b01DecodeCityhawkBackendInternalUserDeliveryHttp(in *jlexer.Le
 					*out.Username = string(in.String())
 				}
 			}
-		case "userSurname":
-			if in.IsNull() {
-				in.Skip()
-				out.UserSurname = nil
-			} else {
-				if out.UserSurname == nil {
-					out.UserSurname = new(string)
-				}
-				if in.IsNull() {
-					in.Skip()
-				} else {
-					*out.UserSurname = string(in.String())
-				}
-			}
 		case "birthday":
 			if in.IsNull() {
 				in.Skip()
@@ -190,15 +176,6 @@ func easyjson3c9d2b01EncodeCityhawkBackendInternalUserDeliveryHttp(out *jwriter.
 			out.RawString("null")
 		} else {
 			out.String(string(*in.Username))
-		}
-	}
-	{
-		const prefix string = ",\"userSurname\":"
-		out.RawString(prefix)
-		if in.UserSurname == nil {
-			out.RawString("null")
-		} else {
-			out.String(string(*in.UserSurname))
 		}
 	}
 	{

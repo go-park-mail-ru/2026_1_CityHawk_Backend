@@ -28,7 +28,7 @@ func TestAuthFlowServiceRegisterSuccess(t *testing.T) {
 			if u.Email != "tester@example.com" || u.PasswordHash != "hashed" {
 				t.Fatalf("unexpected persisted user: %+v", u)
 			}
-			if u.Username != "" || u.UserSurname != "" || u.Birthday != nil || u.CityID != nil {
+			if u.Username != "tester" || u.Birthday != nil || u.CityID != nil {
 				t.Fatalf("profile fields should be empty on register: %+v", u)
 			}
 			u.ID = "user-1"
@@ -39,6 +39,7 @@ func TestAuthFlowServiceRegisterSuccess(t *testing.T) {
 
 	res, err := svc.Register(context.Background(), authmodel.RegisterInput{
 		Email:    " Tester@example.com ",
+		Username: "tester",
 		Password: "verysecret",
 	})
 	if err != nil {
@@ -62,6 +63,7 @@ func TestAuthFlowServiceRegisterMapsErrors(t *testing.T) {
 		passwords.EXPECT().Hash("verysecret").Return("", errors.New("hash failed"))
 		_, err := svc.Register(context.Background(), authmodel.RegisterInput{
 			Email:    "user@example.com",
+			Username: "tester",
 			Password: "verysecret",
 		})
 		if !errors.Is(err, platformerrors.ErrInternal) {
@@ -82,6 +84,7 @@ func TestAuthFlowServiceRegisterMapsErrors(t *testing.T) {
 		users.EXPECT().Create(gomock.Any(), gomock.Any()).Return(usermodel.User{}, platformerrors.ErrEmailExists)
 		_, err := svc.Register(context.Background(), authmodel.RegisterInput{
 			Email:    "user@example.com",
+			Username: "tester",
 			Password: "verysecret",
 		})
 		if !errors.Is(err, platformerrors.ErrEmailExists) {

@@ -49,12 +49,6 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalAuthDeliveryHttp(in *jlexer.Le
 			} else {
 				out.Username = string(in.String())
 			}
-		case "userSurname":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.UserSurname = string(in.String())
-			}
 		case "avatarUrl":
 			if in.IsNull() {
 				in.Skip()
@@ -105,11 +99,6 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalAuthDeliveryHttp(out *jwriter.
 		const prefix string = ",\"username\":"
 		out.RawString(prefix)
 		out.String(string(in.Username))
-	}
-	{
-		const prefix string = ",\"userSurname\":"
-		out.RawString(prefix)
-		out.String(string(in.UserSurname))
 	}
 	{
 		const prefix string = ",\"avatarUrl\":"

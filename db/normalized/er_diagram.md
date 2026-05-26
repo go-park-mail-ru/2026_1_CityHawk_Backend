@@ -5,7 +5,6 @@ erDiagram
         uuid id PK
         text email UK
         text username
-        text user_surname
         text password_hash
         datetime birthday
         uuid city_id FK

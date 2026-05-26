@@ -71,10 +71,9 @@ func (h *MeHandler) handlePatch(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	email, username, userSurname, birthday, cityID, avatarURL, bio, interestTagIDs, err := authvalidation.ValidateProfilePatch(
+	email, username, birthday, cityID, avatarURL, bio, interestTagIDs, err := authvalidation.ValidateProfilePatch(
 		req.Email,
 		req.Username,
-		req.UserSurname,
 		req.Birthday,
 		req.CityID,
 		req.AvatarURL,
@@ -96,9 +95,6 @@ func (h *MeHandler) handlePatch(w http.ResponseWriter, r *http.Request) error {
 	}
 	if req.Username != nil {
 		patch.Username = &username
-	}
-	if req.UserSurname != nil {
-		patch.UserSurname = &userSurname
 	}
 	if req.Birthday != nil {
 		patch.Birthday = birthday
@@ -182,7 +178,6 @@ func decodeMultipartPatchMeRequest(r *http.Request) (patchMeRequest, *multipart.
 	req := patchMeRequest{
 		Email:          multipartValue(r.MultipartForm, "email"),
 		Username:       multipartValue(r.MultipartForm, "username"),
-		UserSurname:    multipartValue(r.MultipartForm, "userSurname"),
 		Birthday:       multipartValue(r.MultipartForm, "birthday"),
 		CityID:         multipartValue(r.MultipartForm, "cityId"),
 		Bio:            multipartValue(r.MultipartForm, "bio"),
@@ -247,7 +242,6 @@ func makeMeResponse(u usermodel.User) meResponse {
 		ID:             u.ID,
 		Email:          u.Email,
 		Username:       safety.EscapeText(u.Username),
-		UserSurname:    safety.EscapeText(u.UserSurname),
 		Role:           string(u.Role),
 		Birthday:       birthday,
 		Bio:            u.Bio,
@@ -269,7 +263,6 @@ func makePatchMeResponse(u usermodel.User) patchMeResponse {
 		ID:             u.ID,
 		Email:          u.Email,
 		Username:       safety.EscapeText(u.Username),
-		UserSurname:    safety.EscapeText(u.UserSurname),
 		Role:           string(u.Role),
 		Birthday:       birthday,
 		Bio:            u.Bio,

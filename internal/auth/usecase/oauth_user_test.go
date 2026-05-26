@@ -51,7 +51,7 @@ func TestOAuthUserServiceFindOrCreateFromOAuth(t *testing.T) {
 		passwords.EXPECT().Hash(gomock.Any()).Return("hashed", nil)
 		users.EXPECT().Create(gomock.Any(), gomock.AssignableToTypeOf(usermodel.User{})).
 			DoAndReturn(func(_ context.Context, u usermodel.User) (usermodel.User, error) {
-				if u.Email != "yandex_sub1@yandex.local" || u.Username != "sub1" || u.UserSurname != "sub1" {
+				if u.Email != "yandex_sub1@yandex.local" || u.Username != "sub1" {
 					t.Fatalf("unexpected created user: %+v", u)
 				}
 				u.ID = "user-2"
