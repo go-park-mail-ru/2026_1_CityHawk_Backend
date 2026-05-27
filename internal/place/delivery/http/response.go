@@ -143,7 +143,7 @@ type collectionDetailsResponse struct {
 
 type searchSuggestionResponse struct {
 	ID          string  `json:"id"`
-	Type        string  `json:"type"`
+	Type        string  `json:"type,omitempty"`
 	Title       string  `json:"title"`
 	Label       string  `json:"label"`
 	AvatarURL   *string `json:"avatarUrl,omitempty"`
