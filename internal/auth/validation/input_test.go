@@ -3,13 +3,10 @@ package validation
 import "testing"
 
 func TestValidateRegisterSuccess(t *testing.T) {
-	email, username, surname, password, birthday, cityID, err := ValidateRegister(
+	email, username, password, err := ValidateRegister(
 		" Tester@Example.com ",
-		"user_01",
-		"Иванов",
+		" Алиса ",
 		"verysecret",
-		"2000-01-02",
-		"11111111-1111-1111-1111-111111111111",
 	)
 	if err != nil {
 		t.Fatalf("ValidateRegister() error = %v", err)
@@ -17,24 +14,21 @@ func TestValidateRegisterSuccess(t *testing.T) {
 	if email != "tester@example.com" {
 		t.Fatalf("email = %q, want normalized value", email)
 	}
-	if username != "user_01" || surname != "Иванов" || password != "verysecret" {
-		t.Fatalf("unexpected normalized values: %q %q %q", username, surname, password)
+	if username != "Алиса" {
+		t.Fatalf("username = %q, want normalized value", username)
 	}
-	if birthday == nil || birthday.Format("2006-01-02") != "2000-01-02" {
-		t.Fatalf("birthday = %#v, want parsed date", birthday)
-	}
-	if cityID == nil || *cityID != "11111111-1111-1111-1111-111111111111" {
-		t.Fatalf("cityID = %#v, want normalized uuid", cityID)
+	if password != "verysecret" {
+		t.Fatalf("password = %q, want normalized value", password)
 	}
 }
 
 func TestValidateRegisterValidationError(t *testing.T) {
-	_, _, _, _, _, _, err := ValidateRegister("", "!", "", "123", "bad-date", "bad-uuid")
+	_, _, _, err := ValidateRegister("", "", "123")
 	validationErr, ok := err.(ValidationError)
 	if !ok {
 		t.Fatalf("error type = %T, want ValidationError", err)
 	}
-	for _, key := range []string{"email", "username", "userSurname", "password", "birthday", "cityId"} {
+	for _, key := range []string{"email", "username", "password"} {
 		if _, exists := validationErr.Details[key]; !exists {
 			t.Fatalf("missing validation detail for %q: %+v", key, validationErr.Details)
 		}
@@ -58,13 +52,12 @@ func TestValidateLoginValidationError(t *testing.T) {
 func TestValidateProfilePatchAcceptsUploadPath(t *testing.T) {
 	email := " USER@Example.COM "
 	username := " user-1 "
-	surname := " Петров "
 	birthday := "2001-02-03"
 	cityID := "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"
 	avatarURL := "/uploads/avatars/file.png"
 
-	gotEmail, gotUsername, gotSurname, gotBirthday, gotCityID, gotAvatarURL, _, _, err := ValidateProfilePatch(
-		&email, &username, &surname, &birthday, &cityID, &avatarURL, nil, nil,
+	gotEmail, gotUsername, gotBirthday, gotCityID, gotAvatarURL, _, _, err := ValidateProfilePatch(
+		&email, &username, &birthday, &cityID, &avatarURL, nil, nil,
 	)
 	if err != nil {
 		t.Fatalf("ValidateProfilePatch() error = %v", err)
@@ -72,8 +65,8 @@ func TestValidateProfilePatchAcceptsUploadPath(t *testing.T) {
 	if gotEmail != "user@example.com" {
 		t.Fatalf("email = %q, want normalized value", gotEmail)
 	}
-	if gotUsername != "user-1" || gotSurname != "Петров" {
-		t.Fatalf("unexpected normalized names: %q %q", gotUsername, gotSurname)
+	if gotUsername != "user-1" {
+		t.Fatalf("username = %q, want normalized value", gotUsername)
 	}
 	if gotBirthday == nil || gotBirthday.Format("2006-01-02") != "2001-02-03" {
 		t.Fatalf("birthday = %#v, want parsed date", gotBirthday)
@@ -89,17 +82,16 @@ func TestValidateProfilePatchAcceptsUploadPath(t *testing.T) {
 func TestValidateProfilePatchValidationError(t *testing.T) {
 	email := "bad"
 	username := "!"
-	surname := ""
 	birthday := "bad"
 	cityID := "bad"
 	avatarURL := "file.png"
 
-	_, _, _, _, _, _, _, _, err := ValidateProfilePatch(&email, &username, &surname, &birthday, &cityID, &avatarURL, nil, nil)
+	_, _, _, _, _, _, _, err := ValidateProfilePatch(&email, &username, &birthday, &cityID, &avatarURL, nil, nil)
 	validationErr, ok := err.(ValidationError)
 	if !ok {
 		t.Fatalf("error type = %T, want ValidationError", err)
 	}
-	for _, key := range []string{"email", "username", "userSurname", "birthday", "cityId", "avatarUrl"} {
+	for _, key := range []string{"email", "username", "birthday", "cityId", "avatarUrl"} {
 		if _, exists := validationErr.Details[key]; !exists {
 			t.Fatalf("missing validation detail for %q: %+v", key, validationErr.Details)
 		}

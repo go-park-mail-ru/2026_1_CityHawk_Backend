@@ -3,9 +3,10 @@ package model
 import "time"
 
 type EventTaxonomyItem struct {
-	ID   string
-	Name string
-	Slug string
+	ID    string
+	Name  string
+	Slug  string
+	Group string
 }
 
 type EventCardNextSessionPlace struct {
@@ -28,6 +29,7 @@ type EventCardView struct {
 	ShortDescription string
 	CoverImageURL    string
 	Tags             []EventTaxonomyItem
+	Place            *EventCardNextSessionPlace
 	NextSession      *EventCardNextSession
 	IsFavorite       bool
 	Popularity       int
@@ -76,6 +78,7 @@ type EventDetailsView struct {
 	AgeLimit         int
 	SourceURL        *string
 	Author           EventAuthorView
+	Place            *EventSessionPlaceView
 	Categories       []EventTaxonomyItem
 	Tags             []EventTaxonomyItem
 	Images           []EventImageView
@@ -124,13 +127,16 @@ type EventWriteInput struct {
 	CategoryIDs      *[]string
 	TagIDs           *[]string
 	ImageURLs        *[]string
+	PlaceID          *string
+	ClearPlace       bool
 	Sessions         *[]EventSessionInput
 }
 
 type HomeTag struct {
-	ID   string
-	Name string
-	Slug string
+	ID    string
+	Name  string
+	Slug  string
+	Group string
 }
 
 type HomeNextSessionPlace struct {

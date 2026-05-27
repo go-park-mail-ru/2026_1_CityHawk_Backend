@@ -43,13 +43,10 @@ func NewAuthFlowService(
 }
 
 func (s *AuthFlowService) Register(ctx context.Context, input authmodel.RegisterInput) (authmodel.RegistrationResult, error) {
-	normalizedEmail, normalizedUsername, normalizedSurname, normalizedPassword, normalizedBirthday, normalizedCityID, err := authvalidation.ValidateRegister(
+	normalizedEmail, normalizedUsername, normalizedPassword, err := authvalidation.ValidateRegister(
 		input.Email,
 		input.Username,
-		input.UserSurname,
 		input.Password,
-		input.Birthday,
-		input.CityID,
 	)
 	if err != nil {
 		return authmodel.RegistrationResult{}, err
@@ -63,10 +60,7 @@ func (s *AuthFlowService) Register(ctx context.Context, input authmodel.Register
 	u := usermodel.User{
 		Email:        normalizedEmail,
 		Username:     normalizedUsername,
-		UserSurname:  normalizedSurname,
 		PasswordHash: passwordHash,
-		Birthday:     normalizedBirthday,
-		CityID:       normalizedCityID,
 	}
 
 	persistedUser, err := s.users.Create(ctx, u)

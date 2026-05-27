@@ -24,6 +24,7 @@ type PlaceSuggestionSource struct {
 
 type PlaceResolveInput struct {
 	Token string
+	Name  string
 }
 
 type PlaceResolved struct {

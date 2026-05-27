@@ -1,0 +1,5 @@
+ALTER TABLE tag
+    DROP CONSTRAINT IF EXISTS tag_group_valid;
+
+ALTER TABLE tag
+    DROP COLUMN IF EXISTS tag_group;

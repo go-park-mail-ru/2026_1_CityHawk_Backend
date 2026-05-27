@@ -1,0 +1,1 @@
+-- No-op: profile surnames were removed from the rebuilt schema.

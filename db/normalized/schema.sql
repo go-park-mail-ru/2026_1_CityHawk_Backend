@@ -30,22 +30,22 @@ COMMENT ON TABLE city IS 'Справочник городов. Значения 
 CREATE TABLE user_account (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     email text NOT NULL,
-    username text NOT NULL,
-    user_surname text NOT NULL,
+    username text NOT NULL DEFAULT '',
     password_hash text NOT NULL,
     birthday date,
     city_id uuid,
     avatar_url text,
+    bio text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT user_account_email_key UNIQUE (email),
     CONSTRAINT user_account_email_format CHECK (position('@' in email) > 1 AND position(' ' in email) = 0),
     CONSTRAINT user_account_email_valid CHECK (char_length(btrim(email)) BETWEEN 1 AND 254),
-    CONSTRAINT user_account_username_valid CHECK (char_length(btrim(username)) BETWEEN 3 AND 64),
-    CONSTRAINT user_account_user_surname_valid CHECK (char_length(btrim(user_surname)) BETWEEN 1 AND 64),
+    CONSTRAINT user_account_username_valid CHECK (char_length(btrim(username)) = 0 OR char_length(btrim(username)) BETWEEN 3 AND 64),
     CONSTRAINT user_account_password_hash_valid CHECK (char_length(btrim(password_hash)) BETWEEN 1 AND 255),
     CONSTRAINT user_account_avatar_url_format CHECK (avatar_url IS NULL OR avatar_url ~ '^(https?://|/uploads/)'),
     CONSTRAINT user_account_avatar_url_length CHECK (avatar_url IS NULL OR char_length(avatar_url) <= 2048),
+    CONSTRAINT user_account_bio_length CHECK (bio IS NULL OR char_length(bio) <= 1000),
     CONSTRAINT user_account_city_id_fkey
         FOREIGN KEY (city_id)
         REFERENCES city(id)
@@ -54,6 +54,42 @@ CREATE TABLE user_account (
 );
 
 COMMENT ON TABLE user_account IS 'Учетные записи пользователей. У birthday и avatar_url нет default, потому что это необязательные пользовательские данные; city_id может отсутствовать до выбора города.';
+
+CREATE TABLE user_role (
+    user_id uuid NOT NULL,
+    role text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT user_role_pkey PRIMARY KEY (user_id, role),
+    CONSTRAINT user_role_allowed_values CHECK (role IN ('user', 'organizer', 'admin')),
+    CONSTRAINT user_role_user_id_fkey
+        FOREIGN KEY (user_id)
+        REFERENCES user_account(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+COMMENT ON TABLE user_role IS 'Роли пользователя. Один пользователь может иметь несколько ролей, например user и admin.';
+
+CREATE TABLE organizer_profile (
+    user_id uuid PRIMARY KEY,
+    display_name text NOT NULL,
+    description text,
+    website_url text,
+    is_verified boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT organizer_profile_display_name_valid CHECK (char_length(btrim(display_name)) BETWEEN 1 AND 200),
+    CONSTRAINT organizer_profile_description_length CHECK (description IS NULL OR char_length(description) <= 5000),
+    CONSTRAINT organizer_profile_website_url_format CHECK (website_url IS NULL OR website_url ~ '^https?://'),
+    CONSTRAINT organizer_profile_website_url_length CHECK (website_url IS NULL OR char_length(website_url) <= 2048),
+    CONSTRAINT organizer_profile_user_id_fkey
+        FOREIGN KEY (user_id)
+        REFERENCES user_account(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+COMMENT ON TABLE organizer_profile IS 'Профиль организатора, связанный один-к-одному с учетной записью пользователя.';
 
 CREATE TABLE refresh_session (
     token_hash text PRIMARY KEY,
@@ -119,6 +155,25 @@ CREATE TABLE tag (
 
 COMMENT ON TABLE tag IS 'Справочник тегов событий. Имя тега задается явно и не получает значение по умолчанию.';
 
+CREATE TABLE user_interest_tag (
+    user_id uuid NOT NULL,
+    tag_id uuid NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT user_interest_tag_pkey PRIMARY KEY (user_id, tag_id),
+    CONSTRAINT user_interest_tag_user_id_fkey
+        FOREIGN KEY (user_id)
+        REFERENCES user_account(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT user_interest_tag_tag_id_fkey
+        FOREIGN KEY (tag_id)
+        REFERENCES tag(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+COMMENT ON TABLE user_interest_tag IS 'Теги интересов пользователя для профиля и персонализации.';
+
 CREATE TABLE event (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     author_user_id uuid NOT NULL,
@@ -130,7 +185,7 @@ CREATE TABLE event (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT event_title_valid CHECK (char_length(btrim(title)) BETWEEN 1 AND 200),
-    CONSTRAINT event_short_description_valid CHECK (char_length(btrim(short_description)) BETWEEN 1 AND 500),
+    CONSTRAINT event_location_description_valid CHECK (char_length(btrim(location_description)) BETWEEN 1 AND 500),
     CONSTRAINT event_full_description_length CHECK (full_description IS NULL OR char_length(full_description) <= 5000),
     CONSTRAINT event_age_limit_range CHECK (age_limit BETWEEN 0 AND 21),
     CONSTRAINT event_source_url_format CHECK (source_url IS NULL OR source_url ~ '^https?://'),
@@ -174,6 +229,25 @@ CREATE TABLE event_session (
 );
 
 COMMENT ON TABLE event_session IS 'Конкретные сеансы событий. price по умолчанию равен 0 для бесплатных событий; EXCLUDE запрещает пересечение интервалов в одном месте проведения.';
+
+CREATE TABLE event_place (
+    event_id uuid PRIMARY KEY,
+    place_id uuid NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT event_place_event_id_fkey
+        FOREIGN KEY (event_id)
+        REFERENCES event(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT event_place_place_id_fkey
+        FOREIGN KEY (place_id)
+        REFERENCES place(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+COMMENT ON TABLE event_place IS 'Основное место события для отображения на карте независимо от расписания и сеансов.';
 
 CREATE TABLE event_image (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -333,12 +407,14 @@ CREATE TABLE event_invitation (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     sender_user_id uuid NOT NULL,
     recipient_user_id uuid NOT NULL,
+    status text NOT NULL DEFAULT 'pending',
     message_text text,
     responded_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT event_invitation_sender_recipient_diff CHECK (sender_user_id <> recipient_user_id),
-    CONSTRAINT event_invitation_message_text_length CHECK (message_text IS NULL OR char_length(message_text) <= 2000),
+    CONSTRAINT event_invitation_status_valid CHECK (status IN ('pending', 'accepted', 'declined', 'cancelled')),
+    CONSTRAINT event_invitation_message_text_length CHECK (message_text IS NULL OR char_length(message_text) <= 500),
     CONSTRAINT event_invitation_sender_user_id_fkey
         FOREIGN KEY (sender_user_id)
         REFERENCES user_account(id)
@@ -393,12 +469,12 @@ COMMENT ON TABLE event_invitation_session IS 'Привязка приглаше�
 
 CREATE TABLE share_link (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    creator_user_id uuid NOT NULL,
+    creator_user_id uuid,
     share_token text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT share_link_share_token_key UNIQUE (share_token),
-    CONSTRAINT share_link_share_token_valid CHECK (char_length(btrim(share_token)) BETWEEN 16 AND 128),
+    CONSTRAINT share_link_share_token_valid CHECK (char_length(btrim(share_token)) BETWEEN 6 AND 128),
     CONSTRAINT share_link_creator_user_id_fkey
         FOREIGN KEY (creator_user_id)
         REFERENCES user_account(id)
@@ -563,8 +639,97 @@ CREATE TABLE notification_collection (
 
 COMMENT ON TABLE notification_collection IS 'Связь уведомления с подборкой.';
 
+CREATE TABLE support_ticket (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL,
+    category text NOT NULL,
+    status text NOT NULL DEFAULT 'open',
+    title text NOT NULL,
+    message text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    closed_at timestamptz,
+    CONSTRAINT support_ticket_user_id_fkey
+        FOREIGN KEY (user_id)
+        REFERENCES user_account(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT support_ticket_category_valid CHECK (category IN ('bug', 'suggestion', 'product_complaint', 'other')),
+    CONSTRAINT support_ticket_status_valid CHECK (status IN ('open', 'in_progress', 'closed')),
+    CONSTRAINT support_ticket_title_valid CHECK (char_length(btrim(title)) BETWEEN 3 AND 200),
+    CONSTRAINT support_ticket_message_valid CHECK (char_length(btrim(message)) BETWEEN 10 AND 5000),
+    CONSTRAINT support_ticket_closed_at_valid CHECK (
+        (status = 'closed' AND closed_at IS NOT NULL) OR
+        (status <> 'closed' AND closed_at IS NULL)
+    )
+);
+
+COMMENT ON TABLE support_ticket IS 'Обращения пользователей в техподдержку. Статус по умолчанию open; closed_at появляется только у закрытых обращений.';
+
+CREATE TABLE support_ticket_message (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_id uuid NOT NULL,
+    author_user_id uuid NOT NULL,
+    author_role text NOT NULL DEFAULT 'user',
+    body text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT support_ticket_message_ticket_id_fkey
+        FOREIGN KEY (ticket_id)
+        REFERENCES support_ticket(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT support_ticket_message_author_user_id_fkey
+        FOREIGN KEY (author_user_id)
+        REFERENCES user_account(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT support_ticket_message_author_role_valid CHECK (author_role IN ('user', 'support', 'admin')),
+    CONSTRAINT support_ticket_message_body_valid CHECK (char_length(btrim(body)) BETWEEN 1 AND 5000)
+);
+
+COMMENT ON TABLE support_ticket_message IS 'Сообщения в переписке по обращению в техподдержку.';
+
+CREATE TABLE organizer_application (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL,
+    status text NOT NULL DEFAULT 'pending',
+    name text NOT NULL,
+    email text NOT NULL,
+    phone text NOT NULL,
+    city text NOT NULL,
+    project_name text NOT NULL,
+    categories text NOT NULL,
+    links text,
+    about text NOT NULL,
+    review_comment text,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT organizer_application_status_valid CHECK (status IN ('pending', 'needs_info', 'approved', 'rejected')),
+    CONSTRAINT organizer_application_name_valid CHECK (char_length(btrim(name)) BETWEEN 1 AND 200),
+    CONSTRAINT organizer_application_email_valid CHECK (position('@' in email) > 1 AND position(' ' in email) = 0 AND char_length(btrim(email)) BETWEEN 1 AND 254),
+    CONSTRAINT organizer_application_phone_valid CHECK (char_length(btrim(phone)) BETWEEN 1 AND 64),
+    CONSTRAINT organizer_application_city_valid CHECK (char_length(btrim(city)) BETWEEN 1 AND 100),
+    CONSTRAINT organizer_application_project_name_valid CHECK (char_length(btrim(project_name)) BETWEEN 1 AND 200),
+    CONSTRAINT organizer_application_categories_valid CHECK (char_length(btrim(categories)) BETWEEN 1 AND 500),
+    CONSTRAINT organizer_application_links_length CHECK (links IS NULL OR char_length(links) <= 2000),
+    CONSTRAINT organizer_application_about_length CHECK (char_length(btrim(about)) BETWEEN 1 AND 5000),
+    CONSTRAINT organizer_application_review_comment_length CHECK (review_comment IS NULL OR char_length(review_comment) <= 2000),
+    CONSTRAINT organizer_application_user_id_fkey
+        FOREIGN KEY (user_id)
+        REFERENCES user_account(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+COMMENT ON TABLE organizer_application IS 'Заявки пользователей на роль организатора. Уникальный частичный индекс ограничивает активные заявки.';
+
 CREATE TRIGGER set_user_account_updated_at
 BEFORE UPDATE ON user_account
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER set_organizer_profile_updated_at
+BEFORE UPDATE ON organizer_profile
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 
@@ -595,6 +760,11 @@ EXECUTE FUNCTION set_updated_at();
 
 CREATE TRIGGER set_event_session_updated_at
 BEFORE UPDATE ON event_session
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER set_event_place_updated_at
+BEFORE UPDATE ON event_place
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 
@@ -697,6 +867,37 @@ CREATE TRIGGER set_notification_collection_updated_at
 BEFORE UPDATE ON notification_collection
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER set_support_ticket_updated_at
+BEFORE UPDATE ON support_ticket
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER set_organizer_application_updated_at
+BEFORE UPDATE ON organizer_application
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE INDEX idx_user_role_role ON user_role(role);
+CREATE INDEX idx_user_interest_tag_tag_id ON user_interest_tag(tag_id);
+
+CREATE INDEX idx_support_ticket_user_id ON support_ticket(user_id);
+CREATE INDEX idx_support_ticket_status ON support_ticket(status);
+CREATE INDEX idx_support_ticket_category ON support_ticket(category);
+CREATE INDEX idx_support_ticket_created_at ON support_ticket(created_at DESC);
+
+CREATE INDEX idx_support_ticket_message_ticket_id_created_at
+    ON support_ticket_message(ticket_id, created_at ASC, id ASC);
+
+CREATE INDEX idx_support_ticket_message_author_user_id
+    ON support_ticket_message(author_user_id);
+
+CREATE UNIQUE INDEX organizer_application_active_user_key
+    ON organizer_application(user_id)
+    WHERE status IN ('pending', 'needs_info');
+
+CREATE INDEX idx_organizer_application_status_created_at
+    ON organizer_application(status, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_event_title_trgm
     ON event

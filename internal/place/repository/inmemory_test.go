@@ -71,6 +71,16 @@ func TestInMemoryRepositoryReadOperations(t *testing.T) {
 	if total != 1 || len(filtered) != 1 || filtered[0].ID != "event-1" {
 		t.Fatalf("ListEvents() = (%+v, %d), want only event-1", filtered, total)
 	}
+	filtered, total, err = repo.ListEvents(context.Background(), placemodel.EventListFilter{
+		Query: "expo",
+		Limit: 10,
+	})
+	if err != nil {
+		t.Fatalf("ListEvents() by taxonomy query error = %v", err)
+	}
+	if total != 1 || len(filtered) != 1 || filtered[0].ID != "event-2" {
+		t.Fatalf("ListEvents() by taxonomy query = (%+v, %d), want event-2", filtered, total)
+	}
 
 	event, ok, err := repo.GetByID(context.Background(), "event-1", "author-1")
 	if err != nil || !ok {

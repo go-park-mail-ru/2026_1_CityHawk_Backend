@@ -29,8 +29,7 @@ COMMENT ON TABLE city IS 'Справочник городов. Значения 
 CREATE TABLE IF NOT EXISTS user_account (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     email text NOT NULL,
-    username text NOT NULL,
-    user_surname text NOT NULL,
+    username text NOT NULL DEFAULT '',
     password_hash text NOT NULL,
     birthday date,
     city_id uuid,
@@ -40,8 +39,7 @@ CREATE TABLE IF NOT EXISTS user_account (
     CONSTRAINT user_account_email_key UNIQUE (email),
     CONSTRAINT user_account_email_format CHECK (position('@' in email) > 1 AND position(' ' in email) = 0),
     CONSTRAINT user_account_email_valid CHECK (char_length(btrim(email)) BETWEEN 1 AND 254),
-    CONSTRAINT user_account_username_valid CHECK (char_length(btrim(username)) BETWEEN 3 AND 64),
-    CONSTRAINT user_account_user_surname_valid CHECK (char_length(btrim(user_surname)) BETWEEN 1 AND 64),
+    CONSTRAINT user_account_username_valid CHECK (char_length(btrim(username)) = 0 OR char_length(btrim(username)) BETWEEN 3 AND 64),
     CONSTRAINT user_account_password_hash_valid CHECK (char_length(btrim(password_hash)) BETWEEN 1 AND 255),
     CONSTRAINT user_account_avatar_url_format CHECK (avatar_url IS NULL OR avatar_url ~ '^(https?://|/uploads/)'),
     CONSTRAINT user_account_avatar_url_length CHECK (avatar_url IS NULL OR char_length(avatar_url) <= 2048),
@@ -173,6 +171,25 @@ CREATE TABLE IF NOT EXISTS event_session (
 );
 
 COMMENT ON TABLE event_session IS 'Конкретные сеансы событий. price по умолчанию равен 0 для бесплатных событий; EXCLUDE запрещает пересечение интервалов в одном месте проведения.';
+
+CREATE TABLE IF NOT EXISTS event_place (
+    event_id uuid PRIMARY KEY,
+    place_id uuid NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT event_place_event_id_fkey
+        FOREIGN KEY (event_id)
+        REFERENCES event(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT event_place_place_id_fkey
+        FOREIGN KEY (place_id)
+        REFERENCES place(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+COMMENT ON TABLE event_place IS 'Основное место события для отображения на карте независимо от расписания и сеансов.';
 
 CREATE TABLE IF NOT EXISTS event_image (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -332,12 +349,14 @@ CREATE TABLE IF NOT EXISTS event_invitation (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     sender_user_id uuid NOT NULL,
     recipient_user_id uuid NOT NULL,
+    status text NOT NULL DEFAULT 'pending',
     message_text text,
     responded_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT event_invitation_sender_recipient_diff CHECK (sender_user_id <> recipient_user_id),
-    CONSTRAINT event_invitation_message_text_length CHECK (message_text IS NULL OR char_length(message_text) <= 2000),
+    CONSTRAINT event_invitation_status_valid CHECK (status IN ('pending', 'accepted', 'declined', 'cancelled')),
+    CONSTRAINT event_invitation_message_text_length CHECK (message_text IS NULL OR char_length(message_text) <= 500),
     CONSTRAINT event_invitation_sender_user_id_fkey
         FOREIGN KEY (sender_user_id)
         REFERENCES user_account(id)
@@ -392,12 +411,12 @@ COMMENT ON TABLE event_invitation_session IS 'Привязка приглаше�
 
 CREATE TABLE IF NOT EXISTS share_link (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    creator_user_id uuid NOT NULL,
+    creator_user_id uuid,
     share_token text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT share_link_share_token_key UNIQUE (share_token),
-    CONSTRAINT share_link_share_token_valid CHECK (char_length(btrim(share_token)) BETWEEN 16 AND 128),
+    CONSTRAINT share_link_share_token_valid CHECK (char_length(btrim(share_token)) BETWEEN 6 AND 128),
     CONSTRAINT share_link_creator_user_id_fkey
         FOREIGN KEY (creator_user_id)
         REFERENCES user_account(id)
@@ -594,6 +613,11 @@ EXECUTE FUNCTION set_updated_at();
 
 CREATE TRIGGER set_event_session_updated_at
 BEFORE UPDATE ON event_session
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER set_event_place_updated_at
+BEFORE UPDATE ON event_place
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 

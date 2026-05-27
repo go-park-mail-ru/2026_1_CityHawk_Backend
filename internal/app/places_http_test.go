@@ -255,14 +255,8 @@ func TestEventsHandlers(t *testing.T) {
 			}
 			return c.Value
 		}).ServeHTTP(createRec, createReq)
-		if createRec.Code != http.StatusBadRequest {
-			t.Fatalf("create without sessions status = %d, want %d body=%s", createRec.Code, http.StatusBadRequest, createRec.Body.String())
-		}
-
-		payload := decodeJSONMap(t, createRec.Body)
-		details, ok := payload["details"].(map[string]any)
-		if !ok || details["sessions"] != "sessions is required" {
-			t.Fatalf("unexpected create validation response: %+v", payload)
+		if createRec.Code != http.StatusCreated {
+			t.Fatalf("create without sessions status = %d, want %d body=%s", createRec.Code, http.StatusCreated, createRec.Body.String())
 		}
 	})
 }
@@ -459,6 +453,16 @@ func TestSearchSuggestionsHandler(t *testing.T) {
 	items, ok := payload["items"].([]any)
 	if !ok || len(items) == 0 {
 		t.Fatalf("search payload missing items: %+v", payload)
+	}
+	first, ok := items[0].(map[string]any)
+	if !ok {
+		t.Fatalf("search item has unexpected shape: %+v", items[0])
+	}
+	if _, ok := first["type"]; ok {
+		t.Fatalf("search suggestion exposes type: %+v", first)
+	}
+	if _, ok := first["avatarUrl"]; ok {
+		t.Fatalf("search suggestion exposes user avatar: %+v", first)
 	}
 
 	badReq := httptest.NewRequest(http.MethodGet, "/api/search?query=r", nil)

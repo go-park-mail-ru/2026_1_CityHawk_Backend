@@ -50,4 +50,3 @@ func TestResolveTagFilter(t *testing.T) {
 		t.Fatalf("resolveTagFilter(normalized) = %q, want tag-2", got)
 	}
 }
-

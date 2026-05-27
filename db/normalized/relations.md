@@ -58,9 +58,9 @@ Relation CITY:
 ```text
 Relation USER_ACCOUNT:
 
-{id} -> email, username, user_surname, password_hash, birthday, city_id, avatar_url, created_at, updated_at
+{id} -> email, username, password_hash, birthday, city_id, avatar_url, created_at, updated_at
 
-{email} -> id, username, user_surname, password_hash, birthday, city_id, avatar_url, created_at, updated_at
+{email} -> id, username, password_hash, birthday, city_id, avatar_url, created_at, updated_at
 ```
 
 ### Обоснование нормальных форм
@@ -424,7 +424,7 @@ Relation USER_FOLLOW:
 ```text
 Relation EVENT_INVITATION:
 
-{id} -> sender_user_id, recipient_user_id, message_text, responded_at, created_at, updated_at
+{id} -> sender_user_id, recipient_user_id, status, message_text, responded_at, created_at, updated_at
 ```
 
 ### Обоснование нормальных форм

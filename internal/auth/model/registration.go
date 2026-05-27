@@ -3,12 +3,11 @@ package model
 import usermodel "cityhawk/backend/internal/user/model"
 
 type RegisterInput struct {
-	Email       string
-	Username    string
-	UserSurname string
-	Password    string
-	Birthday    string
-	CityID      string
+	Email    string
+	Username string
+	Password string
+	Birthday string
+	CityID   string
 }
 
 type LoginInput struct {

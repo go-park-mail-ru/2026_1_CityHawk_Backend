@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"errors"
+	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -159,5 +161,40 @@ func TestOptionalAuthRecoveryErrorAndLoggingHelpers(t *testing.T) {
 	auth.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+}
+
+func TestAccessLogMiddlewareAndRemoteAddrVariants(t *testing.T) {
+	originalOutput := log.Writer()
+	log.SetOutput(io.Discard)
+	t.Cleanup(func() { log.SetOutput(originalOutput) })
+
+	handler := AccessLogMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte("created"))
+	}))
+
+	req := httptest.NewRequest(http.MethodPost, "/events", nil)
+	req.Header.Set("X-Forwarded-For", "203.0.113.10, 10.0.0.2")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated || rec.Body.String() != "created" {
+		t.Fatalf("unexpected response: status=%d body=%q", rec.Code, rec.Body.String())
+	}
+	if got := requestRemoteAddr(req); got != "203.0.113.10" {
+		t.Fatalf("requestRemoteAddr forwarded = %q", got)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-Real-IP", "198.51.100.7")
+	if got := requestRemoteAddr(req); got != "198.51.100.7" {
+		t.Fatalf("requestRemoteAddr real ip = %q", got)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "malformed-addr"
+	if got := requestRemoteAddr(req); got != "malformed-addr" {
+		t.Fatalf("requestRemoteAddr fallback = %q", got)
 	}
 }

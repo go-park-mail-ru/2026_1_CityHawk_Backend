@@ -17,7 +17,7 @@ func TestPostgresRepositoryReadMethodsWithFakeDB(t *testing.T) {
 	db := &fakePlaceDB{
 		rows: map[string][][]any{
 			"FROM category c ORDER BY":                                  {{"cat-1", "Music"}},
-			"FROM tag t ORDER BY":                                       {{"tag-1", "Jazz"}},
+			"FROM tag t ORDER BY":                                       {{"tag-1", "Jazz", "genre"}},
 			"FROM city c ORDER BY":                                      {{"city-1", "Moscow", "Russia", "Europe/Moscow"}},
 			"FROM collection c\n\t\tLEFT JOIN":                          {{"collection-1", "Weekend", "Best", "/uploads/collection.png", true}},
 			"FROM candidates":                                           {{"event-1", "event", "Jazz night", "Jazz night", nil, false}},
@@ -33,6 +33,7 @@ func TestPostgresRepositoryReadMethodsWithFakeDB(t *testing.T) {
 		row: map[string][]any{
 			"FROM collection c\n\t\tLEFT JOIN first_image": {"collection-1", "Weekend", "Best", "/uploads/collection.png", true},
 			"FROM event e\n\t\tJOIN user_account":          {"event-1", "Jazz night", "Short", "Full", 18, stringPtr("https://events.example.com"), "user-1", "alice", stringPtr("/uploads/avatar.png"), now, now.Add(time.Hour), true, true},
+			"FROM event_place ep":                          {"place-1", "Hall", "Lenina 1", 55.7, 37.6, "city-1", "Moscow", "Russia", "Europe/Moscow"},
 		},
 	}
 	repo := &PostgresRepository{pool: db}
@@ -40,7 +41,7 @@ func TestPostgresRepositoryReadMethodsWithFakeDB(t *testing.T) {
 	if got := repo.ListCategories(context.Background()); len(got) != 1 || got[0].Slug != "music" {
 		t.Fatalf("ListCategories() = %+v", got)
 	}
-	if got := repo.ListTags(context.Background()); len(got) != 1 || got[0].Slug != "jazz" {
+	if got := repo.ListTags(context.Background()); len(got) != 1 || got[0].Slug != "jazz" || got[0].Group != "genre" {
 		t.Fatalf("ListTags() = %+v", got)
 	}
 	if got := repo.ListCities(context.Background()); len(got) != 1 || got[0].Name != "Moscow" {
@@ -84,11 +85,12 @@ func TestPostgresRepositoryWriteMethodsWithFakeTx(t *testing.T) {
 	categories := []string{"cat-1"}
 	tags := []string{"tag-1"}
 	images := []string{"/uploads/event.png"}
+	placeID := "place-1"
 	sessions := []placemodel.EventSessionInput{{PlaceID: "place-1", StartAt: now, EndAt: now.Add(time.Hour), Price: 100}}
 
 	id, err := repo.CreateEvent(context.Background(), placemodel.EventWriteInput{
 		AuthorUserID: "user-1", Title: &title, ShortDescription: &shortDescription, FullDescription: &fullDescription,
-		AgeLimit: &ageLimit, SourceURL: &sourceURL, CategoryIDs: &categories, TagIDs: &tags, ImageURLs: &images, Sessions: &sessions,
+		AgeLimit: &ageLimit, SourceURL: &sourceURL, CategoryIDs: &categories, TagIDs: &tags, ImageURLs: &images, PlaceID: &placeID, Sessions: &sessions,
 	})
 	if err != nil || id != "event-created" || !tx.committed {
 		t.Fatalf("CreateEvent() = (%q, %v), committed=%v", id, err, tx.committed)
@@ -97,7 +99,7 @@ func TestPostgresRepositoryWriteMethodsWithFakeTx(t *testing.T) {
 	tx.committed = false
 	ok, err := repo.UpdateEvent(context.Background(), placemodel.EventWriteInput{
 		ID: "event-created", AuthorUserID: "user-1", Title: &title, ShortDescription: &shortDescription, FullDescription: &fullDescription,
-		AgeLimit: &ageLimit, SourceURL: &sourceURL, ClearSourceURL: true, CategoryIDs: &categories, TagIDs: &tags, ImageURLs: &images, Sessions: &sessions,
+		AgeLimit: &ageLimit, SourceURL: &sourceURL, ClearSourceURL: true, CategoryIDs: &categories, TagIDs: &tags, ImageURLs: &images, PlaceID: &placeID, Sessions: &sessions,
 	})
 	if err != nil || !ok || !tx.committed {
 		t.Fatalf("UpdateEvent() = (%v, %v), committed=%v", ok, err, tx.committed)

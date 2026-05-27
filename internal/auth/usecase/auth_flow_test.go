@@ -28,6 +28,9 @@ func TestAuthFlowServiceRegisterSuccess(t *testing.T) {
 			if u.Email != "tester@example.com" || u.PasswordHash != "hashed" {
 				t.Fatalf("unexpected persisted user: %+v", u)
 			}
+			if u.Username != "tester" || u.Birthday != nil || u.CityID != nil {
+				t.Fatalf("profile fields should be empty on register: %+v", u)
+			}
 			u.ID = "user-1"
 			return u, nil
 		})
@@ -35,12 +38,9 @@ func TestAuthFlowServiceRegisterSuccess(t *testing.T) {
 		Return(authmodel.TokenPair{AccessToken: "access", RefreshToken: "refresh"}, nil)
 
 	res, err := svc.Register(context.Background(), authmodel.RegisterInput{
-		Email:       " Tester@example.com ",
-		Username:    "user_1",
-		UserSurname: "Иванов",
-		Password:    "verysecret",
-		Birthday:    "2001-01-02",
-		CityID:      "11111111-1111-1111-1111-111111111111",
+		Email:    " Tester@example.com ",
+		Username: "tester",
+		Password: "verysecret",
 	})
 	if err != nil {
 		t.Fatalf("Register() error = %v", err)
@@ -62,10 +62,9 @@ func TestAuthFlowServiceRegisterMapsErrors(t *testing.T) {
 
 		passwords.EXPECT().Hash("verysecret").Return("", errors.New("hash failed"))
 		_, err := svc.Register(context.Background(), authmodel.RegisterInput{
-			Email:       "user@example.com",
-			Username:    "user_1",
-			UserSurname: "Иванов",
-			Password:    "verysecret",
+			Email:    "user@example.com",
+			Username: "tester",
+			Password: "verysecret",
 		})
 		if !errors.Is(err, platformerrors.ErrInternal) {
 			t.Fatalf("error = %v, want ErrInternal", err)
@@ -84,10 +83,9 @@ func TestAuthFlowServiceRegisterMapsErrors(t *testing.T) {
 		passwords.EXPECT().Hash("verysecret").Return("hashed", nil)
 		users.EXPECT().Create(gomock.Any(), gomock.Any()).Return(usermodel.User{}, platformerrors.ErrEmailExists)
 		_, err := svc.Register(context.Background(), authmodel.RegisterInput{
-			Email:       "user@example.com",
-			Username:    "user_1",
-			UserSurname: "Иванов",
-			Password:    "verysecret",
+			Email:    "user@example.com",
+			Username: "tester",
+			Password: "verysecret",
 		})
 		if !errors.Is(err, platformerrors.ErrEmailExists) {
 			t.Fatalf("error = %v, want ErrEmailExists", err)

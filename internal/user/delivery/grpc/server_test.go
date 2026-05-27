@@ -22,18 +22,16 @@ func TestServerProfileFlow(t *testing.T) {
 
 	email := "new@example.com"
 	username := "new_user"
-	surname := "New"
 	birthday := "2001-02-03"
 	cityID := "11111111-1111-1111-1111-111111111111"
 	avatarURL := "/uploads/avatar.png"
 	updated, err := server.UpdateMe(context.Background(), &profilev1.UpdateMeRequest{
-		Context:     ctx,
-		Email:       &email,
-		Username:    &username,
-		UserSurname: &surname,
-		Birthday:    &birthday,
-		CityId:      &cityID,
-		AvatarUrl:   &avatarURL,
+		Context:   ctx,
+		Email:     &email,
+		Username:  &username,
+		Birthday:  &birthday,
+		CityId:    &cityID,
+		AvatarUrl: &avatarURL,
 	})
 	if err != nil || updated.GetEmail() != email || store.patch.Email == nil {
 		t.Fatalf("UpdateMe() = (%+v, %v), patch=%+v", updated, err, store.patch)
@@ -89,7 +87,7 @@ func testUser() usermodel.User {
 	birthday := time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC)
 	avatar := "/uploads/avatar.png"
 	return usermodel.User{
-		ID: "user-1", Email: "user@example.com", Username: "user", UserSurname: "surname",
+		ID: "user-1", Email: "user@example.com", Username: "user",
 		Role: usermodel.RoleAdmin, Birthday: &birthday, AvatarURL: &avatar,
 		City:      &usermodel.City{ID: "city-1", Name: "Moscow", CountryName: "Russia", Timezone: "Europe/Moscow"},
 		CreatedAt: time.Date(2026, time.May, 4, 10, 0, 0, 0, time.UTC),

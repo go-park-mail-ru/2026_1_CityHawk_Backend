@@ -69,6 +69,24 @@ func TestPlaceLookupServiceSuggestAndResolve(t *testing.T) {
 	if resolved.ID != "place-1" {
 		t.Fatalf("unexpected resolved place: %+v", resolved)
 	}
+
+	repo.EXPECT().EnsurePlace(gomock.Any(), placerepo.PlaceLookupWriteInput{
+		CityName:    "Москва",
+		CountryName: "Россия",
+		Timezone:    "Europe/Moscow",
+		Name:        "Моё название места",
+		AddressLine: "Проспект Мира 119",
+		Latitude:    55.0,
+		Longitude:   37.0,
+	}).Return(placemodel.PlaceResolved{ID: "place-2", Name: "Моё название места"}, nil)
+
+	resolved, err = svc.Resolve(context.Background(), placemodel.PlaceResolveInput{Token: suggestions[0].Token, Name: " Моё название места "})
+	if err != nil {
+		t.Fatalf("Resolve() with name override error = %v", err)
+	}
+	if resolved.ID != "place-2" || resolved.Name != "Моё название места" {
+		t.Fatalf("unexpected overridden place: %+v", resolved)
+	}
 }
 
 func TestPlaceLookupServiceErrors(t *testing.T) {

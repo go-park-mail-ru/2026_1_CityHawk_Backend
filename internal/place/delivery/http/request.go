@@ -3,10 +3,11 @@ package http
 import "encoding/json"
 
 type eventSessionRequest struct {
-	PlaceID string `json:"placeId"`
-	StartAt string `json:"startAt"`
-	EndAt   string `json:"endAt"`
-	Price   int    `json:"price"`
+	PlaceID   string `json:"placeId"`
+	PlaceName string `json:"placeName"`
+	StartAt   string `json:"startAt"`
+	EndAt     string `json:"endAt"`
+	Price     int    `json:"price"`
 }
 
 type createEventRequest struct {
@@ -18,6 +19,7 @@ type createEventRequest struct {
 	CategoryIDs      []string              `json:"categoryIds"`
 	TagIDs           []string              `json:"tagIds"`
 	ImageURLs        []string              `json:"imageUrls"`
+	PlaceID          *string               `json:"placeId"`
 	Sessions         []eventSessionRequest `json:"sessions"`
 }
 
@@ -50,5 +52,6 @@ type patchEventRequest struct {
 	CategoryIDs      *[]string              `json:"categoryIds"`
 	TagIDs           *[]string              `json:"tagIds"`
 	ImageURLs        *[]string              `json:"imageUrls"`
+	PlaceID          optionalString         `json:"placeId"`
 	Sessions         *[]eventSessionRequest `json:"sessions"`
 }

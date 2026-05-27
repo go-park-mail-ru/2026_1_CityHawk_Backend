@@ -38,11 +38,10 @@ func (c *Client) GetByID(ctx context.Context, id string) (usermodel.User, bool) 
 	}
 
 	user := usermodel.User{
-		ID:          profile.GetId(),
-		Email:       profile.GetEmail(),
-		Username:    profile.GetUsername(),
-		UserSurname: profile.GetUserSurname(),
-		Role:        grpcconv.UserRoleFromProto(profile.GetRole()),
+		ID:       profile.GetId(),
+		Email:    profile.GetEmail(),
+		Username: profile.GetUsername(),
+		Role:     grpcconv.UserRoleFromProto(profile.GetRole()),
 	}
 	if profile.GetCreatedAt() != nil {
 		user.CreatedAt = profile.GetCreatedAt().AsTime()

@@ -50,3 +50,5 @@ logs/
 config.local.*
 *.local.yaml
 *.local.yml
+
+/uploads

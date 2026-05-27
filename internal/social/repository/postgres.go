@@ -267,8 +267,7 @@ func (r *PostgresRepository) listProfiles(ctx context.Context, viewerID, fromSQL
 	query := `
 		SELECT
 			u.id::text,
-			u.username,
-			u.user_surname,
+			COALESCE(NULLIF(btrim(u.username), ''), u.email) AS username,
 			u.avatar_url,
 			c.id::text,
 			c.name,
@@ -300,7 +299,6 @@ func (r *PostgresRepository) listProfiles(ctx context.Context, viewerID, fromSQL
 		if err := rows.Scan(
 			&item.ID,
 			&item.Username,
-			&item.UserSurname,
 			&avatarURL,
 			&cityID,
 			&cityName,

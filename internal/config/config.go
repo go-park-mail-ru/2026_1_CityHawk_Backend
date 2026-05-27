@@ -49,7 +49,6 @@ type AuthConfig struct {
 }
 
 type OAuthConfig struct {
-	Google OAuthProviderConfig
 	VK     OAuthProviderConfig
 	Yandex OAuthProviderConfig
 }
@@ -113,11 +112,6 @@ func LoadFromEnv() Config {
 			RefreshTTL: parseDurationEnv("REFRESH_TOKEN_TTL", 7*24*time.Hour),
 		},
 		OAuth: OAuthConfig{
-			Google: OAuthProviderConfig{
-				ClientID:     getEnv("GOOGLE_OAUTH_CLIENT_ID", ""),
-				ClientSecret: getEnv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
-				RedirectURL:  normalizeOAuthRedirectURL(getEnv("GOOGLE_OAUTH_REDIRECT_URL", "")),
-			},
 			VK: OAuthProviderConfig{
 				ClientID:     getEnv("VK_OAUTH_CLIENT_ID", ""),
 				ClientSecret: getEnv("VK_OAUTH_CLIENT_SECRET", ""),

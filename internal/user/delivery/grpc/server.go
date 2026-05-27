@@ -45,10 +45,9 @@ func (s *Server) UpdateMe(ctx context.Context, req *profilev1.UpdateMeRequest) (
 		return nil, grpcconv.Error(platformerrors.ErrUnauthorized)
 	}
 
-	email, username, userSurname, birthday, cityID, avatarURL, _, _, err := authvalidation.ValidateProfilePatch(
+	email, username, birthday, cityID, avatarURL, _, _, err := authvalidation.ValidateProfilePatch(
 		req.Email,
 		req.Username,
-		req.UserSurname,
 		req.Birthday,
 		req.CityId,
 		req.AvatarUrl,
@@ -69,9 +68,6 @@ func (s *Server) UpdateMe(ctx context.Context, req *profilev1.UpdateMeRequest) (
 	}
 	if req.Username != nil {
 		patch.Username = &username
-	}
-	if req.UserSurname != nil {
-		patch.UserSurname = &userSurname
 	}
 	if req.Birthday != nil {
 		patch.Birthday = birthday
@@ -119,15 +115,14 @@ func userProfile(user usermodel.User) *profilev1.UserProfile {
 	}
 
 	return &profilev1.UserProfile{
-		Id:          user.ID,
-		Email:       user.Email,
-		Username:    user.Username,
-		UserSurname: user.UserSurname,
-		Role:        grpcconv.UserRoleToProto(user.Role),
-		Birthday:    birthday,
-		AvatarUrl:   user.AvatarURL,
-		City:        city,
-		CreatedAt:   grpcconv.TimeToProto(user.CreatedAt),
-		UpdatedAt:   grpcconv.TimeToProto(user.UpdatedAt),
+		Id:        user.ID,
+		Email:     user.Email,
+		Username:  user.Username,
+		Role:      grpcconv.UserRoleToProto(user.Role),
+		Birthday:  birthday,
+		AvatarUrl: user.AvatarURL,
+		City:      city,
+		CreatedAt: grpcconv.TimeToProto(user.CreatedAt),
+		UpdatedAt: grpcconv.TimeToProto(user.UpdatedAt),
 	}
 }

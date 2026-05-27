@@ -25,6 +25,7 @@ type PlaceLookupHandler struct {
 
 type placeResolveRequest struct {
 	Token string `json:"token"`
+	Name  string `json:"name"`
 }
 
 type placeSuggestionsResponse struct {
@@ -142,7 +143,7 @@ func (h *PlaceLookupHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 			return httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"token": "token is required"})
 		}
 
-		item, err := h.lookup.Resolve(r.Context(), placemodel.PlaceResolveInput{Token: req.Token})
+		item, err := h.lookup.Resolve(r.Context(), placemodel.PlaceResolveInput{Token: req.Token, Name: req.Name})
 		if err != nil {
 			if errors.Is(err, placeusecase.ErrInvalidPlaceSuggestion) {
 				return httpx.NewHTTPError(http.StatusBadRequest, "invalid place suggestion")

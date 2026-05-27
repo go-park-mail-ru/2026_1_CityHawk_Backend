@@ -30,7 +30,6 @@ type RefreshTokenManager interface {
 }
 
 type OAuthLogin interface {
-	LoginWithGoogle(ctx context.Context, code string) (authmodel.TokenPair, error)
 	LoginWithYandex(ctx context.Context, code string) (authmodel.TokenPair, error)
 	LoginWithVK(ctx context.Context, code string) (authmodel.TokenPair, error)
 }
@@ -67,12 +66,11 @@ func NewServer(
 
 func (s *Server) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.SessionResponse, error) {
 	result, err := s.flow.Register(ctx, authmodel.RegisterInput{
-		Email:       req.GetEmail(),
-		Username:    req.GetUsername(),
-		UserSurname: req.GetUserSurname(),
-		Password:    req.GetPassword(),
-		Birthday:    req.GetBirthday(),
-		CityID:      req.GetCityId(),
+		Email:    req.GetEmail(),
+		Username: req.GetUsername(),
+		Password: req.GetPassword(),
+		Birthday: req.GetBirthday(),
+		CityID:   req.GetCityId(),
 	})
 	if err != nil {
 		return nil, authError(err)
@@ -100,8 +98,6 @@ func (s *Server) OAuthLogin(ctx context.Context, req *authv1.OAuthLoginRequest) 
 	)
 
 	switch req.GetProvider() {
-	case authv1.OAuthProvider_OAUTH_PROVIDER_GOOGLE:
-		tokens, err = s.oauth.LoginWithGoogle(ctx, req.GetCode())
 	case authv1.OAuthProvider_OAUTH_PROVIDER_YANDEX:
 		tokens, err = s.oauth.LoginWithYandex(ctx, req.GetCode())
 	case authv1.OAuthProvider_OAUTH_PROVIDER_VK:

@@ -23,12 +23,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := h.authUC.Register(r.Context(), authmodel.RegisterInput{
-		Email:       req.Email,
-		Username:    req.Username,
-		UserSurname: req.UserSurname,
-		Password:    req.Password,
-		Birthday:    req.Birthday,
-		CityID:      req.CityID,
+		Email:    req.Email,
+		Username: req.Username,
+		Password: req.Password,
+		Birthday: req.Birthday,
+		CityID:   req.CityID,
 	})
 	if err != nil {
 		var validationErr authvalidation.ValidationError
@@ -56,11 +55,10 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 	SetCSRFCookie(w, csrfToken, h.refreshTTL)
 	httpx.WriteJSON(w, http.StatusCreated, registerResponse{
-		ID:          resp.User.ID,
-		Email:       resp.User.Email,
-		Username:    safety.EscapeText(resp.User.Username),
-		UserSurname: safety.EscapeText(resp.User.UserSurname),
-		AvatarURL:   media.PublicURLPtr(resp.User.AvatarURL),
-		CreatedAt:   resp.User.CreatedAt.UTC(),
+		ID:        resp.User.ID,
+		Email:     resp.User.Email,
+		Username:  safety.EscapeText(resp.User.Username),
+		AvatarURL: media.PublicURLPtr(resp.User.AvatarURL),
+		CreatedAt: resp.User.CreatedAt.UTC(),
 	})
 }

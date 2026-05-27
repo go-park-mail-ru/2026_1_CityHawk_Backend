@@ -26,7 +26,7 @@ func TestOAuthUserServiceFindOrCreateFromOAuth(t *testing.T) {
 		users.EXPECT().GetByEmail(gomock.Any(), "user@example.com").Return(existing, true)
 
 		user, err := svc.FindOrCreateFromOAuth(context.Background(), authmodel.OAuthIdentity{
-			Provider:  "google",
+			Provider:  "yandex",
 			SubjectID: "sub-1",
 			Email:     "User@example.com",
 			Username:  "User Name",
@@ -47,11 +47,11 @@ func TestOAuthUserServiceFindOrCreateFromOAuth(t *testing.T) {
 		passwords := mocks.NewMockPasswordService(ctrl)
 		svc := authusecase.NewOAuthUserService(users, passwords)
 
-		users.EXPECT().GetByEmail(gomock.Any(), "google_sub1@google.local").Return(usermodel.User{}, false)
+		users.EXPECT().GetByEmail(gomock.Any(), "yandex_sub1@yandex.local").Return(usermodel.User{}, false)
 		passwords.EXPECT().Hash(gomock.Any()).Return("hashed", nil)
 		users.EXPECT().Create(gomock.Any(), gomock.AssignableToTypeOf(usermodel.User{})).
 			DoAndReturn(func(_ context.Context, u usermodel.User) (usermodel.User, error) {
-				if u.Email != "google_sub1@google.local" || u.Username != "sub1" || u.UserSurname != "sub1" {
+				if u.Email != "yandex_sub1@yandex.local" || u.Username != "sub1" {
 					t.Fatalf("unexpected created user: %+v", u)
 				}
 				u.ID = "user-2"
@@ -59,7 +59,7 @@ func TestOAuthUserServiceFindOrCreateFromOAuth(t *testing.T) {
 			})
 
 		user, err := svc.FindOrCreateFromOAuth(context.Background(), authmodel.OAuthIdentity{
-			Provider:  "google",
+			Provider:  "yandex",
 			SubjectID: "sub-1",
 			Username:  "sub-1",
 		})
@@ -86,7 +86,7 @@ func TestOAuthUserServiceFindOrCreateFromOAuth(t *testing.T) {
 		users.EXPECT().GetByEmail(gomock.Any(), "user@example.com").Return(existing, true)
 
 		user, err := svc.FindOrCreateFromOAuth(context.Background(), authmodel.OAuthIdentity{
-			Provider:  "google",
+			Provider:  "yandex",
 			SubjectID: "sub-1",
 			Email:     "user@example.com",
 			Username:  "user",
@@ -111,14 +111,14 @@ func TestOAuthUserServiceValidationAndHashErrors(t *testing.T) {
 	if _, err := svc.FindOrCreateFromOAuth(context.Background(), authmodel.OAuthIdentity{}); err == nil {
 		t.Fatal("expected provider error")
 	}
-	if _, err := svc.FindOrCreateFromOAuth(context.Background(), authmodel.OAuthIdentity{Provider: "google"}); err == nil {
+	if _, err := svc.FindOrCreateFromOAuth(context.Background(), authmodel.OAuthIdentity{Provider: "yandex"}); err == nil {
 		t.Fatal("expected empty identity error")
 	}
 
 	users.EXPECT().GetByEmail(gomock.Any(), "user@example.com").Return(usermodel.User{}, false)
 	passwords.EXPECT().Hash(gomock.Any()).Return("", errors.New("hash failed"))
 	if _, err := svc.FindOrCreateFromOAuth(context.Background(), authmodel.OAuthIdentity{
-		Provider:  "google",
+		Provider:  "yandex",
 		SubjectID: "sub-1",
 		Email:     "user@example.com",
 	}); err == nil {

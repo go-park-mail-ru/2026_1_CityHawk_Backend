@@ -16,10 +16,10 @@ func TestScanUserWithSQLMock(t *testing.T) {
 
 	now := time.Date(2026, time.April, 15, 12, 0, 0, 0, time.UTC)
 	rows := sqlmock.NewRows([]string{
-		"id", "email", "username", "user_surname", "password_hash", "birthday", "city_id", "avatar_url", "bio", "role", "interest_tag_ids", "created_at", "updated_at",
+		"id", "email", "username", "password_hash", "birthday", "city_id", "avatar_url", "bio", "role", "interest_tag_ids", "created_at", "updated_at",
 		"city_record_id", "city_name", "country_name", "timezone",
 	}).AddRow(
-		"user-1", "user@example.com", "user_1", "Иванов", "hash", now, "city-1", "/uploads/avatars/file.png", "bio", "user", nil, now, now,
+		"user-1", "user@example.com", "user_1", "hash", now, "city-1", "/uploads/avatars/file.png", "bio", "user", nil, now, now,
 		"city-1", "Москва", "Россия", "Europe/Moscow",
 	)
 	mock.ExpectQuery("SELECT \\* FROM user_account").WillReturnRows(rows)
@@ -52,10 +52,10 @@ func TestScanUserParsesInterestTagIDs(t *testing.T) {
 
 	now := time.Date(2026, time.April, 15, 12, 0, 0, 0, time.UTC)
 	rows := sqlmock.NewRows([]string{
-		"id", "email", "username", "user_surname", "password_hash", "birthday", "city_id", "avatar_url", "bio", "role", "interest_tag_ids", "created_at", "updated_at",
+		"id", "email", "username", "password_hash", "birthday", "city_id", "avatar_url", "bio", "role", "interest_tag_ids", "created_at", "updated_at",
 		"city_record_id", "city_name", "country_name", "timezone",
 	}).AddRow(
-		"user-1", "user@example.com", "user_1", "Иванов", "hash", nil, nil, nil, nil, "user",
+		"user-1", "user@example.com", "user_1", "hash", nil, nil, nil, nil, "user",
 		`["3dd89159-c28b-48bf-baa2-f920b0f315da","5f1f5ad0-343c-4e4a-afc4-3e2e68132f64"]`,
 		now, now, nil, nil, nil, nil,
 	)

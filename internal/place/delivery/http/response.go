@@ -1,9 +1,10 @@
 package http
 
 type taxonomyItemResponse struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Slug string `json:"slug"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Slug  string `json:"slug"`
+	Group string `json:"group,omitempty"`
 }
 
 type eventCardNextSessionPlaceResponse struct {
@@ -21,13 +22,16 @@ type eventCardNextSessionResponse struct {
 }
 
 type eventCardResponse struct {
-	ID               string                        `json:"id"`
-	Title            string                        `json:"title"`
-	ShortDescription string                        `json:"shortDescription"`
-	CoverImageURL    string                        `json:"coverImageUrl"`
-	IsFavorite       bool                          `json:"isFavorite"`
-	Tags             []taxonomyItemResponse        `json:"tags"`
-	NextSession      *eventCardNextSessionResponse `json:"nextSession"`
+	ID               string                             `json:"id"`
+	Title            string                             `json:"title"`
+	ShortDescription string                             `json:"shortDescription"`
+	CoverImageURL    string                             `json:"coverImageUrl"`
+	IsFavorite       bool                               `json:"isFavorite"`
+	Tags             []taxonomyItemResponse             `json:"tags"`
+	Place            *eventCardNextSessionPlaceResponse `json:"place,omitempty"`
+	PlaceName        string                             `json:"placeName,omitempty"`
+	AddressLine      string                             `json:"addressLine,omitempty"`
+	NextSession      *eventCardNextSessionResponse      `json:"nextSession"`
 }
 
 type eventListResponse struct {
@@ -65,29 +69,32 @@ type eventSessionPlaceResponse struct {
 }
 
 type eventSessionResponse struct {
-	ID      string                    `json:"id"`
-	StartAt string                    `json:"startAt"`
-	EndAt   string                    `json:"endAt"`
-	Price   int                       `json:"price"`
-	Place   eventSessionPlaceResponse `json:"place"`
+	ID        string                    `json:"id"`
+	StartAt   string                    `json:"startAt"`
+	EndAt     string                    `json:"endAt"`
+	Price     int                       `json:"price"`
+	PlaceName string                    `json:"placeName"`
+	Place     eventSessionPlaceResponse `json:"place"`
 }
 
 type eventDetailsResponse struct {
-	ID               string                 `json:"id"`
-	Title            string                 `json:"title"`
-	ShortDescription string                 `json:"shortDescription"`
-	FullDescription  string                 `json:"fullDescription"`
-	AgeLimit         int                    `json:"ageLimit"`
-	SourceURL        *string                `json:"sourceUrl"`
-	Author           eventAuthorResponse    `json:"author"`
-	Categories       []taxonomyItemResponse `json:"categories"`
-	Tags             []taxonomyItemResponse `json:"tags"`
-	Images           []eventImageResponse   `json:"images"`
-	Sessions         []eventSessionResponse `json:"sessions"`
-	CreatedAt        string                 `json:"createdAt"`
-	UpdatedAt        string                 `json:"updatedAt"`
-	IsFavorite       bool                   `json:"isFavorite"`
-	IsOwner          bool                   `json:"isOwner"`
+	ID               string                     `json:"id"`
+	Title            string                     `json:"title"`
+	ShortDescription string                     `json:"shortDescription"`
+	FullDescription  string                     `json:"fullDescription"`
+	AgeLimit         int                        `json:"ageLimit"`
+	SourceURL        *string                    `json:"sourceUrl"`
+	Author           eventAuthorResponse        `json:"author"`
+	PlaceName        string                     `json:"placeName,omitempty"`
+	Place            *eventSessionPlaceResponse `json:"place,omitempty"`
+	Categories       []taxonomyItemResponse     `json:"categories"`
+	Tags             []taxonomyItemResponse     `json:"tags"`
+	Images           []eventImageResponse       `json:"images"`
+	Sessions         []eventSessionResponse     `json:"sessions"`
+	CreatedAt        string                     `json:"createdAt"`
+	UpdatedAt        string                     `json:"updatedAt"`
+	IsFavorite       bool                       `json:"isFavorite"`
+	IsOwner          bool                       `json:"isOwner"`
 }
 
 type eventIDResponse struct {
@@ -136,7 +143,7 @@ type collectionDetailsResponse struct {
 
 type searchSuggestionResponse struct {
 	ID          string  `json:"id"`
-	Type        string  `json:"type"`
+	Type        string  `json:"type,omitempty"`
 	Title       string  `json:"title"`
 	Label       string  `json:"label"`
 	AvatarURL   *string `json:"avatarUrl,omitempty"`

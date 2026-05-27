@@ -5,7 +5,6 @@ erDiagram
         uuid id PK
         text email UK
         text username
-        text user_surname
         text password_hash
         datetime birthday
         uuid city_id FK
@@ -27,6 +26,23 @@ erDiagram
         text description
         text website_url
         boolean is_verified
+        datetime created_at
+        datetime updated_at
+    }
+
+    ORGANIZER_APPLICATION {
+        uuid id PK
+        uuid user_id FK
+        text status
+        text name
+        text email
+        text phone
+        text city
+        text project_name
+        text categories
+        text links
+        text about
+        text review_comment
         datetime created_at
         datetime updated_at
     }
@@ -167,6 +183,7 @@ erDiagram
         uuid id PK
         uuid sender_user_id FK
         uuid recipient_user_id FK
+        text status
         text message_text
         datetime responded_at
         datetime created_at
@@ -176,11 +193,15 @@ erDiagram
     EVENT_INVITATION_EVENT {
         uuid invitation_id PK, FK
         uuid event_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     EVENT_INVITATION_SESSION {
         uuid invitation_id PK, FK
         uuid event_session_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     SHARE_LINK {
@@ -194,11 +215,15 @@ erDiagram
     SHARE_LINK_EVENT {
         uuid share_link_id PK, FK
         uuid event_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     SHARE_LINK_COLLECTION {
         uuid share_link_id PK, FK
         uuid collection_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     NOTIFICATION {
@@ -214,26 +239,36 @@ erDiagram
     NOTIFICATION_ACTOR {
         uuid notification_id PK, FK
         uuid author_user_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     NOTIFICATION_EVENT {
         uuid notification_id PK, FK
         uuid event_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     NOTIFICATION_EVENT_SESSION {
         uuid notification_id PK, FK
         uuid event_session_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     NOTIFICATION_INVITATION {
         uuid notification_id PK, FK
         uuid invitation_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     NOTIFICATION_COLLECTION {
         uuid notification_id PK, FK
         uuid collection_id FK
+        datetime created_at
+        datetime updated_at
     }
 
     SUPPORT_TICKET {
@@ -260,6 +295,7 @@ erDiagram
     USER_ACCOUNT }o--|| CITY : "city_id FK"
     USER_ROLE }o--|| USER_ACCOUNT : "user_id FK"
     ORGANIZER_PROFILE ||--|| USER_ACCOUNT : "user_id FK"
+    ORGANIZER_APPLICATION }o--|| USER_ACCOUNT : "user_id FK"
     REFRESH_SESSION }o--|| USER_ACCOUNT : "user_id FK"
     PLACE }o--|| CITY : "city_id FK"
 
@@ -323,4 +359,9 @@ erDiagram
 ALTER TABLE user_role
   ADD CONSTRAINT user_role_allowed_values
   CHECK (role IN ('user', 'organizer', 'admin'));
+
+-- EVENT_INVITATION: состояние ответа получателя
+ALTER TABLE event_invitation
+  ADD CONSTRAINT event_invitation_status_allowed_values
+  CHECK (status IN ('pending', 'accepted', 'declined', 'cancelled'));
 ```

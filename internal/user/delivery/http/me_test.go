@@ -28,7 +28,6 @@ func TestMeHandlerFlow(t *testing.T) {
 	body := patchMeRequest{
 		Email:          stringPtr("new@example.com"),
 		Username:       stringPtr("new_user"),
-		UserSurname:    stringPtr("New"),
 		Birthday:       stringPtr("2001-02-03"),
 		CityID:         stringPtr("11111111-1111-1111-1111-111111111111"),
 		Bio:            stringPtr("Bio"),
@@ -93,7 +92,7 @@ func meTestUser() usermodel.User {
 	avatar := "/uploads/avatar.png"
 	bio := "Bio"
 	return usermodel.User{
-		ID: "user-1", Email: "user@example.com", Username: "user", UserSurname: "surname",
+		ID: "user-1", Email: "user@example.com", Username: "user",
 		Role: usermodel.RoleUser, Birthday: &birthday, AvatarURL: &avatar, Bio: &bio,
 		InterestTagIDs: []string{"tag-1"},
 		City:           &usermodel.City{ID: "city-1", Name: "Moscow", CountryName: "Russia", Timezone: "Europe/Moscow"},

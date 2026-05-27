@@ -282,10 +282,21 @@ func (h *Handler) MapCollectionSpots(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				return err
 			}
-			if !ok || len(event.Sessions) == 0 {
+			if !ok {
 				continue
 			}
-			session := event.Sessions[0]
+			place := event.Place
+			startAt := ""
+			if len(event.Sessions) > 0 {
+				session := event.Sessions[0]
+				startAt = session.StartAt.UTC().Format("2006-01-02T15:04:05Z")
+				if place == nil {
+					place = &session.Place
+				}
+			}
+			if place == nil {
+				continue
+			}
 			imageURL := ""
 			if len(event.Images) > 0 {
 				imageURL = media.PublicURL(event.Images[0].ImageURL)
@@ -295,14 +306,14 @@ func (h *Handler) MapCollectionSpots(w http.ResponseWriter, r *http.Request) {
 				tags = append(tags, taxonomyItemResponse{ID: tag.ID, Name: safety.EscapeText(tag.Name), Slug: tag.Slug})
 			}
 			items = append(items, mapSpotResponse{
-				ID:         session.Place.ID,
+				ID:         place.ID,
 				EventID:    event.ID,
 				Title:      safety.EscapeText(event.Title),
-				Address:    safety.EscapeText(session.Place.AddressLine),
-				Latitude:   session.Place.Latitude,
-				Longitude:  session.Place.Longitude,
+				Address:    safety.EscapeText(place.AddressLine),
+				Latitude:   place.Latitude,
+				Longitude:  place.Longitude,
 				ImageURL:   imageURL,
-				StartAt:    session.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
+				StartAt:    startAt,
 				Popularity: card.Popularity,
 				Tags:       tags,
 			})
@@ -543,6 +554,9 @@ func decodeMultipartCreateEventRequest(r *http.Request) (createEventRequest, []*
 	if value, ok := multipartOptionalStringValue(r.MultipartForm, "sourceUrl"); ok {
 		req.SourceURL = value
 	}
+	if value, ok := multipartOptionalStringValue(r.MultipartForm, "placeId"); ok {
+		req.PlaceID = value
+	}
 
 	categoryIDs, err := multipartStringSliceValue(r.MultipartForm, "categoryIds")
 	if err != nil {
@@ -594,6 +608,10 @@ func decodeMultipartPatchEventRequest(r *http.Request) (patchEventRequest, []*mu
 	if value, ok := multipartOptionalStringValue(r.MultipartForm, "sourceUrl"); ok {
 		req.SourceURL.Set = true
 		req.SourceURL.Value = value
+	}
+	if value, ok := multipartOptionalStringValue(r.MultipartForm, "placeId"); ok {
+		req.PlaceID.Set = true
+		req.PlaceID.Value = value
 	}
 	if values, ok, err := multipartOptionalStringSliceValue(r.MultipartForm, "categoryIds"); err != nil {
 		return patchEventRequest{}, nil, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"categoryIds": "categoryIds must be a JSON array of strings"})
@@ -891,9 +909,7 @@ func validateCreateEventRequest(req createEventRequest, userID string) (placemod
 	}
 
 	sessions := []placemodel.EventSessionInput{}
-	if len(req.Sessions) == 0 {
-		details["sessions"] = "sessions is required"
-	} else {
+	if len(req.Sessions) > 0 {
 		parsedSessions, sessionErrs := validateSessions(req.Sessions)
 		for key, value := range sessionErrs {
 			details[key] = value
@@ -929,6 +945,16 @@ func validateCreateEventRequest(req createEventRequest, userID string) (placemod
 		}
 	}
 
+	var placeID *string
+	if req.PlaceID != nil {
+		value := strings.TrimSpace(*req.PlaceID)
+		if value == "" {
+			details["placeId"] = "placeId must not be empty"
+		} else {
+			placeID = &value
+		}
+	}
+
 	if len(details) > 0 {
 		return placemodel.EventWriteInput{}, httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", details)
 	}
@@ -943,6 +969,7 @@ func validateCreateEventRequest(req createEventRequest, userID string) (placemod
 		CategoryIDs:      &categoryIDs,
 		TagIDs:           &tagIDs,
 		ImageURLs:        &imageURLs,
+		PlaceID:          placeID,
 		Sessions:         &sessions,
 	}, nil
 }
@@ -1020,6 +1047,18 @@ func validatePatchEventRequest(req patchEventRequest, eventID, userID string) (p
 			}
 		}
 		input.ImageURLs = &value
+	}
+	if req.PlaceID.Set {
+		if req.PlaceID.Value == nil {
+			input.ClearPlace = true
+		} else {
+			value := strings.TrimSpace(*req.PlaceID.Value)
+			if value == "" {
+				details["placeId"] = "placeId must not be empty"
+			} else {
+				input.PlaceID = &value
+			}
+		}
 	}
 	if req.Sessions != nil {
 		value, sessionErrs := validateSessions(*req.Sessions)

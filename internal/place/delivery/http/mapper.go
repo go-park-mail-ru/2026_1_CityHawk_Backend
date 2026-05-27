@@ -50,10 +50,11 @@ func toEventDetailsResponse(item placemodel.EventDetailsView) eventDetailsRespon
 	sessions := make([]eventSessionResponse, 0, len(item.Sessions))
 	for _, session := range item.Sessions {
 		sessions = append(sessions, eventSessionResponse{
-			ID:      session.ID,
-			StartAt: session.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
-			EndAt:   session.EndAt.UTC().Format("2006-01-02T15:04:05Z"),
-			Price:   session.Price,
+			ID:        session.ID,
+			StartAt:   session.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
+			EndAt:     session.EndAt.UTC().Format("2006-01-02T15:04:05Z"),
+			Price:     session.Price,
+			PlaceName: safety.EscapeText(session.Place.Name),
 			Place: eventSessionPlaceResponse{
 				ID:          session.Place.ID,
 				Name:        safety.EscapeText(session.Place.Name),
@@ -70,6 +71,13 @@ func toEventDetailsResponse(item placemodel.EventDetailsView) eventDetailsRespon
 		})
 	}
 
+	var place *eventSessionPlaceResponse
+	placeName := ""
+	if eventPlace := primaryEventPlace(item); eventPlace != nil {
+		place = toEventSessionPlaceResponse(*eventPlace)
+		placeName = place.Name
+	}
+
 	return eventDetailsResponse{
 		ID:               item.ID,
 		Title:            safety.EscapeText(item.Title),
@@ -82,6 +90,8 @@ func toEventDetailsResponse(item placemodel.EventDetailsView) eventDetailsRespon
 			Username:  safety.EscapeText(item.Author.Username),
 			AvatarURL: media.PublicURLPtr(item.Author.AvatarURL),
 		},
+		PlaceName:  placeName,
+		Place:      place,
 		Categories: categories,
 		Tags:       tags,
 		Images:     images,
@@ -90,6 +100,32 @@ func toEventDetailsResponse(item placemodel.EventDetailsView) eventDetailsRespon
 		UpdatedAt:  item.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 		IsFavorite: item.IsFavorite,
 		IsOwner:    item.IsOwner,
+	}
+}
+
+func primaryEventPlace(item placemodel.EventDetailsView) *placemodel.EventSessionPlaceView {
+	if item.Place != nil {
+		return item.Place
+	}
+	if len(item.Sessions) == 0 || item.Sessions[0].Place.ID == "" {
+		return nil
+	}
+	return &item.Sessions[0].Place
+}
+
+func toEventSessionPlaceResponse(item placemodel.EventSessionPlaceView) *eventSessionPlaceResponse {
+	return &eventSessionPlaceResponse{
+		ID:          item.ID,
+		Name:        safety.EscapeText(item.Name),
+		AddressLine: safety.EscapeText(item.AddressLine),
+		Latitude:    item.Latitude,
+		Longitude:   item.Longitude,
+		City: eventSessionPlaceCityResponse{
+			ID:          item.City.ID,
+			Name:        safety.EscapeText(item.City.Name),
+			CountryName: safety.EscapeText(item.City.CountryName),
+			Timezone:    item.City.Timezone,
+		},
 	}
 }
 
@@ -109,9 +145,10 @@ func toTagsResponse(items []placemodel.HomeTag) tagsResponse {
 	respItems := make([]taxonomyItemResponse, 0, len(items))
 	for _, item := range items {
 		respItems = append(respItems, taxonomyItemResponse{
-			ID:   item.ID,
-			Name: safety.EscapeText(item.Name),
-			Slug: item.Slug,
+			ID:    item.ID,
+			Name:  safety.EscapeText(item.Name),
+			Slug:  item.Slug,
+			Group: item.Group,
 		})
 	}
 	return tagsResponse{Items: respItems}
@@ -164,12 +201,9 @@ func toSearchSuggestionsResponse(items []placemodel.SearchSuggestion) searchSugg
 	respItems := make([]searchSuggestionResponse, 0, len(items))
 	for _, item := range items {
 		respItems = append(respItems, searchSuggestionResponse{
-			ID:          item.ID,
-			Type:        item.Type,
-			Title:       safety.EscapeText(item.Title),
-			Label:       safety.EscapeText(item.Label),
-			AvatarURL:   media.PublicURLPtr(item.AvatarURL),
-			IsFollowing: item.IsFollowing,
+			ID:    item.ID,
+			Title: safety.EscapeText(item.Title),
+			Label: safety.EscapeText(item.Label),
 		})
 	}
 	return searchSuggestionsResponse{Items: respItems}
@@ -187,13 +221,18 @@ func toHomePayloadResponse(p placemodel.HomePayload) homePayloadResponse {
 			})
 		}
 
+		startAt := ""
+		if !item.NextSession.StartAt.IsZero() {
+			startAt = item.NextSession.StartAt.UTC().Format("2006-01-02T15:04:05Z")
+		}
+
 		featuredEvents = append(featuredEvents, homeFeaturedEventResponse{
 			ID:            item.ID,
 			Title:         safety.EscapeText(item.Title),
 			CoverImageURL: media.PublicURL(item.CoverImageURL),
 			Tags:          tags,
 			NextSession: homeNextSessionResponse{
-				StartAt: item.NextSession.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
+				StartAt: startAt,
 				Place: homeNextSessionPlaceResponse{
 					Name:        safety.EscapeText(item.NextSession.Place.Name),
 					AddressLine: safety.EscapeText(item.NextSession.Place.AddressLine),
@@ -232,30 +271,34 @@ func toEventCardResponse(item placemodel.EventCardView) eventCardResponse {
 	tags := make([]taxonomyItemResponse, 0, len(item.Tags))
 	for _, tag := range item.Tags {
 		tags = append(tags, taxonomyItemResponse{
-			ID:   tag.ID,
-			Name: safety.EscapeText(tag.Name),
-			Slug: tag.Slug,
+			ID:    tag.ID,
+			Name:  safety.EscapeText(tag.Name),
+			Slug:  tag.Slug,
+			Group: tag.Group,
 		})
+	}
+
+	var place *eventCardNextSessionPlaceResponse
+	if item.Place != nil {
+		place = toEventCardPlaceResponse(*item.Place)
 	}
 
 	var nextSession *eventCardNextSessionResponse
 	if item.NextSession != nil {
 		nextSession = &eventCardNextSessionResponse{
 			StartAt: item.NextSession.StartAt.UTC().Format("2006-01-02T15:04:05Z"),
-			Place: eventCardNextSessionPlaceResponse{
-				Name:        safety.EscapeText(item.NextSession.Place.Name),
-				AddressLine: safety.EscapeText(item.NextSession.Place.AddressLine),
-				ID:          item.NextSession.Place.ID,
-				Latitude:    item.NextSession.Place.Latitude,
-				Longitude:   item.NextSession.Place.Longitude,
-				City: eventSessionPlaceCityResponse{
-					ID:          item.NextSession.Place.City.ID,
-					Name:        safety.EscapeText(item.NextSession.Place.City.Name),
-					CountryName: safety.EscapeText(item.NextSession.Place.City.CountryName),
-					Timezone:    item.NextSession.Place.City.Timezone,
-				},
-			},
+			Place:   *toEventCardPlaceResponse(item.NextSession.Place),
 		}
+		if place == nil {
+			place = toEventCardPlaceResponse(item.NextSession.Place)
+		}
+	}
+
+	placeName := ""
+	addressLine := ""
+	if place != nil {
+		placeName = place.Name
+		addressLine = place.AddressLine
 	}
 
 	return eventCardResponse{
@@ -265,6 +308,25 @@ func toEventCardResponse(item placemodel.EventCardView) eventCardResponse {
 		CoverImageURL:    media.PublicURL(item.CoverImageURL),
 		IsFavorite:       item.IsFavorite,
 		Tags:             tags,
+		Place:            place,
+		PlaceName:        placeName,
+		AddressLine:      addressLine,
 		NextSession:      nextSession,
+	}
+}
+
+func toEventCardPlaceResponse(place placemodel.EventCardNextSessionPlace) *eventCardNextSessionPlaceResponse {
+	return &eventCardNextSessionPlaceResponse{
+		Name:        safety.EscapeText(place.Name),
+		AddressLine: safety.EscapeText(place.AddressLine),
+		ID:          place.ID,
+		Latitude:    place.Latitude,
+		Longitude:   place.Longitude,
+		City: eventSessionPlaceCityResponse{
+			ID:          place.City.ID,
+			Name:        safety.EscapeText(place.City.Name),
+			CountryName: safety.EscapeText(place.City.CountryName),
+			Timezone:    place.City.Timezone,
+		},
 	}
 }
