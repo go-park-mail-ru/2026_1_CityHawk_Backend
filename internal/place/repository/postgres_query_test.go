@@ -32,8 +32,8 @@ func TestBuildListEventsQueryUsesJoinFilters(t *testing.T) {
 
 	for _, unwanted := range []string{
 		"SELECT DISTINCT ON (es.event_id)",
-		"EXISTS (SELECT 1 FROM event_category",
-		"EXISTS (SELECT 1 FROM event_tag",
+		"EXISTS (SELECT 1 FROM event_category ec_filter",
+		"EXISTS (SELECT 1 FROM event_tag et_filter",
 		"EXISTS (SELECT 1 FROM event_session",
 		"EXISTS (SELECT 1 FROM collection_event",
 		"EXISTS (SELECT 1 FROM favorite_event",
@@ -47,6 +47,8 @@ func TestBuildListEventsQueryUsesJoinFilters(t *testing.T) {
 		"JOIN event_category ec_filter",
 		"JOIN event_tag et_filter",
 		"JOIN event_session es_filter",
+		"FROM event_category ec_query",
+		"FROM event_tag et_query",
 		"FROM event_place ep_city",
 		"FROM event_session es_city",
 		"JOIN collection_event ce_filter",
@@ -60,6 +62,30 @@ func TestBuildListEventsQueryUsesJoinFilters(t *testing.T) {
 
 	if len(args) != 11 {
 		t.Fatalf("buildListEventsQuery() args len = %d, want 11", len(args))
+	}
+}
+
+func TestToEventCardIncludesPlaceWithoutNextSession(t *testing.T) {
+	card := toEventCard(eventListRow{
+		ID:          "event-1",
+		Title:       "Secret place",
+		ShortDesc:   "Hidden yard",
+		PlaceID:     "place-1",
+		PlaceName:   "Hidden Yard",
+		AddressLine: "Moscow, Tverskaya 1",
+		Latitude:    55.7,
+		Longitude:   37.6,
+		CityID:      "city-1",
+		CityName:    "Moscow",
+		CountryName: "Russia",
+		Timezone:    "Europe/Moscow",
+	})
+
+	if card.NextSession != nil {
+		t.Fatalf("toEventCard() nextSession = %+v, want nil", card.NextSession)
+	}
+	if card.Place == nil || card.Place.Name != "Hidden Yard" || card.Place.AddressLine == "" {
+		t.Fatalf("toEventCard() place = %+v, want populated place", card.Place)
 	}
 }
 

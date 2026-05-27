@@ -1,4 +1,4 @@
--- CityHawk seed: коллекция «Места для фото»
+-- CityHawk seed: коллекция «Красиво в кадре»
 -- Источник локаций и фотографий: https://bagmutskiy.com/blog/100-luchshih-mest-dlya-fotosessii-v-moskve/
 -- Важно: описания ниже написаны своими словами для карточек CityHawk, а не скопированы из статьи.
 -- Фото оставлены внешними ссылками с сайта-источника/CDN; для продакшена лучше заменить на свои/разрешенные изображения.
@@ -591,12 +591,12 @@ JOIN tag t ON t.name = v.tag_name
 ON CONFLICT (event_id, tag_id) DO NOTHING;
 
 
--- 9. Коллекция «Места для фото»
+-- 9. Коллекция «Красиво в кадре»
 INSERT INTO collection (author_user_id, city_id, title, slug, description, is_public)
 SELECT
     u.id,
     c.id,
-    'Места для фото',
+    'Красиво в кадре',
     'photo-spots-moscow',
     'Фотогеничные места Москвы для прогулок, свиданий, портретов и архитектурных кадров.',
     TRUE

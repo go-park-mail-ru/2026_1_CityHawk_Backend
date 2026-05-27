@@ -11,7 +11,6 @@ import (
 
 	placemodel "cityhawk/backend/internal/place/model"
 	platformerrors "cityhawk/backend/internal/platform/errors"
-	"cityhawk/backend/internal/platform/httpx"
 	platformpostgres "cityhawk/backend/internal/platform/postgres"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -152,7 +151,7 @@ func (r *PostgresRepository) ListCategories(ctx context.Context) []placemodel.Ho
 }
 
 func (r *PostgresRepository) ListTags(ctx context.Context) []placemodel.HomeTag {
-	rows, err := r.pool.Query(ctx, `SELECT t.id::text, t.name FROM tag t ORDER BY t.name ASC, t.id ASC`)
+	rows, err := r.pool.Query(ctx, `SELECT t.id::text, t.name, COALESCE(t.tag_group, '') FROM tag t ORDER BY t.tag_group ASC NULLS LAST, t.name ASC, t.id ASC`)
 	if err != nil {
 		return []placemodel.HomeTag{}
 	}
@@ -162,13 +161,15 @@ func (r *PostgresRepository) ListTags(ctx context.Context) []placemodel.HomeTag 
 	for rows.Next() {
 		var id string
 		var name string
-		if err := rows.Scan(&id, &name); err != nil {
+		var group string
+		if err := rows.Scan(&id, &name, &group); err != nil {
 			return []placemodel.HomeTag{}
 		}
 		items = append(items, placemodel.HomeTag{
-			ID:   id,
-			Name: name,
-			Slug: tagSlugify(name),
+			ID:    id,
+			Name:  name,
+			Slug:  tagSlugify(name),
+			Group: group,
 		})
 	}
 	if rows.Err() != nil {
@@ -512,7 +513,6 @@ func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string
 	if limit <= 0 {
 		limit = 5
 	}
-	viewerID, _ := ctx.Value(httpx.UserIDContextKey).(string)
 
 	const sqlQuery = `
 		WITH candidates AS (
@@ -523,35 +523,11 @@ func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string
 				e.title AS label,
 				NULL::text AS avatar_url,
 				false AS is_following,
-				similarity(lower(e.title), lower($1)) AS rank
+				similarity(lower(e.title), lower($1)) AS rank,
+				0 AS priority
 			FROM event e
 			WHERE lower(e.title) LIKE '%' || lower($1) || '%'
 			   OR e.title % $1
-			UNION ALL
-			SELECT
-				u.id::text AS id,
-				'user' AS type,
-				COALESCE(NULLIF(btrim(u.username), ''), u.email) AS title,
-				CASE
-					WHEN btrim(u.username) <> '' THEN '@' || u.username
-					ELSE u.email
-				END AS label,
-				u.avatar_url AS avatar_url,
-				EXISTS (
-					SELECT 1
-					FROM user_follow uf
-					WHERE uf.follower_user_id::text = $3
-					  AND uf.followed_user_id = u.id
-				) AS is_following,
-				GREATEST(
-					similarity(lower(u.username), lower($1)),
-					similarity(lower(u.email), lower($1))
-				) AS rank
-			FROM user_account u
-			WHERE lower(u.username) LIKE '%' || lower($1) || '%'
-			   OR lower(u.email) LIKE '%' || lower($1) || '%'
-			   OR u.username % $1
-			   OR u.email % $1
 			UNION ALL
 			SELECT
 				c.id::text AS id,
@@ -560,7 +536,8 @@ func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string
 				c.name AS label,
 				NULL::text AS avatar_url,
 				false AS is_following,
-				similarity(lower(c.name), lower($1)) AS rank
+				similarity(lower(c.name), lower($1)) AS rank,
+				1 AS priority
 			FROM category c
 			WHERE lower(c.name) LIKE '%' || lower($1) || '%'
 			   OR c.name % $1
@@ -572,22 +549,30 @@ func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string
 				t.name AS label,
 				NULL::text AS avatar_url,
 				false AS is_following,
-				similarity(lower(t.name), lower($1)) AS rank
+				similarity(lower(t.name), lower($1)) AS rank,
+				2 AS priority
 			FROM tag t
 			WHERE lower(t.name) LIKE '%' || lower($1) || '%'
 			   OR t.name % $1
+		),
+		ranked AS (
+			SELECT DISTINCT ON (lower(title))
+				id, type, title, label, avatar_url, is_following, rank, priority
+			FROM candidates
+			ORDER BY lower(title), priority ASC, rank DESC, char_length(title) ASC
 		)
 		SELECT id, type, title, label, avatar_url, is_following
-		FROM candidates
+		FROM ranked
 		ORDER BY
 			CASE WHEN lower(title) LIKE lower($1) || '%' THEN 0 ELSE 1 END,
+			priority ASC,
 			rank DESC,
 			char_length(title) ASC,
 			title ASC
 		LIMIT $2
 	`
 
-	rows, err := r.pool.Query(ctx, sqlQuery, query, limit, viewerID)
+	rows, err := r.pool.Query(ctx, sqlQuery, query, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -939,7 +924,25 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 	argPos := 1
 
 	if filter.Query != "" {
-		whereParts = append(whereParts, fmt.Sprintf("(e.title ILIKE $%d OR e.location_description ILIKE $%d OR COALESCE(e.full_description, '') ILIKE $%d)", argPos, argPos, argPos))
+		whereParts = append(whereParts, fmt.Sprintf(`(
+			e.title ILIKE $%d
+			OR e.location_description ILIKE $%d
+			OR COALESCE(e.full_description, '') ILIKE $%d
+			OR EXISTS (
+				SELECT 1
+				FROM event_category ec_query
+				JOIN category c_query ON c_query.id = ec_query.category_id
+				WHERE ec_query.event_id = e.id
+				  AND c_query.name ILIKE $%d
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM event_tag et_query
+				JOIN tag t_query ON t_query.id = et_query.tag_id
+				WHERE et_query.event_id = e.id
+				  AND t_query.name ILIKE $%d
+			)
+		)`, argPos, argPos, argPos, argPos, argPos))
 		args = append(args, "%"+filter.Query+"%")
 		argPos++
 	}
@@ -1431,23 +1434,28 @@ func toEventCard(row eventListRow) placemodel.EventCardView {
 		})
 	}
 
+	var place *placemodel.EventCardNextSessionPlace
+	if strings.TrimSpace(row.PlaceName) != "" || strings.TrimSpace(row.AddressLine) != "" {
+		place = &placemodel.EventCardNextSessionPlace{
+			Name:        row.PlaceName,
+			AddressLine: row.AddressLine,
+			ID:          row.PlaceID,
+			Latitude:    row.Latitude,
+			Longitude:   row.Longitude,
+			City: placemodel.EventSessionPlaceCityView{
+				ID:          row.CityID,
+				Name:        row.CityName,
+				CountryName: row.CountryName,
+				Timezone:    row.Timezone,
+			},
+		}
+	}
+
 	var nextSession *placemodel.EventCardNextSession
-	if row.StartAt != nil {
+	if row.StartAt != nil && place != nil {
 		nextSession = &placemodel.EventCardNextSession{
 			StartAt: row.StartAt.UTC(),
-			Place: placemodel.EventCardNextSessionPlace{
-				Name:        row.PlaceName,
-				AddressLine: row.AddressLine,
-				ID:          row.PlaceID,
-				Latitude:    row.Latitude,
-				Longitude:   row.Longitude,
-				City: placemodel.EventSessionPlaceCityView{
-					ID:          row.CityID,
-					Name:        row.CityName,
-					CountryName: row.CountryName,
-					Timezone:    row.Timezone,
-				},
-			},
+			Place:   *place,
 		}
 	}
 
@@ -1457,6 +1465,7 @@ func toEventCard(row eventListRow) placemodel.EventCardView {
 		ShortDescription: row.ShortDesc,
 		CoverImageURL:    row.CoverImageURL,
 		Tags:             tags,
+		Place:            place,
 		NextSession:      nextSession,
 		IsFavorite:       row.IsFavorite,
 		Popularity:       row.Popularity,

@@ -116,9 +116,10 @@ func (r *InMemoryRepository) ListTags(_ context.Context) []placemodel.HomeTag {
 		event := r.byID[id]
 		for _, tag := range event.Tags {
 			tagsSet[tag.ID] = placemodel.HomeTag{
-				ID:   tag.ID,
-				Name: tag.Name,
-				Slug: tag.Slug,
+				ID:    tag.ID,
+				Name:  tag.Name,
+				Slug:  tag.Slug,
+				Group: tag.Group,
 			}
 		}
 	}
@@ -218,18 +219,17 @@ func (r *InMemoryRepository) SearchSuggestions(_ context.Context, query string, 
 	items := make([]placemodel.SearchSuggestion, 0)
 
 	add := func(id, kind, title string) {
-		key := kind + ":" + strings.ToLower(strings.TrimSpace(id))
 		labelKey := strings.ToLower(strings.TrimSpace(title))
-		if key == "" {
+		if labelKey == "" {
 			return
 		}
 		if !strings.Contains(labelKey, query) && !strings.HasPrefix(labelKey, query) {
 			return
 		}
-		if _, ok := seen[key]; ok {
+		if _, ok := seen[labelKey]; ok {
 			return
 		}
-		seen[key] = struct{}{}
+		seen[labelKey] = struct{}{}
 		items = append(items, placemodel.SearchSuggestion{ID: id, Type: kind, Title: title, Label: title})
 	}
 
@@ -462,7 +462,7 @@ func firstImageURL(event placemodel.EventDetailsView) string {
 func toHomeTags(tags []placemodel.EventTaxonomyItem) []placemodel.HomeTag {
 	items := make([]placemodel.HomeTag, 0, len(tags))
 	for _, tag := range tags {
-		items = append(items, placemodel.HomeTag{ID: tag.ID, Name: tag.Name, Slug: tag.Slug})
+		items = append(items, placemodel.HomeTag{ID: tag.ID, Name: tag.Name, Slug: tag.Slug, Group: tag.Group})
 	}
 	return items
 }
@@ -477,15 +477,30 @@ func homeCollectionsForEvents(events []placemodel.EventDetailsView) []placemodel
 }
 
 func toCard(event placemodel.EventDetailsView) placemodel.EventCardView {
+	var place *placemodel.EventCardNextSessionPlace
 	var nextSession *placemodel.EventCardNextSession
 	if len(event.Sessions) > 0 {
 		first := event.Sessions[0]
+		place = &placemodel.EventCardNextSessionPlace{
+			Name:        first.Place.Name,
+			AddressLine: first.Place.AddressLine,
+			ID:          first.Place.ID,
+			Latitude:    first.Place.Latitude,
+			Longitude:   first.Place.Longitude,
+			City:        first.Place.City,
+		}
 		nextSession = &placemodel.EventCardNextSession{
 			StartAt: first.StartAt,
-			Place: placemodel.EventCardNextSessionPlace{
-				Name:        first.Place.Name,
-				AddressLine: first.Place.AddressLine,
-			},
+			Place:   *place,
+		}
+	} else if event.Place != nil {
+		place = &placemodel.EventCardNextSessionPlace{
+			Name:        event.Place.Name,
+			AddressLine: event.Place.AddressLine,
+			ID:          event.Place.ID,
+			Latitude:    event.Place.Latitude,
+			Longitude:   event.Place.Longitude,
+			City:        event.Place.City,
 		}
 	}
 	return placemodel.EventCardView{
@@ -494,6 +509,7 @@ func toCard(event placemodel.EventDetailsView) placemodel.EventCardView {
 		ShortDescription: event.ShortDescription,
 		CoverImageURL:    firstImageURL(event),
 		Tags:             event.Tags,
+		Place:            place,
 		NextSession:      nextSession,
 		IsFavorite:       event.IsFavorite,
 	}
@@ -504,7 +520,9 @@ func matchesFilter(event placemodel.EventDetailsView, filter placemodel.EventLis
 		query := strings.ToLower(filter.Query)
 		if !strings.Contains(strings.ToLower(event.Title), query) &&
 			!strings.Contains(strings.ToLower(event.ShortDescription), query) &&
-			!strings.Contains(strings.ToLower(event.FullDescription), query) {
+			!strings.Contains(strings.ToLower(event.FullDescription), query) &&
+			!taxonomyContains(event.Categories, query) &&
+			!taxonomyContains(event.Tags, query) {
 			return false
 		}
 	}
@@ -528,6 +546,15 @@ func matchesHomeCityFilter(event placemodel.EventDetailsView, city string) bool 
 	for _, session := range event.Sessions {
 		sessionCity := session.Place.City
 		if strings.ToLower(sessionCity.ID) == city || strings.ToLower(sessionCity.Name) == city {
+			return true
+		}
+	}
+	return false
+}
+
+func taxonomyContains(items []placemodel.EventTaxonomyItem, query string) bool {
+	for _, item := range items {
+		if strings.Contains(strings.ToLower(item.Name), query) {
 			return true
 		}
 	}

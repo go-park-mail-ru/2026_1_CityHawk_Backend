@@ -125,7 +125,6 @@ CROSS JOIN (
         ('Две Анны', 'dve-anny', 'Большой театр', 'Балетный байопик о судьбах Анны Ахматовой и Анны Павловой. Трагикомедийный спектакль о любви и страсти, где соединяются поэзия и танец.', 12, 'https://bolshoi.ru/ru/performances/ballet/dve-anny'),
         ('Песнь любви. Песнь скорби', 'pesn-lyubvi-pesn-skorbi', 'Театр «Шалом»', 'Медитативная постановка по мотивам древних текстов, приписываемых царю Соломону. Спектакль-размышление о вечном вопросе: чего в жизни больше — любви или скорби.', 16, 'https://shalom-theatre.ru/spektakli/PL/'),
         ('Лир', 'lir', 'Театр «Шалом»', 'Премьера трагедии Уильяма Шекспира в постановке лауреата «Золотой маски» Яны Туминой. Новое прочтение классической истории о власти, безумии и неблагодарности.', 16, 'https://shalom-theatre.ru/spektakli/lir/'),
-        ('Гамлет', 'gamlet', 'МХТ имени А. П. Чехова', 'Долгожданная премьера с Юрой Борисовым в главной роли. Режиссер Андрей Гончаров исследует психологическую природу героя и экзистенциальные вопросы бытия.', 16, 'https://mxat.ru/playbill/gamlet/'),
         ('Призрак мюзикла', 'prizrak-myuzikla', 'Театр на Цветном (Театр «Бродвей Москва»)', 'Комедийный сиквел популярного мюзикла. Герои любительского театра приезжают покорять Москву и за одну ночь пытаются поставить новаторскую версию «Призрака Оперы».', 12, 'https://www.broadway-moscow.ru/prizrak_muzikla'),
         ('Москва-Петушки', 'moskva-petushki', 'Театр «Кашемир»', 'Спектакль-путешествие по постмодернистской поэме Венедикта Ерофеева. Режиссер Федор Малышев представляет историю Венички как духовную одиссею и путь к потерянному раю.', 18, 'https://teatrkashemir.ru/moskva-petushki'),
         ('Идиоты', 'idioty', 'МХТ имени А. П. Чехова', 'Спектакль по мотивам романа Достоевского. Постановка исследует тему «положительно прекрасного человека» в современном мире.', 16, 'https://mxat.ru/playbill/idioty/'),
@@ -154,7 +153,6 @@ FROM (
         ('dve-anny', 'Большой театр'),
         ('pesn-lyubvi-pesn-skorbi', 'Театр «Шалом»'),
         ('lir', 'Театр «Шалом»'),
-        ('gamlet', 'МХТ имени А. П. Чехова'),
         ('prizrak-myuzikla', 'Театр на Цветном (Театр «Бродвей Москва»)'),
         ('moskva-petushki', 'Театр «Кашемир»'),
         ('idioty', 'МХТ имени А. П. Чехова'),
@@ -203,7 +201,7 @@ WHERE ei.event_id = e.id
   AND e.slug IN (
     'kabala-svyatosh', 'intuicziya', 'zhil-byl-dom', 'lebedinoe-ozero',
     'romeo-i-dzhuletta-lyubov-vne-vremeni', 'dve-anny', 'pesn-lyubvi-pesn-skorbi',
-    'lir', 'gamlet', 'prizrak-myuzikla', 'moskva-petushki', 'idioty',
+    'lir', 'prizrak-myuzikla', 'moskva-petushki', 'idioty',
     'revizor-komediya-v-stihah', 'maskarad'
   );
 
@@ -211,20 +209,19 @@ INSERT INTO event_image (event_id, image_url)
 SELECT e.id, v.image_url
 FROM (
     VALUES
-        ('kabala-svyatosh', '/uploads/events/kabala-svyatosh-01.jpg'),
-        ('intuicziya', '/uploads/events/intuicziya-01.jpg'),
-        ('zhil-byl-dom', '/uploads/events/zhil-byl-dom-01.jpg'),
-        ('lebedinoe-ozero', '/uploads/events/lebedinoe-ozero-01.jpg'),
-        ('romeo-i-dzhuletta-lyubov-vne-vremeni', '/uploads/events/romeo-i-dzhuletta-lyubov-vne-vremeni-01.jpg'),
-        ('dve-anny', '/uploads/events/dve-anny-01.jpg'),
-        ('pesn-lyubvi-pesn-skorbi', '/uploads/events/pesn-lyubvi-pesn-skorbi-01.jpg'),
-        ('lir', '/uploads/events/lir-01.jpg'),
-        ('gamlet', '/uploads/events/gamlet-01.jpg'),
-        ('prizrak-myuzikla', '/uploads/events/prizrak-myuzikla-01.jpg'),
-        ('moskva-petushki', '/uploads/events/moskva-petushki-01.jpg'),
-        ('idioty', '/uploads/events/idioty-01.jpg'),
-        ('revizor-komediya-v-stihah', '/uploads/events/revizor-komediya-v-stihah-01.jpg'),
-        ('maskarad', '/uploads/events/maskarad-01.jpg')
+        ('kabala-svyatosh', '/uploads/events/obshchaya-2.jpg'),
+        ('intuicziya', '/uploads/events/spektakl-intuicziya-v-teatre-sovremennik.jpg'),
+        ('zhil-byl-dom', '/uploads/events/922c49046c121f54bbe5d8459abfae598363e98d.png'),
+        ('lebedinoe-ozero', '/uploads/events/13094_gt7yuc58fzc.jpg'),
+        ('romeo-i-dzhuletta-lyubov-vne-vremeni', '/uploads/events/ab193b98efd4484cb24a81e69c39.jpeg'),
+        ('dve-anny', '/uploads/events/f3597d623a2509987467a580a0dd6e58.jpg'),
+        ('pesn-lyubvi-pesn-skorbi', '/uploads/events/snimok_ekrana_2024_09_26_151109_1x.png'),
+        ('lir', '/uploads/events/bf0a6624ce204100a3419120f125.jpg'),
+        ('prizrak-myuzikla', '/uploads/events/b814d5d1775ed442819f028ab52678d0.jpeg'),
+        ('moskva-petushki', '/uploads/events/5c33b7af497949b5a2afd72395e5.jpg'),
+        ('idioty', '/uploads/events/idioty_081.jpg'),
+        ('revizor-komediya-v-stihah', '/uploads/events/f85172c5173c43c491f8ed7a73e0.jpg'),
+        ('maskarad', '/uploads/events/5fc4cc452b823.jpg')
 ) AS v(event_slug, image_url)
 JOIN event e ON e.slug = v.event_slug
 ON CONFLICT (event_id, image_url) DO NOTHING;
@@ -237,7 +234,7 @@ JOIN category c ON c.name = 'Театры'
 WHERE e.slug IN (
     'kabala-svyatosh', 'intuicziya', 'zhil-byl-dom', 'lebedinoe-ozero',
     'romeo-i-dzhuletta-lyubov-vne-vremeni', 'dve-anny', 'pesn-lyubvi-pesn-skorbi',
-    'lir', 'gamlet', 'prizrak-myuzikla', 'moskva-petushki', 'idioty',
+    'lir', 'prizrak-myuzikla', 'moskva-petushki', 'idioty',
     'revizor-komediya-v-stihah', 'maskarad'
 )
 ON CONFLICT (event_id, category_id) DO NOTHING;
@@ -255,7 +252,6 @@ FROM (
         ('dve-anny', 'Театр'), ('dve-anny', 'Балет'), ('dve-anny', 'Биографический'), ('dve-anny', 'Трагикомедия'),
         ('pesn-lyubvi-pesn-skorbi', 'Театр'), ('pesn-lyubvi-pesn-skorbi', 'Спектакль'), ('pesn-lyubvi-pesn-skorbi', 'Философский'),
         ('lir', 'Театр'), ('lir', 'Спектакль'), ('lir', 'Премьера'), ('lir', 'Драма'), ('lir', 'Классика'),
-        ('gamlet', 'Театр'), ('gamlet', 'Спектакль'), ('gamlet', 'Премьера'), ('gamlet', 'Драма'), ('gamlet', 'Классика'),
         ('prizrak-myuzikla', 'Театр'), ('prizrak-myuzikla', 'Мюзикл'), ('prizrak-myuzikla', 'Комедия'),
         ('moskva-petushki', 'Театр'), ('moskva-petushki', 'Спектакль'), ('moskva-petushki', 'Драма'), ('moskva-petushki', 'Современная драматургия'),
         ('idioty', 'Театр'), ('idioty', 'Спектакль'), ('idioty', 'Драма'), ('idioty', 'Классика'),

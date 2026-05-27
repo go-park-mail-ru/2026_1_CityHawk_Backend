@@ -1,9 +1,10 @@
 package http
 
 type taxonomyItemResponse struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Slug string `json:"slug"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Slug  string `json:"slug"`
+	Group string `json:"group,omitempty"`
 }
 
 type eventCardNextSessionPlaceResponse struct {
@@ -21,13 +22,16 @@ type eventCardNextSessionResponse struct {
 }
 
 type eventCardResponse struct {
-	ID               string                        `json:"id"`
-	Title            string                        `json:"title"`
-	ShortDescription string                        `json:"shortDescription"`
-	CoverImageURL    string                        `json:"coverImageUrl"`
-	IsFavorite       bool                          `json:"isFavorite"`
-	Tags             []taxonomyItemResponse        `json:"tags"`
-	NextSession      *eventCardNextSessionResponse `json:"nextSession"`
+	ID               string                             `json:"id"`
+	Title            string                             `json:"title"`
+	ShortDescription string                             `json:"shortDescription"`
+	CoverImageURL    string                             `json:"coverImageUrl"`
+	IsFavorite       bool                               `json:"isFavorite"`
+	Tags             []taxonomyItemResponse             `json:"tags"`
+	Place            *eventCardNextSessionPlaceResponse `json:"place,omitempty"`
+	PlaceName        string                             `json:"placeName,omitempty"`
+	AddressLine      string                             `json:"addressLine,omitempty"`
+	NextSession      *eventCardNextSessionResponse      `json:"nextSession"`
 }
 
 type eventListResponse struct {

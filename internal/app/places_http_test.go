@@ -454,6 +454,16 @@ func TestSearchSuggestionsHandler(t *testing.T) {
 	if !ok || len(items) == 0 {
 		t.Fatalf("search payload missing items: %+v", payload)
 	}
+	first, ok := items[0].(map[string]any)
+	if !ok {
+		t.Fatalf("search item has unexpected shape: %+v", items[0])
+	}
+	if _, ok := first["type"]; ok {
+		t.Fatalf("search suggestion exposes type: %+v", first)
+	}
+	if _, ok := first["avatarUrl"]; ok {
+		t.Fatalf("search suggestion exposes user avatar: %+v", first)
+	}
 
 	badReq := httptest.NewRequest(http.MethodGet, "/api/search?query=r", nil)
 	badRec := httptest.NewRecorder()

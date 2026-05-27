@@ -49,6 +49,12 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalPlaceDeliveryHttp(in *jlexer.L
 			} else {
 				out.Slug = string(in.String())
 			}
+		case "group":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Group = string(in.String())
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -77,6 +83,11 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalPlaceDeliveryHttp(out *jwriter
 		const prefix string = ",\"slug\":"
 		out.RawString(prefix)
 		out.String(string(in.Slug))
+	}
+	if in.Group != "" {
+		const prefix string = ",\"group\":"
+		out.RawString(prefix)
+		out.String(string(in.Group))
 	}
 	out.RawByte('}')
 }
@@ -375,7 +386,7 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalPlaceDeliveryHttp3(out *jwrite
 		out.RawString(prefix[1:])
 		out.String(string(in.ID))
 	}
-	{
+	if in.Type != "" {
 		const prefix string = ",\"type\":"
 		out.RawString(prefix)
 		out.String(string(in.Type))
@@ -3132,6 +3143,32 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalPlaceDeliveryHttp25(in *jlexer
 				}
 				in.Delim(']')
 			}
+		case "place":
+			if in.IsNull() {
+				in.Skip()
+				out.Place = nil
+			} else {
+				if out.Place == nil {
+					out.Place = new(eventCardNextSessionPlaceResponse)
+				}
+				if in.IsNull() {
+					in.Skip()
+				} else {
+					(*out.Place).UnmarshalEasyJSON(in)
+				}
+			}
+		case "placeName":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.PlaceName = string(in.String())
+			}
+		case "addressLine":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.AddressLine = string(in.String())
+			}
 		case "nextSession":
 			if in.IsNull() {
 				in.Skip()
@@ -3200,6 +3237,21 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalPlaceDeliveryHttp25(out *jwrit
 			}
 			out.RawByte(']')
 		}
+	}
+	if in.Place != nil {
+		const prefix string = ",\"place\":"
+		out.RawString(prefix)
+		(*in.Place).MarshalEasyJSON(out)
+	}
+	if in.PlaceName != "" {
+		const prefix string = ",\"placeName\":"
+		out.RawString(prefix)
+		out.String(string(in.PlaceName))
+	}
+	if in.AddressLine != "" {
+		const prefix string = ",\"addressLine\":"
+		out.RawString(prefix)
+		out.String(string(in.AddressLine))
 	}
 	{
 		const prefix string = ",\"nextSession\":"

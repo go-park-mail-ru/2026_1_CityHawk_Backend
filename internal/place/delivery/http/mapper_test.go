@@ -141,6 +141,9 @@ func TestResponseMappers(t *testing.T) {
 		if listResp.Items[0].Title == card.Title || listResp.Items[0].NextSession == nil {
 			t.Fatalf("unexpected event card response: %+v", listResp.Items[0])
 		}
+		if listResp.Items[0].Place == nil || listResp.Items[0].PlaceName == "" || listResp.Items[0].AddressLine == "" {
+			t.Fatalf("event card response missing top-level place: %+v", listResp.Items[0])
+		}
 		if listResp.Items[0].CoverImageURL != "http://cityhawk.ru:8080/uploads/cover.png" {
 			t.Fatalf("unexpected event cover URL: %q", listResp.Items[0].CoverImageURL)
 		}
@@ -163,7 +166,7 @@ func TestResponseMappers(t *testing.T) {
 
 	t.Run("home, taxonomies and search suggestions", func(t *testing.T) {
 		categoriesResp := toCategoriesResponse([]placemodel.HomeCategory{{ID: "cat-1", Name: `Music <fest>`, Slug: "music"}})
-		tagsResp := toTagsResponse([]placemodel.HomeTag{{ID: "tag-1", Name: `Live <show>`, Slug: "live"}})
+		tagsResp := toTagsResponse([]placemodel.HomeTag{{ID: "tag-1", Name: `Live <show>`, Slug: "live", Group: "format"}})
 		collectionsResp := toCollectionsResponse([]placemodel.CollectionCardView{{
 			ID:          "collection-1",
 			Title:       `Weekend <Picks>`,
@@ -201,11 +204,17 @@ func TestResponseMappers(t *testing.T) {
 		if tagsResp.Items[0].Name == `Live <show>` {
 			t.Fatalf("tag was not escaped: %+v", tagsResp.Items[0])
 		}
+		if tagsResp.Items[0].Group != "format" {
+			t.Fatalf("tag group was not mapped: %+v", tagsResp.Items[0])
+		}
 		if collectionsResp.Items[0].Title == `Weekend <Picks>` {
 			t.Fatalf("collection was not escaped: %+v", collectionsResp.Items[0])
 		}
 		if searchResp.Items[0].Label == `Jazz <Night>` {
 			t.Fatalf("search suggestion was not escaped: %+v", searchResp.Items)
+		}
+		if searchResp.Items[0].Type != "" || searchResp.Items[0].AvatarURL != nil || searchResp.Items[0].IsFollowing {
+			t.Fatalf("search suggestion exposes internal metadata: %+v", searchResp.Items[0])
 		}
 		if homeResp.FeaturedEvents[0].Title == `Concert <main>` || homeResp.Collections[0].Title == `Weekend <Picks>` {
 			t.Fatalf("home payload was not escaped: %+v", homeResp)

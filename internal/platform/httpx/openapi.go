@@ -1282,6 +1282,9 @@ components:
           type: string
         slug:
           type: string
+        group:
+          type: string
+          nullable: true
     EventCardNextSessionPlace:
       type: object
       properties:
@@ -1320,6 +1323,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/EventTaxonomyItem'
+        place:
+          $ref: '#/components/schemas/EventCardNextSessionPlace'
+        placeName:
+          type: string
+        addressLine:
+          type: string
         nextSession:
           $ref: '#/components/schemas/EventCardNextSession'
     EventListResponse:
@@ -1682,18 +1691,10 @@ components:
       properties:
         id:
           type: string
-        type:
-          type: string
-          enum: [user, event, category, tag]
         title:
           type: string
         label:
           type: string
-        avatarUrl:
-          type: string
-          nullable: true
-        isFollowing:
-          type: boolean
     CreateOrganizerApplicationRequest:
       type: object
       required: [name, email, phone, city, projectName, categories, about, consent]
@@ -1904,6 +1905,9 @@ components:
           type: string
         slug:
           type: string
+        group:
+          type: string
+          nullable: true
     HomeNextSessionPlace:
       type: object
       properties:

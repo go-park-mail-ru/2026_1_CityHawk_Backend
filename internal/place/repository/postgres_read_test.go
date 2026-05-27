@@ -17,7 +17,7 @@ func TestPostgresRepositoryReadMethodsWithFakeDB(t *testing.T) {
 	db := &fakePlaceDB{
 		rows: map[string][][]any{
 			"FROM category c ORDER BY":                                  {{"cat-1", "Music"}},
-			"FROM tag t ORDER BY":                                       {{"tag-1", "Jazz"}},
+			"FROM tag t ORDER BY":                                       {{"tag-1", "Jazz", "genre"}},
 			"FROM city c ORDER BY":                                      {{"city-1", "Moscow", "Russia", "Europe/Moscow"}},
 			"FROM collection c\n\t\tLEFT JOIN":                          {{"collection-1", "Weekend", "Best", "/uploads/collection.png", true}},
 			"FROM candidates":                                           {{"event-1", "event", "Jazz night", "Jazz night", nil, false}},
@@ -41,7 +41,7 @@ func TestPostgresRepositoryReadMethodsWithFakeDB(t *testing.T) {
 	if got := repo.ListCategories(context.Background()); len(got) != 1 || got[0].Slug != "music" {
 		t.Fatalf("ListCategories() = %+v", got)
 	}
-	if got := repo.ListTags(context.Background()); len(got) != 1 || got[0].Slug != "jazz" {
+	if got := repo.ListTags(context.Background()); len(got) != 1 || got[0].Slug != "jazz" || got[0].Group != "genre" {
 		t.Fatalf("ListTags() = %+v", got)
 	}
 	if got := repo.ListCities(context.Background()); len(got) != 1 || got[0].Name != "Moscow" {
