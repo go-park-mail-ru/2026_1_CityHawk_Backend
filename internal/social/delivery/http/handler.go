@@ -31,6 +31,7 @@ type Repository interface {
 	CountFavoriteEvents(ctx context.Context, userID string) (int, error)
 	FollowUser(ctx context.Context, followerUserID, followedUserID string) error
 	UnfollowUser(ctx context.Context, followerUserID, followedUserID string) error
+	SearchUsers(ctx context.Context, viewerID, query string, limit, offset int) ([]socialmodel.UserProfile, int, error)
 	ListFollowerProfiles(ctx context.Context, userID, viewerID string, limit, offset int) ([]socialmodel.UserProfile, int, error)
 	ListFollowingProfiles(ctx context.Context, userID, viewerID string, limit, offset int) ([]socialmodel.UserProfile, int, error)
 	UserCollections(ctx context.Context, userID string, limit, offset int) ([]socialmodel.CollectionCard, int, error)
@@ -432,6 +433,37 @@ func (h *Handler) Followers(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Following(w http.ResponseWriter, r *http.Request) {
 	h.userList(w, r, false)
+}
+
+func (h *Handler) UsersSearch(w http.ResponseWriter, r *http.Request) {
+	platformmiddleware.ErrorMiddleware(func(w http.ResponseWriter, r *http.Request) error {
+		if r.Method != http.MethodGet {
+			return httpx.NewHTTPError(http.StatusMethodNotAllowed, "method not allowed")
+		}
+		userID, err := requireUserID(r)
+		if err != nil {
+			return err
+		}
+		query := strings.TrimSpace(r.URL.Query().Get("query"))
+		if len([]rune(query)) < 2 {
+			return httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"query": "query must contain at least 2 characters"})
+		}
+		limit, offset, err := parsePage(r, defaultLimit, maxLimit)
+		if err != nil {
+			return err
+		}
+		items, total, err := h.repo.SearchUsers(r.Context(), userID, query, limit, offset)
+		if err != nil {
+			return err
+		}
+		httpx.WriteJSON(w, http.StatusOK, userListResponse{
+			Items:  userProfilesResponse(items),
+			Total:  total,
+			Limit:  limit,
+			Offset: offset,
+		})
+		return nil
+	}).ServeHTTP(w, r)
 }
 
 func (h *Handler) userList(w http.ResponseWriter, r *http.Request, followers bool) {

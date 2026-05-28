@@ -195,6 +195,7 @@ func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	mux.Handle("GET /api/me/notifications/events", withAuth(socialHandler.NotificationEvents))
 	mux.Handle("POST /api/me/notifications/read-all", withAuthAndCSRF(socialHandler.NotificationsReadAll))
 	mux.Handle("POST /api/me/notifications/{notificationId}/read", withAuthAndCSRF(socialHandler.NotificationByID))
+	mux.Handle("GET /api/users/search", withAuth(socialHandler.UsersSearch))
 	mux.Handle("POST /api/users/{userId}/follow", withAuthAndCSRF(socialHandler.FollowByID))
 	mux.Handle("DELETE /api/users/{userId}/follow", withAuthAndCSRF(socialHandler.FollowByID))
 	mux.Handle("GET /api/events", withOptionalAuth(placeHandler.Events))

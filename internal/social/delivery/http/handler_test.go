@@ -28,6 +28,7 @@ func TestHandlerSocialHTTPFlow(t *testing.T) {
 		{"favorites", http.MethodGet, "/api/me/favorites?limit=5&offset=1", handler.Favorites},
 		{"followers", http.MethodGet, "/api/me/followers?limit=200&offset=0", handler.Followers},
 		{"following", http.MethodGet, "/api/me/following", handler.Following},
+		{"users search", http.MethodGet, "/api/users/search?query=bo&limit=5", handler.UsersSearch},
 		{"follow", http.MethodPost, "/api/users/user-2/follow", handler.FollowByID},
 		{"unfollow", http.MethodDelete, "/api/users/user-2/follow", handler.FollowByID},
 		{"collections", http.MethodGet, "/api/me/collections?limit=3", handler.Collections},
@@ -80,6 +81,9 @@ func (f *fakeSocialHTTPRepo) ListFollowerProfiles(context.Context, string, strin
 	return []socialmodel.UserProfile{testProfile()}, 1, nil
 }
 func (f *fakeSocialHTTPRepo) ListFollowingProfiles(context.Context, string, string, int, int) ([]socialmodel.UserProfile, int, error) {
+	return []socialmodel.UserProfile{testProfile()}, 1, nil
+}
+func (f *fakeSocialHTTPRepo) SearchUsers(context.Context, string, string, int, int) ([]socialmodel.UserProfile, int, error) {
 	return []socialmodel.UserProfile{testProfile()}, 1, nil
 }
 func (f *fakeSocialHTTPRepo) UserCollections(context.Context, string, int, int) ([]socialmodel.CollectionCard, int, error) {

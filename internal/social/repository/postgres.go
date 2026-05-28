@@ -165,6 +165,41 @@ func (r *PostgresRepository) ListFollowingProfiles(ctx context.Context, userID, 
 	`, userID, limit, offset)
 }
 
+func (r *PostgresRepository) SearchUsers(ctx context.Context, viewerID, query string, limit, offset int) ([]socialmodel.UserProfile, int, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT
+			u.id::text,
+			COALESCE(NULLIF(btrim(u.username), ''), u.email) AS username,
+			u.avatar_url,
+			c.id::text,
+			c.name,
+			c.country_name,
+			c.timezone,
+			EXISTS (
+				SELECT 1
+				FROM user_follow vf
+				WHERE vf.follower_user_id = $1
+					AND vf.followed_user_id = u.id
+			) AS is_following,
+			count(*) OVER() AS total_count
+		FROM user_account u
+		LEFT JOIN city c ON c.id = u.city_id
+		WHERE u.id <> $1
+			AND (
+				lower(u.username) LIKE '%' || lower($2) || '%'
+				OR lower(u.email) LIKE '%' || lower($2) || '%'
+			)
+		ORDER BY COALESCE(NULLIF(btrim(u.username), ''), u.email) ASC, u.id ASC
+		LIMIT $3 OFFSET $4
+	`, nullableUUID(viewerID), query, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	return scanUserProfiles(rows)
+}
+
 func (r *PostgresRepository) IsFollowing(ctx context.Context, followerUserID, followedUserID string) (socialmodel.FollowingFlag, error) {
 	var flag socialmodel.FollowingFlag
 	var createdAt sql.NullTime
@@ -287,6 +322,10 @@ func (r *PostgresRepository) listProfiles(ctx context.Context, viewerID, fromSQL
 	}
 	defer rows.Close()
 
+	return scanUserProfiles(rows)
+}
+
+func scanUserProfiles(rows pgx.Rows) ([]socialmodel.UserProfile, int, error) {
 	items := make([]socialmodel.UserProfile, 0)
 	total := 0
 	for rows.Next() {

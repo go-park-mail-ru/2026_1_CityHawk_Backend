@@ -51,4 +51,4 @@ config.local.*
 *.local.yaml
 *.local.yml
 
-/uploads
+uploads/
