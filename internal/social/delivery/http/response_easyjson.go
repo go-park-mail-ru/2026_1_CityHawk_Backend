@@ -1471,6 +1471,12 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp12(in *jlexe
 			} else {
 				out.Username = string(in.String())
 			}
+		case "displayName":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.DisplayName = string(in.String())
+			}
 		case "avatarUrl":
 			if in.IsNull() {
 				in.Skip()
@@ -1508,6 +1514,11 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp12(out *jwri
 		const prefix string = ",\"username\":"
 		out.RawString(prefix)
 		out.String(string(in.Username))
+	}
+	{
+		const prefix string = ",\"displayName\":"
+		out.RawString(prefix)
+		out.String(string(in.DisplayName))
 	}
 	{
 		const prefix string = ",\"avatarUrl\":"
@@ -1587,6 +1598,12 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp13(in *jlexe
 				in.Skip()
 			} else {
 				out.IsFavorite = bool(in.Bool())
+			}
+		case "invitationStatus":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.InvitationStatus = string(in.String())
 			}
 		case "tags":
 			if in.IsNull() {
@@ -1695,6 +1712,11 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp13(out *jwri
 		const prefix string = ",\"isFavorite\":"
 		out.RawString(prefix)
 		out.Bool(bool(in.IsFavorite))
+	}
+	if in.InvitationStatus != "" {
+		const prefix string = ",\"invitationStatus\":"
+		out.RawString(prefix)
+		out.String(string(in.InvitationStatus))
 	}
 	{
 		const prefix string = ",\"tags\":"

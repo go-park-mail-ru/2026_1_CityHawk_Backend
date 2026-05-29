@@ -33,7 +33,7 @@ func TestHandlerSocialHTTPFlow(t *testing.T) {
 		{"unfollow", http.MethodDelete, "/api/users/user-2/follow", handler.FollowByID},
 		{"collections", http.MethodGet, "/api/me/collections?limit=3", handler.Collections},
 		{"invitees", http.MethodGet, "/api/events/event-1/invitees", handler.Invitees},
-		{"notification events", http.MethodGet, "/api/me/notifications/events?limit=4", handler.NotificationEvents},
+		{"notification events", http.MethodGet, "/api/me/notifications/events?status=accepted", handler.NotificationEvents},
 	}
 
 	for _, tc := range tests {
@@ -46,6 +46,10 @@ func TestHandlerSocialHTTPFlow(t *testing.T) {
 				t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 			}
 		})
+	}
+
+	if repo.lastNotificationStatus != "accepted" || repo.lastNotificationEventLimit != 12 {
+		t.Fatalf("notification events filter = (%q, %d), want (accepted, 12)", repo.lastNotificationStatus, repo.lastNotificationEventLimit)
 	}
 }
 
@@ -65,9 +69,21 @@ func TestHandlerSocialValidation(t *testing.T) {
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status=%d, want bad request", rec.Code)
 	}
+
+	req = httptest.NewRequest(http.MethodGet, "/api/me/notifications/events?status=bad", nil)
+	req = req.WithContext(context.WithValue(req.Context(), httpx.UserIDContextKey, "user-1"))
+	rec = httptest.NewRecorder()
+	handler.NotificationEvents(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("notification events status=%d, want bad request", rec.Code)
+	}
 }
 
-type fakeSocialHTTPRepo struct{ now time.Time }
+type fakeSocialHTTPRepo struct {
+	now                        time.Time
+	lastNotificationStatus     string
+	lastNotificationEventLimit int
+}
 
 func (f *fakeSocialHTTPRepo) AddFavorite(context.Context, string, string) error    { return nil }
 func (f *fakeSocialHTTPRepo) RemoveFavorite(context.Context, string, string) error { return nil }
@@ -105,7 +121,9 @@ func (f *fakeSocialHTTPRepo) UpdateInvitationStatus(context.Context, string, str
 func (f *fakeSocialHTTPRepo) ListNotifications(context.Context, string, string, bool, int, int) ([]socialmodel.Notification, int, int, error) {
 	return []socialmodel.Notification{{ID: "notification-1", Type: "system", CreatedAt: f.now}}, 1, 1, nil
 }
-func (f *fakeSocialHTTPRepo) ListNotificationEvents(context.Context, string, int, int) ([]socialmodel.NotificationEventRef, int, error) {
+func (f *fakeSocialHTTPRepo) ListNotificationEvents(_ context.Context, _ string, status string, limit, _ int) ([]socialmodel.NotificationEventRef, int, error) {
+	f.lastNotificationStatus = status
+	f.lastNotificationEventLimit = limit
 	avatar := "/uploads/avatar.png"
 	return []socialmodel.NotificationEventRef{{
 		EventID:   "event-1",

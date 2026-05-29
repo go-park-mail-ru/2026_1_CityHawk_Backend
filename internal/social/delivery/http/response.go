@@ -46,9 +46,10 @@ type eventListResponse struct {
 }
 
 type notificationEventInvitedByResponse struct {
-	ID        string  `json:"id"`
-	Username  string  `json:"username"`
-	AvatarURL *string `json:"avatarUrl"`
+	ID          string  `json:"id"`
+	Username    string  `json:"username"`
+	DisplayName string  `json:"displayName"`
+	AvatarURL   *string `json:"avatarUrl"`
 }
 
 type notificationEventCardResponse struct {
@@ -57,6 +58,7 @@ type notificationEventCardResponse struct {
 	ShortDescription string                              `json:"shortDescription"`
 	CoverImageURL    string                              `json:"coverImageUrl"`
 	IsFavorite       bool                                `json:"isFavorite"`
+	InvitationStatus string                              `json:"invitationStatus,omitempty"`
 	Tags             []taxonomyItemResponse              `json:"tags"`
 	NextSession      *eventCardNextSessionResponse       `json:"nextSession"`
 	InvitedBy        *notificationEventInvitedByResponse `json:"invitedBy"`

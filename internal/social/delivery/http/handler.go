@@ -40,7 +40,7 @@ type Repository interface {
 	CreateInvitations(ctx context.Context, senderID, eventID string, recipientIDs []string, message string, eventSessionID *string) ([]socialmodel.Invitation, error)
 	UpdateInvitationStatus(ctx context.Context, userID, invitationID, status string) (socialmodel.Invitation, error)
 	ListNotifications(ctx context.Context, userID, filterType string, unreadOnly bool, limit, offset int) ([]socialmodel.Notification, int, int, error)
-	ListNotificationEvents(ctx context.Context, userID string, limit, offset int) ([]socialmodel.NotificationEventRef, int, error)
+	ListNotificationEvents(ctx context.Context, userID, status string, limit, offset int) ([]socialmodel.NotificationEventRef, int, error)
 	MarkNotificationRead(ctx context.Context, userID, notificationID string) (int, error)
 	MarkAllNotificationsRead(ctx context.Context, userID string) (int, error)
 	CreateEventShareLink(ctx context.Context, creatorUserID, eventID, token string) (socialmodel.ShareLink, error)
@@ -218,11 +218,15 @@ func (h *Handler) NotificationEvents(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
-		limit, offset, err := parsePage(r, 4, maxLimit)
+		limit, offset, err := parsePage(r, 12, maxLimit)
 		if err != nil {
 			return err
 		}
-		refs, total, err := h.repo.ListNotificationEvents(r.Context(), userID, limit, offset)
+		status := strings.TrimSpace(r.URL.Query().Get("status"))
+		if status != "" && status != "pending" && status != "accepted" && status != "declined" && status != "cancelled" {
+			return httpx.NewHTTPErrorWithDetails(http.StatusBadRequest, "Validation failed", map[string]string{"status": "status must be one of pending, accepted, declined, cancelled"})
+		}
+		refs, total, err := h.repo.ListNotificationEvents(r.Context(), userID, status, limit, offset)
 		if err != nil {
 			return err
 		}
@@ -745,12 +749,14 @@ func notificationEventCard(item placemodel.EventDetailsView, ref socialmodel.Not
 	}
 	if ref.InvitedBy != nil {
 		resp.InvitedBy = &notificationEventInvitedByResponse{
-			ID:        ref.InvitedBy.ID,
-			Username:  safety.EscapeText(ref.InvitedBy.Username),
-			AvatarURL: media.PublicURLPtr(ref.InvitedBy.AvatarURL),
+			ID:          ref.InvitedBy.ID,
+			Username:    safety.EscapeText(ref.InvitedBy.Username),
+			DisplayName: safety.EscapeText(ref.InvitedBy.Username),
+			AvatarURL:   media.PublicURLPtr(ref.InvitedBy.AvatarURL),
 		}
 	}
 	if ref.Invitation != nil {
+		resp.InvitationStatus = ref.Invitation.Status
 		resp.Invitation = &notificationInvitationResponse{
 			ID:     ref.Invitation.ID,
 			Status: ref.Invitation.Status,

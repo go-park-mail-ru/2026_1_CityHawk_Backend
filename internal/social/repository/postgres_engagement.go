@@ -440,7 +440,7 @@ func (r *PostgresRepository) MarkNotificationRead(ctx context.Context, userID, n
 	return r.unreadNotifications(ctx, userID)
 }
 
-func (r *PostgresRepository) ListNotificationEvents(ctx context.Context, userID string, limit, offset int) ([]socialmodel.NotificationEventRef, int, error) {
+func (r *PostgresRepository) ListNotificationEvents(ctx context.Context, userID, status string, limit, offset int) ([]socialmodel.NotificationEventRef, int, error) {
 	rows, err := r.pool.Query(ctx, `
 		WITH latest_notification_events AS (
 			SELECT DISTINCT ON (ne.event_id)
@@ -453,10 +453,11 @@ func (r *PostgresRepository) ListNotificationEvents(ctx context.Context, userID 
 				inviter.avatar_url AS inviter_avatar_url
 			FROM notification n
 			JOIN notification_event ne ON ne.notification_id = n.id
-			LEFT JOIN notification_invitation ni ON ni.notification_id = n.id
-			LEFT JOIN event_invitation ei ON ei.id = ni.invitation_id
-			LEFT JOIN user_account inviter ON inviter.id = ei.sender_user_id
+			JOIN notification_invitation ni ON ni.notification_id = n.id
+			JOIN event_invitation ei ON ei.id = ni.invitation_id
+			JOIN user_account inviter ON inviter.id = ei.sender_user_id
 			WHERE n.recipient_user_id::text = $1
+			  AND ($4 = '' OR ei.status = $4)
 			ORDER BY ne.event_id, n.created_at DESC, n.id DESC
 		),
 		notification_events AS (
@@ -482,7 +483,7 @@ func (r *PostgresRepository) ListNotificationEvents(ctx context.Context, userID 
 		FROM notification_events
 		ORDER BY last_notification_at DESC, event_id ASC
 		LIMIT $2 OFFSET $3
-	`, userID, limit, offset)
+	`, userID, limit, offset, status)
 	if err != nil {
 		return nil, 0, err
 	}
