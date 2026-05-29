@@ -16,7 +16,7 @@ INSERT INTO user_account (
 SELECT
     v.email,
     v.username,
-    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+    '$2a$10$lwUrEa2Iv3VJZeNT94SZK.soSzsTnmxcScFBI9H58MM8KYSQwTHOG',
     c.id
 FROM city c
 CROSS JOIN (
