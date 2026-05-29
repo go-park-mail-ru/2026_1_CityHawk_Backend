@@ -1660,20 +1660,6 @@ func easyjson6ff3ac1dDecodeCityhawkBackendInternalSocialDeliveryHttp13(in *jlexe
 					(*out.InvitedBy).UnmarshalEasyJSON(in)
 				}
 			}
-		case "invitation":
-			if in.IsNull() {
-				in.Skip()
-				out.Invitation = nil
-			} else {
-				if out.Invitation == nil {
-					out.Invitation = new(notificationInvitationResponse)
-				}
-				if in.IsNull() {
-					in.Skip()
-				} else {
-					(*out.Invitation).UnmarshalEasyJSON(in)
-				}
-			}
 		default:
 			in.SkipRecursive()
 		}
@@ -1750,15 +1736,6 @@ func easyjson6ff3ac1dEncodeCityhawkBackendInternalSocialDeliveryHttp13(out *jwri
 			out.RawString("null")
 		} else {
 			(*in.InvitedBy).MarshalEasyJSON(out)
-		}
-	}
-	{
-		const prefix string = ",\"invitation\":"
-		out.RawString(prefix)
-		if in.Invitation == nil {
-			out.RawString("null")
-		} else {
-			(*in.Invitation).MarshalEasyJSON(out)
 		}
 	}
 	out.RawByte('}')

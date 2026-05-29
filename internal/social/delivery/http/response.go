@@ -62,7 +62,6 @@ type notificationEventCardResponse struct {
 	Tags             []taxonomyItemResponse              `json:"tags"`
 	NextSession      *eventCardNextSessionResponse       `json:"nextSession"`
 	InvitedBy        *notificationEventInvitedByResponse `json:"invitedBy"`
-	Invitation       *notificationInvitationResponse     `json:"invitation"`
 }
 
 type notificationEventListResponse struct {

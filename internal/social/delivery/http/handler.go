@@ -757,10 +757,6 @@ func notificationEventCard(item placemodel.EventDetailsView, ref socialmodel.Not
 	}
 	if ref.Invitation != nil {
 		resp.InvitationStatus = ref.Invitation.Status
-		resp.Invitation = &notificationInvitationResponse{
-			ID:     ref.Invitation.ID,
-			Status: ref.Invitation.Status,
-		}
 	}
 	return resp
 }

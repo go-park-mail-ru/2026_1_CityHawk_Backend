@@ -1404,7 +1404,7 @@ Query параметры:
 
 ### GET /api/me/notifications/events
 
-Возвращает события, связанные с уведомлениями текущего пользователя, в формате карточек событий.
+События, на которые текущий пользователь получил приглашение. Используется в профиле для блока «Иду с друзьями».
 
 Требование:
 
@@ -1412,7 +1412,8 @@ Query параметры:
 
 Query параметры:
 
-- `limit` — положительное число, по умолчанию `4`, максимум `100`
+- `status` — опционально: `pending`, `accepted`, `declined`, `cancelled`; для блока «Иду с друзьями» frontend отправляет `accepted`
+- `limit` — положительное число, по умолчанию `12`, максимум `100`
 - `offset` — неотрицательное число, по умолчанию `0`
 
 Успешный ответ `200 OK`:
@@ -1425,6 +1426,14 @@ Query параметры:
       "title": "Семейный фестиваль «Спортлэнд»",
       "shortDescription": "...",
       "coverImageUrl": "...",
+      "isFavorite": false,
+      "invitationStatus": "accepted",
+      "invitedBy": {
+        "id": "user-id",
+        "username": "Алиса",
+        "displayName": "Алиса",
+        "avatarUrl": "http://example.com/uploads/avatars/alice.png"
+      },
       "tags": [],
       "nextSession": {
         "startAt": "2026-06-01T12:00:00Z",
@@ -1432,24 +1441,20 @@ Query параметры:
           "name": "Парк",
           "addressLine": "Москва"
         }
-      },
-      "isFavorite": false,
-      "invitedBy": {
-        "id": "user-id",
-        "username": "Алиса",
-        "avatarUrl": "http://example.com/uploads/avatars/alice.png"
-      },
-      "invitation": {
-        "id": "invitation-id",
-        "status": "accepted"
       }
     }
   ],
   "total": 1,
-  "limit": 4,
+  "limit": 12,
   "offset": 0
 }
 ```
+
+Примечания:
+
+- при `status=accepted` backend возвращает только принятые приглашения;
+- события с `declined`, `pending`, `cancelled` не попадают в ответ для `status=accepted`;
+- формат элемента такой же, как у карточки события, плюс `invitationStatus` и опциональный `invitedBy`.
 
 Возможные ошибки:
 
