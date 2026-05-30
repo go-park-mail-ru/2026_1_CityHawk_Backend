@@ -105,7 +105,8 @@ type EventListFilter struct {
 }
 
 type HomeFilter struct {
-	City string
+	City   string
+	UserID string
 }
 
 type EventSessionInput struct {

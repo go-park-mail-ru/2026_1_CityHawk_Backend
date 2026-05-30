@@ -54,6 +54,7 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 		filter := placemodel.HomeFilter{
 			City: strings.TrimSpace(r.URL.Query().Get("city")),
 		}
+		filter.UserID, _ = r.Context().Value(httpx.UserIDContextKey).(string)
 		httpx.WriteJSON(w, http.StatusOK, toHomePayloadResponse(h.events.HomePayload(r.Context(), filter)))
 		return nil
 	}).ServeHTTP(w, r)
@@ -272,6 +273,7 @@ func (h *Handler) MapCollectionSpots(w http.ResponseWriter, r *http.Request) {
 			Sort:         sortValue,
 			Limit:        limit,
 			Offset:       offset,
+			UserID:       userIDFromContext(r.Context()),
 		})
 		if err != nil {
 			return err
@@ -327,6 +329,11 @@ func (h *Handler) MapCollectionSpots(w http.ResponseWriter, r *http.Request) {
 		})
 		return nil
 	}).ServeHTTP(w, r)
+}
+
+func userIDFromContext(ctx context.Context) string {
+	userID, _ := ctx.Value(httpx.UserIDContextKey).(string)
+	return strings.TrimSpace(userID)
 }
 
 func (h *Handler) Events(w http.ResponseWriter, r *http.Request) {

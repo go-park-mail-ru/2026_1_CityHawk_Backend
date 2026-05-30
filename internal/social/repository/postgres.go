@@ -48,10 +48,24 @@ func (r *PostgresRepository) RemoveFavorite(ctx context.Context, userID, eventID
 
 func (r *PostgresRepository) ListFavoriteEvents(ctx context.Context, userID string, limit, offset int) ([]socialmodel.FavoriteEvent, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT event_id, created_at
-		FROM favorite_event
-		WHERE user_id = $1
-		ORDER BY created_at DESC
+		SELECT fe.event_id, fe.created_at
+		FROM favorite_event fe
+		JOIN event e ON e.id = fe.event_id
+		WHERE fe.user_id = $1
+		  AND (
+			 NOT EXISTS (
+				 SELECT 1
+				 FROM event_session es_active
+				 WHERE es_active.event_id = e.id
+			 )
+			 OR EXISTS (
+				 SELECT 1
+				 FROM event_session es_active
+				 WHERE es_active.event_id = e.id
+				   AND es_active.end_at >= now()
+			 )
+		  )
+		ORDER BY fe.created_at DESC
 		LIMIT $2 OFFSET $3
 	`, userID, limit, offset)
 	if err != nil {
@@ -72,7 +86,25 @@ func (r *PostgresRepository) ListFavoriteEvents(ctx context.Context, userID stri
 
 func (r *PostgresRepository) CountFavoriteEvents(ctx context.Context, userID string) (int, error) {
 	var total int
-	err := r.pool.QueryRow(ctx, `SELECT count(*) FROM favorite_event WHERE user_id = $1`, userID).Scan(&total)
+	err := r.pool.QueryRow(ctx, `
+		SELECT count(*)
+		FROM favorite_event fe
+		JOIN event e ON e.id = fe.event_id
+		WHERE fe.user_id = $1
+		  AND (
+			 NOT EXISTS (
+				 SELECT 1
+				 FROM event_session es_active
+				 WHERE es_active.event_id = e.id
+			 )
+			 OR EXISTS (
+				 SELECT 1
+				 FROM event_session es_active
+				 WHERE es_active.event_id = e.id
+				   AND es_active.end_at >= now()
+			 )
+		  )
+	`, userID).Scan(&total)
 	return total, err
 }
 

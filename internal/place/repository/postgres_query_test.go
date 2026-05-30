@@ -53,6 +53,11 @@ func TestBuildListEventsQueryUsesJoinFilters(t *testing.T) {
 		"FROM event_session es_city",
 		"JOIN collection_event ce_filter",
 		"LEFT JOIN favorite_event fe_filter",
+		"viewer_preferred_tags AS",
+		"FROM user_interest_tag uit",
+		"JOIN event_tag et ON et.event_id = fe.event_id",
+		"LEFT JOIN recommendation_scores rs",
+		"recommendation_score DESC",
 		"ROW_NUMBER() OVER (PARTITION BY es.event_id",
 	} {
 		if !strings.Contains(query, wanted) {
@@ -60,8 +65,8 @@ func TestBuildListEventsQueryUsesJoinFilters(t *testing.T) {
 		}
 	}
 
-	if len(args) != 11 {
-		t.Fatalf("buildListEventsQuery() args len = %d, want 11", len(args))
+	if len(args) != 12 {
+		t.Fatalf("buildListEventsQuery() args len = %d, want 12", len(args))
 	}
 }
 

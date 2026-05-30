@@ -102,12 +102,13 @@ func (r *PostgresRepository) HomePayload(ctx context.Context, filter placemodel.
 		wg             sync.WaitGroup
 	)
 	city := strings.TrimSpace(filter.City)
+	userID := strings.TrimSpace(filter.UserID)
 
 	wg.Add(3)
 
 	go func() {
 		defer wg.Done()
-		featuredEvents = r.ListFeaturedEvents(ctx, 8, city)
+		featuredEvents = r.ListFeaturedEvents(ctx, 8, city, userID)
 	}()
 
 	go func() {
@@ -199,11 +200,12 @@ func (r *PostgresRepository) ListCities(ctx context.Context) []placemodel.City {
 	return items
 }
 
-func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int, city string) []placemodel.HomeFeaturedEvent {
+func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int, city, userID string) []placemodel.HomeFeaturedEvent {
 	if limit <= 0 {
 		limit = 8
 	}
 	city = strings.TrimSpace(city)
+	userID = strings.TrimSpace(userID)
 
 	const query = `
 		WITH first_image AS (
@@ -224,6 +226,7 @@ func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int, 
 			JOIN place p ON p.id = es.place_id
 			JOIN city c ON c.id = p.city_id
 			WHERE ($2 = '' OR c.id::text = $2 OR lower(c.name) = lower($2))
+			  AND es.end_at >= now()
 		),
 		next_session AS (
 			SELECT event_id, start_at, place_name, address_line
@@ -248,6 +251,22 @@ func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int, 
 			FROM event_tag et
 			JOIN tag t ON t.id = et.tag_id
 			GROUP BY et.event_id
+		),
+		viewer_preferred_tags AS (
+			SELECT uit.tag_id, 3 AS weight
+			FROM user_interest_tag uit
+			WHERE $3 <> '' AND uit.user_id::text = $3
+			UNION ALL
+			SELECT et.tag_id, 1 AS weight
+			FROM favorite_event fe
+			JOIN event_tag et ON et.event_id = fe.event_id
+			WHERE $3 <> '' AND fe.user_id::text = $3
+		),
+		recommendation_scores AS (
+			SELECT et.event_id, SUM(vpt.weight)::int AS recommendation_score
+			FROM event_tag et
+			JOIN viewer_preferred_tags vpt ON vpt.tag_id = et.tag_id
+			GROUP BY et.event_id
 		)
 		SELECT
 			e.id::text,
@@ -263,6 +282,7 @@ func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int, 
 		LEFT JOIN next_session ns ON ns.event_id = e.id
 		LEFT JOIN event_place_candidate ep ON ep.event_id = e.id
 		LEFT JOIN tags ON tags.event_id = e.id
+		LEFT JOIN recommendation_scores rs ON rs.event_id = e.id
 		WHERE (
 			$2 = ''
 			OR EXISTS (
@@ -282,11 +302,24 @@ func (r *PostgresRepository) ListFeaturedEvents(ctx context.Context, limit int, 
 					AND (c_filter.id::text = $2 OR lower(c_filter.name) = lower($2))
 			)
 		)
-		ORDER BY e.created_at DESC, e.id ASC
+		AND (
+			NOT EXISTS (
+				SELECT 1
+				FROM event_session es_active
+				WHERE es_active.event_id = e.id
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM event_session es_active
+				WHERE es_active.event_id = e.id
+				  AND es_active.end_at >= now()
+			)
+		)
+		ORDER BY COALESCE(rs.recommendation_score, 0) DESC, e.created_at DESC, e.id ASC
 		LIMIT $1
 	`
 
-	rows, err := r.pool.Query(ctx, query, limit, city)
+	rows, err := r.pool.Query(ctx, query, limit, city, userID)
 	if err != nil {
 		return []placemodel.HomeFeaturedEvent{}
 	}
@@ -526,8 +559,21 @@ func (r *PostgresRepository) SearchSuggestions(ctx context.Context, query string
 				similarity(lower(e.title), lower($1)) AS rank,
 				0 AS priority
 			FROM event e
-			WHERE lower(e.title) LIKE '%' || lower($1) || '%'
-			   OR e.title % $1
+			WHERE (lower(e.title) LIKE '%' || lower($1) || '%'
+			   OR e.title % $1)
+			  AND (
+				 NOT EXISTS (
+					 SELECT 1
+					 FROM event_session es_active
+					 WHERE es_active.event_id = e.id
+				 )
+				 OR EXISTS (
+					 SELECT 1
+					 FROM event_session es_active
+					 WHERE es_active.event_id = e.id
+					   AND es_active.end_at >= now()
+				 )
+			  )
 			UNION ALL
 			SELECT
 				c.id::text AS id,
@@ -666,6 +712,19 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id, userID string) (pl
 		FROM event e
 		JOIN user_account u ON u.id = e.author_user_id
 		WHERE e.id = $1
+		  AND (
+			 NOT EXISTS (
+				 SELECT 1
+				 FROM event_session es_active
+				 WHERE es_active.event_id = e.id
+			 )
+			 OR EXISTS (
+				 SELECT 1
+				 FROM event_session es_active
+				 WHERE es_active.event_id = e.id
+				   AND es_active.end_at >= now()
+			 )
+		  )
 	`
 
 	var item placemodel.EventDetailsView
@@ -997,7 +1056,47 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 	}
 	if len(sessionWhereParts) > 0 {
 		joinParts = append(joinParts, "JOIN event_session es_filter ON es_filter.event_id = e.id")
+		sessionWhereParts = append(sessionWhereParts, "es_filter.end_at >= now()")
 		whereParts = append(whereParts, strings.Join(sessionWhereParts, " AND "))
+	}
+	whereParts = append(whereParts, `(
+			NOT EXISTS (
+				SELECT 1
+				FROM event_session es_active
+				WHERE es_active.event_id = e.id
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM event_session es_active
+				WHERE es_active.event_id = e.id
+				  AND es_active.end_at >= now()
+			)
+		)`)
+	recommendationCTE := ""
+	recommendationJoin := ""
+	recommendationExpr := "0 AS recommendation_score"
+	if filter.UserID != "" {
+		recommendationCTE = fmt.Sprintf(`,
+		viewer_preferred_tags AS (
+			SELECT uit.tag_id, 3 AS weight
+			FROM user_interest_tag uit
+			WHERE uit.user_id::text = $%d
+			UNION ALL
+			SELECT et.tag_id, 1 AS weight
+			FROM favorite_event fe
+			JOIN event_tag et ON et.event_id = fe.event_id
+			WHERE fe.user_id::text = $%d
+		),
+		recommendation_scores AS (
+			SELECT et.event_id, SUM(vpt.weight)::int AS recommendation_score
+			FROM event_tag et
+			JOIN viewer_preferred_tags vpt ON vpt.tag_id = et.tag_id
+			GROUP BY et.event_id
+		)`, argPos, argPos)
+		recommendationJoin = "LEFT JOIN recommendation_scores rs ON rs.event_id = e.id"
+		recommendationExpr = "COALESCE(rs.recommendation_score, 0)::int AS recommendation_score"
+		args = append(args, filter.UserID)
+		argPos++
 	}
 	favoriteExpr := "false AS is_favorite"
 	favoriteJoin := ""
@@ -1025,6 +1124,9 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 	case "popular":
 		orderBy = "COALESCE(fc.favorite_count, 0) DESC, e.id ASC"
 	}
+	if filter.UserID != "" {
+		orderBy = "recommendation_score DESC, " + orderBy
+	}
 
 	query := fmt.Sprintf(`
 		WITH first_image AS (
@@ -1051,6 +1153,7 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 			FROM event_session es
 			JOIN place p ON p.id = es.place_id
 			JOIN city c ON c.id = p.city_id
+			WHERE es.end_at >= now()
 		),
 		next_session AS (
 			SELECT event_id, start_at, place_id, place_name, address_line, latitude, longitude, city_id, city_name, country_name, timezone
@@ -1088,7 +1191,7 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 				COUNT(*)::int AS favorite_count
 			FROM favorite_event fe
 			GROUP BY fe.event_id
-		),
+		)%s,
 		filtered_events AS (
 			SELECT e.id
 			FROM event e
@@ -1116,6 +1219,7 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 				COALESCE(ns.timezone, ep.timezone, '') AS timezone,
 				COUNT(*) OVER()::int AS total_count,
 				%s,
+				%s,
 				COALESCE(fc.favorite_count, 0)::int AS popularity
 			FROM filtered_events filtered
 			JOIN event e ON e.id = filtered.id
@@ -1124,6 +1228,7 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 			LEFT JOIN event_place_candidate ep ON ep.event_id = e.id
 			LEFT JOIN tags ON tags.event_id = e.id
 			LEFT JOIN favorite_counts fc ON fc.event_id = e.id
+			%s
 			%s
 			ORDER BY %s
 			LIMIT $%d OFFSET $%d
@@ -1149,7 +1254,7 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 			is_favorite,
 			popularity
 		FROM base
-	`, joinClause, whereClause, favoriteExpr, favoriteJoin, orderBy, argPos, argPos+1)
+	`, recommendationCTE, joinClause, whereClause, favoriteExpr, recommendationExpr, recommendationJoin, favoriteJoin, orderBy, argPos, argPos+1)
 	args = append(args, filter.Limit, filter.Offset)
 	return query, args
 }
@@ -1250,6 +1355,7 @@ func fetchSessions(ctx context.Context, db queryable, eventID string) ([]placemo
 		JOIN place p ON p.id = es.place_id
 		JOIN city c ON c.id = p.city_id
 		WHERE es.event_id = $1
+		  AND es.end_at >= now()
 		ORDER BY es.start_at ASC, es.id ASC
 	`
 
@@ -1498,6 +1604,7 @@ func (r *PostgresRepository) fetchCollectionEvents(ctx context.Context, collecti
 			FROM event_session es
 			JOIN place p ON p.id = es.place_id
 			JOIN city c ON c.id = p.city_id
+			WHERE es.end_at >= now()
 		),
 		next_session AS (
 			SELECT event_id, start_at, place_id, place_name, address_line, latitude, longitude, city_id, city_name, country_name, timezone
@@ -1564,6 +1671,19 @@ func (r *PostgresRepository) fetchCollectionEvents(ctx context.Context, collecti
 			LEFT JOIN tags ON tags.event_id = e.id
 			LEFT JOIN favorite_counts fc ON fc.event_id = e.id
 			WHERE ce.collection_id = $1
+			  AND (
+				 NOT EXISTS (
+					 SELECT 1
+					 FROM event_session es_active
+					 WHERE es_active.event_id = e.id
+				 )
+				 OR EXISTS (
+					 SELECT 1
+					 FROM event_session es_active
+					 WHERE es_active.event_id = e.id
+					   AND es_active.end_at >= now()
+				 )
+			  )
 			ORDER BY ce.created_at ASC, e.id ASC
 	`
 

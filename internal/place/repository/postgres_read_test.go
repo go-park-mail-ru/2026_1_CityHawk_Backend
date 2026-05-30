@@ -47,7 +47,7 @@ func TestPostgresRepositoryReadMethodsWithFakeDB(t *testing.T) {
 	if got := repo.ListCities(context.Background()); len(got) != 1 || got[0].Name != "Moscow" {
 		t.Fatalf("ListCities() = %+v", got)
 	}
-	if got := repo.ListFeaturedEvents(context.Background(), 1, "Moscow"); len(got) != 1 || got[0].NextSession.Place.Name != "Hall" {
+	if got := repo.ListFeaturedEvents(context.Background(), 1, "Moscow", ""); len(got) != 1 || got[0].NextSession.Place.Name != "Hall" {
 		t.Fatalf("ListFeaturedEvents() = %+v", got)
 	}
 	if got := repo.ListHomeCategories(context.Background(), 1, "Moscow"); len(got) != 1 {
@@ -126,8 +126,14 @@ func (f *fakePlaceDB) Query(_ context.Context, sql string, _ ...any) (pgx.Rows, 
 	if strings.Contains(sql, "FROM filtered_events filtered") {
 		return &fakePlaceRows{rows: f.rows["FROM filtered_events filtered"], index: -1}, nil
 	}
-	if strings.Contains(sql, "FROM event e\n\t\tLEFT JOIN first_image fi") {
+	if strings.Contains(sql, "FROM event e") && strings.Contains(sql, "LEFT JOIN recommendation_scores rs") {
 		return &fakePlaceRows{rows: f.rows["FROM event e\n\t\tLEFT JOIN first_image"], index: -1}, nil
+	}
+	if strings.Contains(sql, "FROM collection c") && strings.Contains(sql, "LIMIT $1") {
+		return &fakePlaceRows{rows: f.rows["SELECT\n\t\t\tc.id::text"], index: -1}, nil
+	}
+	if strings.Contains(sql, "FROM collection c") && strings.Contains(sql, "c.is_public = TRUE") {
+		return &fakePlaceRows{rows: f.rows["FROM collection c\n\t\tLEFT JOIN"], index: -1}, nil
 	}
 	if strings.Contains(sql, "FROM event_session es") && strings.Contains(sql, "WHERE es.event_id = $1") {
 		return &fakePlaceRows{rows: f.rows["FETCH event sessions"], index: -1}, nil
@@ -146,6 +152,12 @@ func (f *fakePlaceDB) Query(_ context.Context, sql string, _ ...any) (pgx.Rows, 
 	return &fakePlaceRows{index: -1}, nil
 }
 func (f *fakePlaceDB) QueryRow(_ context.Context, sql string, _ ...any) pgx.Row {
+	if strings.Contains(sql, "FROM collection c") && strings.Contains(sql, "WHERE c.id = $1") {
+		return fakePlaceRow(f.row["FROM collection c\n\t\tLEFT JOIN first_image"])
+	}
+	if strings.Contains(sql, "FROM event e") && strings.Contains(sql, "JOIN user_account") {
+		return fakePlaceRow(f.row["FROM event e\n\t\tJOIN user_account"])
+	}
 	for pattern, row := range f.row {
 		if strings.Contains(sql, pattern) {
 			return fakePlaceRow(row)
