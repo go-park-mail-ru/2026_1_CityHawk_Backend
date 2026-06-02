@@ -10,7 +10,7 @@ import (
 
 func newGRPCPostgresPool(cfg appconfig.Config) (*pgxpool.Pool, error) {
 	ctx := context.Background()
-	pool, err := platformpostgres.NewPool(ctx, cfg.Database.DSN())
+	pool, err := platformpostgres.NewPool(ctx, cfg.Database.DSN(), postgresPoolConfig(cfg))
 	if err != nil {
 		return nil, err
 	}
@@ -19,4 +19,16 @@ func newGRPCPostgresPool(cfg appconfig.Config) (*pgxpool.Pool, error) {
 		return nil, err
 	}
 	return pool, nil
+}
+
+func postgresPoolConfig(cfg appconfig.Config) platformpostgres.PoolConfig {
+	return platformpostgres.PoolConfig{
+		ApplicationName:  cfg.Database.ApplicationName,
+		MaxConns:         cfg.Database.PoolMaxConns,
+		MinConns:         cfg.Database.PoolMinConns,
+		MaxConnLifetime:  cfg.Database.PoolMaxConnLifetime,
+		MaxConnIdleTime:  cfg.Database.PoolMaxConnIdleTime,
+		StatementTimeout: cfg.Database.StatementTimeout,
+		LockTimeout:      cfg.Database.LockTimeout,
+	}
 }
