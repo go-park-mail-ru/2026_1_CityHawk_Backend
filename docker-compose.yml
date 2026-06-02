@@ -4,15 +4,18 @@ services:
     container_name: cityhawk-postgres
     environment:
       POSTGRES_DB: ${DB_NAME:-cityhawk}
-      POSTGRES_USER: ${DB_USER:-cityhawk}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-cityhawk}
+      POSTGRES_USER: ${DB_ADMIN_USER:-cityhawk_admin}
+      POSTGRES_PASSWORD: ${DB_ADMIN_PASSWORD:-cityhawk_admin}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./db/admin/001_create_service_roles.sql:/docker-entrypoint-initdb.d/001_create_service_roles.sql:ro
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cityhawk} -d ${DB_NAME:-cityhawk}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_ADMIN_USER:-cityhawk_admin} -d ${DB_NAME:-cityhawk}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -61,9 +64,10 @@ services:
       - SOCIAL_GRPC_ADDR=cityhawk-social-service:50055
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=${DB_USER:-cityhawk}
+      - DB_USER=${DB_APP_USER:-cityhawk_app}
       - DB_NAME=${DB_NAME:-cityhawk}
-      - DB_PASSWORD=${DB_PASSWORD:-cityhawk}
+      - DB_PASSWORD=${DB_APP_PASSWORD:-cityhawk_app}
+      - DB_APPLICATION_NAME=cityhawk-backend
       - PHOTON_ENABLED=${PHOTON_ENABLED:-true}
       - PHOTON_BASE_URL=http://photon:2322
       - PHOTON_REQUEST_TIMEOUT=${PHOTON_REQUEST_TIMEOUT:-5s}
@@ -100,9 +104,10 @@ services:
       - AUTH_METRICS_ADDR=:9101
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=${DB_USER:-cityhawk}
+      - DB_USER=${DB_APP_USER:-cityhawk_app}
       - DB_NAME=${DB_NAME:-cityhawk}
-      - DB_PASSWORD=${DB_PASSWORD:-cityhawk}
+      - DB_PASSWORD=${DB_APP_PASSWORD:-cityhawk_app}
+      - DB_APPLICATION_NAME=cityhawk-auth-service
     restart: unless-stopped
 
   cityhawk-profile-service:
@@ -123,9 +128,10 @@ services:
       - PROFILE_METRICS_ADDR=:9102
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=${DB_USER:-cityhawk}
+      - DB_USER=${DB_APP_USER:-cityhawk_app}
       - DB_NAME=${DB_NAME:-cityhawk}
-      - DB_PASSWORD=${DB_PASSWORD:-cityhawk}
+      - DB_PASSWORD=${DB_APP_PASSWORD:-cityhawk_app}
+      - DB_APPLICATION_NAME=cityhawk-profile-service
     restart: unless-stopped
 
   cityhawk-events-service:
@@ -148,9 +154,10 @@ services:
       - EVENTS_METRICS_ADDR=:9103
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=${DB_USER:-cityhawk}
+      - DB_USER=${DB_APP_USER:-cityhawk_app}
       - DB_NAME=${DB_NAME:-cityhawk}
-      - DB_PASSWORD=${DB_PASSWORD:-cityhawk}
+      - DB_PASSWORD=${DB_APP_PASSWORD:-cityhawk_app}
+      - DB_APPLICATION_NAME=cityhawk-events-service
       - PHOTON_ENABLED=${PHOTON_ENABLED:-true}
       - PHOTON_BASE_URL=http://photon:2322
       - PHOTON_REQUEST_TIMEOUT=${PHOTON_REQUEST_TIMEOUT:-5s}
@@ -176,9 +183,10 @@ services:
       - SOCIAL_METRICS_ADDR=:9105
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=${DB_USER:-cityhawk}
+      - DB_USER=${DB_APP_USER:-cityhawk_app}
       - DB_NAME=${DB_NAME:-cityhawk}
-      - DB_PASSWORD=${DB_PASSWORD:-cityhawk}
+      - DB_PASSWORD=${DB_APP_PASSWORD:-cityhawk_app}
+      - DB_APPLICATION_NAME=cityhawk-social-service
     restart: unless-stopped
 
   cityhawk-support-service:
@@ -202,9 +210,10 @@ services:
       - PROFILE_GRPC_ADDR=cityhawk-profile-service:50052
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=${DB_USER:-cityhawk}
+      - DB_USER=${DB_APP_USER:-cityhawk_app}
       - DB_NAME=${DB_NAME:-cityhawk}
-      - DB_PASSWORD=${DB_PASSWORD:-cityhawk}
+      - DB_PASSWORD=${DB_APP_PASSWORD:-cityhawk_app}
+      - DB_APPLICATION_NAME=cityhawk-support-service
     restart: unless-stopped
 
   prometheus:
@@ -227,6 +236,19 @@ services:
       - cityhawk-events-service
       - cityhawk-support-service
       - cityhawk-social-service
+      - postgres-exporter
+    restart: unless-stopped
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.16.0
+    container_name: cityhawk-postgres-exporter
+    profiles:
+      - monitoring
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${DB_MONITOR_USER:-cityhawk_monitor}:${DB_MONITOR_PASSWORD:-cityhawk_monitor}@postgres:5432/${DB_NAME:-cityhawk}?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   grafana:

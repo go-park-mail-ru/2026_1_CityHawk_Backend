@@ -13,6 +13,13 @@ func TestLoadFromEnvAndParsers(t *testing.T) {
 	t.Setenv("DB_PASSWORD", "pass")
 	t.Setenv("DB_NAME", "name")
 	t.Setenv("DB_SSLMODE", "require")
+	t.Setenv("DB_APPLICATION_NAME", "cityhawk-test")
+	t.Setenv("DB_POOL_MAX_CONNS", "12")
+	t.Setenv("DB_POOL_MIN_CONNS", "2")
+	t.Setenv("DB_POOL_MAX_CONN_LIFETIME", "20m")
+	t.Setenv("DB_POOL_MAX_CONN_IDLE_TIME", "4m")
+	t.Setenv("DB_STATEMENT_TIMEOUT", "3s")
+	t.Setenv("DB_LOCK_TIMEOUT", "750ms")
 	t.Setenv("AUTH_GRPC_ADDR", ":51051")
 	t.Setenv("PROFILE_GRPC_ADDR", ":51052")
 	t.Setenv("EVENTS_GRPC_ADDR", ":51053")
@@ -37,6 +44,15 @@ func TestLoadFromEnvAndParsers(t *testing.T) {
 	}
 	if cfg.Database.Host != "db" || cfg.Database.Port != "5433" || cfg.Database.SSLMode != "require" {
 		t.Fatalf("unexpected db config: %+v", cfg.Database)
+	}
+	if cfg.Database.ApplicationName != "cityhawk-test" ||
+		cfg.Database.PoolMaxConns != 12 ||
+		cfg.Database.PoolMinConns != 2 ||
+		cfg.Database.PoolMaxConnLifetime.String() != "20m0s" ||
+		cfg.Database.PoolMaxConnIdleTime.String() != "4m0s" ||
+		cfg.Database.StatementTimeout.String() != "3s" ||
+		cfg.Database.LockTimeout.String() != "750ms" {
+		t.Fatalf("unexpected db tuning config: %+v", cfg.Database)
 	}
 	if cfg.GRPC.AuthAddr != ":51051" ||
 		cfg.GRPC.ProfileAddr != ":51052" ||

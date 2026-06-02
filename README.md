@@ -149,10 +149,19 @@ Runnable migrations лежат в:
 ```env
 DB_HOST=localhost
 DB_PORT=5432
-DB_USER=cityhawk
-DB_PASSWORD=cityhawk
+DB_USER=cityhawk_app
+DB_PASSWORD=cityhawk_app
 DB_NAME=cityhawk
 DB_SSLMODE=disable
+DB_APPLICATION_NAME=cityhawk-backend
+DB_POOL_MAX_CONNS=10
+DB_POOL_MIN_CONNS=1
+DB_POOL_MAX_CONN_LIFETIME=30m
+DB_POOL_MAX_CONN_IDLE_TIME=5m
+DB_STATEMENT_TIMEOUT=5s
+DB_LOCK_TIMEOUT=1s
+DB_MONITOR_USER=cityhawk_monitor
+DB_MONITOR_PASSWORD=cityhawk_monitor
 PHOTON_ENABLED=false
 PHOTON_BASE_URL=http://localhost:2322
 PHOTON_REQUEST_TIMEOUT=5s
@@ -170,10 +179,11 @@ make db-seed
 Или напрямую через `psql`:
 
 ```bash
-psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0001_init.up.sql
-psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0003_search_trgm.up.sql
-psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0005_media_paths.up.sql
-psql "postgres://cityhawk:cityhawk@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0002_seed.up.sql
+psql "postgres://cityhawk_migrator:cityhawk_migrator@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0001_init.up.sql
+psql "postgres://cityhawk_migrator:cityhawk_migrator@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0029_pg_stat_statements.up.sql
+psql "postgres://cityhawk_migrator:cityhawk_migrator@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0003_search_trgm.up.sql
+psql "postgres://cityhawk_migrator:cityhawk_migrator@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0005_media_paths.up.sql
+psql "postgres://cityhawk_migrator:cityhawk_migrator@localhost:5432/cityhawk?sslmode=disable" -f db/migrations/0002_seed.up.sql
 ```
 
 После `make db-seed` база будет заполнена 100 сидовыми карточками событий, и у каждой карточки будут связанные категории, теги, картинка и сессия. Дополнительно создаются сидовые коллекции и избранные события для тестирования API.

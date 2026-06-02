@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,14 +13,59 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func NewPool(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
+type PoolConfig struct {
+	ApplicationName  string
+	MaxConns         int
+	MinConns         int
+	MaxConnLifetime  time.Duration
+	MaxConnIdleTime  time.Duration
+	StatementTimeout time.Duration
+	LockTimeout      time.Duration
+}
+
+func NewPool(ctx context.Context, dsn string, options ...PoolConfig) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, err
 	}
 
 	cfg.ConnConfig.Tracer = postgresTracer{}
+	if len(options) > 0 {
+		applyPoolConfig(cfg, options[0])
+	}
 	return pgxpool.NewWithConfig(ctx, cfg)
+}
+
+func applyPoolConfig(cfg *pgxpool.Config, option PoolConfig) {
+	if option.MaxConns > 0 {
+		cfg.MaxConns = int32(option.MaxConns)
+	}
+	if option.MinConns > 0 {
+		cfg.MinConns = int32(option.MinConns)
+	}
+	if option.MaxConnLifetime > 0 {
+		cfg.MaxConnLifetime = option.MaxConnLifetime
+	}
+	if option.MaxConnIdleTime > 0 {
+		cfg.MaxConnIdleTime = option.MaxConnIdleTime
+	}
+
+	if cfg.ConnConfig.RuntimeParams == nil {
+		cfg.ConnConfig.RuntimeParams = make(map[string]string)
+	}
+	if strings.TrimSpace(option.ApplicationName) != "" {
+		cfg.ConnConfig.RuntimeParams["application_name"] = strings.TrimSpace(option.ApplicationName)
+	}
+	if option.StatementTimeout > 0 {
+		cfg.ConnConfig.RuntimeParams["statement_timeout"] = formatPostgresDuration(option.StatementTimeout)
+	}
+	if option.LockTimeout > 0 {
+		cfg.ConnConfig.RuntimeParams["lock_timeout"] = formatPostgresDuration(option.LockTimeout)
+	}
+}
+
+func formatPostgresDuration(duration time.Duration) string {
+	return strconv.FormatInt(duration.Milliseconds(), 10) + "ms"
 }
 
 type postgresTracer struct{}
