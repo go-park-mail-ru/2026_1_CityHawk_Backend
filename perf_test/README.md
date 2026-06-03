@@ -1,35 +1,35 @@
-# HW 4: DB Performance Optimization
+# ДЗ 4: оптимизация работы СУБД
 
-## Goal
+## Цель
 
-This homework documents a reproducible load-testing and optimization cycle for
-the CityHawk backend:
+В этой работе задокументирован воспроизводимый цикл нагрузочного тестирования и
+оптимизации backend-сервиса CityHawk:
 
-1. Load test the main write endpoint.
-2. Load test the main read endpoint after the database contains 100k main
-   entities.
-3. Inspect PostgreSQL metrics and query plans.
-4. Apply a focused optimization.
-5. Repeat the read test and compare results.
+1. Провести нагрузочный тест endpoint'а создания основной сущности.
+2. Провести нагрузочный тест endpoint'а чтения после заполнения базы 100 тыс.
+   основными сущностями.
+3. Проанализировать метрики PostgreSQL и планы выполнения запросов.
+4. Выполнить оптимизацию.
+5. Повторить тест чтения и сравнить результаты.
 
-The main business entity is `event`: it is the core object shown on the feed,
-map, collections and event details pages.
+Основная бизнес-сущность проекта - `event`, то есть событие. Именно события
+показываются в ленте, на карте, в подборках и на странице деталей.
 
-## Tested API
+## Тестируемое API
 
-Write endpoint:
+Endpoint создания:
 
 ```text
 POST /api/events
 ```
 
-Read endpoint:
+Endpoint чтения:
 
 ```text
 GET /api/events?limit=12&offset=0&sort=dateAsc
 ```
 
-The read test also mixes representative variants of the same endpoint:
+В read-тест также включены типовые варианты того же endpoint'а:
 
 ```text
 GET /api/events?sort=titleAsc
@@ -39,68 +39,68 @@ GET /api/events?categoryId=20000000-0000-0000-0000-000000000001
 GET /api/events?tag=30000000-0000-0000-0000-000000000001
 ```
 
-## Tooling
+## Инструменты
 
-Load generator: `vegeta`.
+Генератор нагрузки: `vegeta`.
 
-Database analysis:
+Анализ базы данных:
 
 - `pg_stat_statements`
 - `EXPLAIN (ANALYZE, BUFFERS)`
-- PostgreSQL slow logs and `auto_explain`
-- Prometheus, Grafana and `postgres_exporter`
+- PostgreSQL slow logs и `auto_explain`
+- Prometheus, Grafana и `postgres_exporter`
 
-The project already enables the PostgreSQL observability pieces in
-`db/postgres/postgresql.conf` and `docker-compose.yml`.
+Наблюдаемость PostgreSQL включается через `db/postgres/postgresql.conf` и
+`docker-compose.yml`.
 
-## Files
+## Файлы
 
 ```text
 perf_test/
-  README.md                         this report
-  init.sql                          baseline DDL before optimization migration 0030
+  README.md                         этот отчет
+  init.sql                          baseline DDL до оптимизационной миграции 0030
   scripts/
-    perf_seed.sql                   deterministic dictionaries for the test
-    prepare_db.sh                   loads dictionaries
-    auth.sh                         creates/logs in the test user and stores cookies
-    generate_create_targets.py      generates vegeta JSON targets for POST /api/events
-    generate_read_targets.py        generates vegeta JSON targets for GET /api/events
-    run_create_test.sh              runs create load test
-    run_read_test.sh                runs read load test
-    collect_db_stats.sql            pg_stat_statements and DB counters
-    explain_read_events.sql         representative read query plan
-    reset_pg_stat_statements.sql    clears query stats between iterations
-  results/                          raw vegeta and DB outputs
-  reports/                          vegeta plots and screenshots
+    perf_seed.sql                   детерминированные справочники для теста
+    prepare_db.sh                   загрузка справочников
+    auth.sh                         создание/логин тестового пользователя
+    generate_create_targets.py      генерация vegeta targets для POST /api/events
+    generate_read_targets.py        генерация vegeta targets для GET /api/events
+    run_create_test.sh              запуск create-теста
+    run_read_test.sh                запуск read-теста
+    collect_db_stats.sql            сбор pg_stat_statements и счетчиков БД
+    explain_read_events.sql         representative EXPLAIN для read-запроса
+    reset_pg_stat_statements.sql    сброс статистики между итерациями
+  results/                          сырые результаты vegeta и БД
+  reports/                          vegeta plots и скриншоты
 ```
 
-Optimization migration:
+Оптимизационная миграция:
 
 ```text
 db/migrations/0030_perf_event_indexes.up.sql
 db/migrations/0030_perf_event_indexes.down.sql
 ```
 
-## Environment
+## Окружение
 
-The test is intended to run on a dedicated VM, as required by the homework.
+Тест выполнялся на выделенной VM, как требуется в задании.
 
-Record the actual VM parameters before running:
+Параметры окружения:
 
 ```text
-Date: 2026-06-03
-Host: 2026-1-cityhawk VM
-CPU: fill from VM
-RAM: fill from VM
-Disk: fill from VM
+Дата: 2026-06-03
+Хост: 2026-1-cityhawk VM
+CPU: заполнить с VM
+RAM: заполнить с VM
+Диск: заполнить с VM
 OS: Ubuntu
-Docker: fill from `docker version`
+Docker: заполнить из `docker version`
 PostgreSQL: 16
-Go: fill from `go version`
-Vegeta: fill from `vegeta -version`
+Go: заполнить из `go version`
+Vegeta: заполнить из `vegeta -version`
 ```
 
-Useful commands:
+Команды для проверки окружения:
 
 ```bash
 uname -a
@@ -109,57 +109,57 @@ docker compose version
 vegeta -version
 ```
 
-## Baseline Setup
+## Подготовка baseline
 
-Start the application stack on the VM:
+Запуск приложения на VM:
 
 ```bash
 docker compose up -d postgres photon cityhawk-auth-service cityhawk-profile-service cityhawk-events-service cityhawk-support-service cityhawk-social-service cityhawk-backend
 ```
 
-Optional monitoring stack:
+Опционально запуск мониторинга:
 
 ```bash
 docker compose --profile monitoring up -d
 ```
 
-Prepare deterministic dictionaries:
+Подготовка детерминированных справочников:
 
 ```bash
 export DATABASE_URL='postgres://cityhawk_migrator:cityhawk_migrator@localhost:5432/cityhawk?sslmode=disable'
 ./perf_test/scripts/prepare_db.sh
 ```
 
-Create/login the load-test user:
+Создание и логин нагрузочного пользователя:
 
 ```bash
 export BASE_URL='http://localhost:8080'
 ./perf_test/scripts/auth.sh
 ```
 
-Reset query statistics before each iteration:
+Сброс статистики запросов перед каждой итерацией:
 
 ```bash
 psql "$DATABASE_URL" -f perf_test/scripts/reset_pg_stat_statements.sql
 ```
 
-## Iteration 1: Create 100k Events
+## Итерация 1: создание 100 тыс. событий
 
-Command:
+Команда:
 
 ```bash
 COUNT=100000 RATE=200 RESULT_PREFIX=baseline-create ./perf_test/scripts/run_create_test.sh
 ```
 
-Expected behavior:
+Ожидаемое поведение:
 
-- `POST /api/events` creates 100k `event` rows through the public API.
-- Each event has one category, one tag, one image URL, one primary place and one
-  session.
-- Generated sessions are spread across 2048 places and non-overlapping time
-  slots to satisfy the `event_session_place_time_excl` constraint.
+- `POST /api/events` создает 100 тыс. строк `event` через публичное API.
+- Каждое событие содержит одну категорию, один тег, один URL изображения, одно
+  основное место и одну сессию.
+- Сессии распределяются по 2048 местам и непересекающимся временным слотам,
+  чтобы удовлетворять constraint `event_session_place_time_excl`.
 
-Artifacts:
+Артефакты:
 
 ```text
 perf_test/results/baseline-create.bin
@@ -168,10 +168,10 @@ perf_test/results/baseline-create.json
 perf_test/reports/baseline-create.html
 ```
 
-Result:
+Результат:
 
 ```text
-Main create run, COUNT=100000 RATE=200:
+Основной create-прогон, COUNT=100000 RATE=200:
 
 Requests      [total, rate, throughput]  100000, 200.00, 181.03
 Duration      [total, attack, wait]      8m23.387213159s, 8m19.995433871s, 3.391779288s
@@ -184,7 +184,7 @@ Error Set:
 500 Internal Server Error
 Post "http://localhost:8080/api/events": EOF
 
-Fill run, COUNT=2 RATE=1:
+Дозагрузка недостающих событий, COUNT=2 RATE=1:
 
 Requests      [total, rate, throughput]  2, 2.00, 1.98
 Duration      [total, attack, wait]      1.007600486s, 1.000012235s, 7.588251ms
@@ -195,33 +195,33 @@ Success       [ratio]                    100.00%
 Status Codes  [code:count]               201:2
 Error Set:
 
-Final DB check:
+Финальная проверка БД:
 
 SELECT count(*) FROM event WHERE title LIKE 'Perf Event %%';
 count = 100000
 ```
 
-The write endpoint reached the VM's practical limit at `RATE=200`: p99 exceeded
-five seconds, and the service returned `8871` HTTP 500 responses. The missing
-events were loaded by a low-rate fill run. The homework requirement to create
-100k main entities was satisfied by the final DB count.
+Endpoint создания достиг практического предела VM при `RATE=200`: p99 превысил
+5 секунд, сервис вернул `8871` ответов HTTP 500. Недостающие события были
+дозагружены отдельным low-rate прогоном. Требование создать 100 тыс. основных
+сущностей выполнено, что подтверждено финальным count в базе.
 
-## Iteration 1: Read Baseline
+## Итерация 1: baseline чтения
 
-Command:
+Команда:
 
 ```bash
 COUNT=5000 RATE=20 RESULT_PREFIX=baseline-read ./perf_test/scripts/run_read_test.sh
 ```
 
-Collect DB stats:
+Сбор статистики БД:
 
 ```bash
 psql "$DATABASE_URL" -f perf_test/scripts/collect_db_stats.sql > perf_test/results/baseline-db-stats.txt
 psql "$DATABASE_URL" -f perf_test/scripts/explain_read_events.sql > perf_test/results/baseline-explain-read-events.txt
 ```
 
-Artifacts:
+Артефакты:
 
 ```text
 perf_test/results/baseline-read.bin
@@ -232,7 +232,7 @@ perf_test/results/baseline-db-stats.txt
 perf_test/results/baseline-explain-read-events.txt
 ```
 
-Result:
+Результат:
 
 ```text
 Requests      [total, rate, throughput]  5000, 20.00, 0.00
@@ -244,44 +244,45 @@ Success       [ratio]                    0.00%
 Status Codes  [code:count]               0:4998  500:2
 Error Set:
 500 Internal Server Error
-context deadline exceeded / EOF for GET /api/events variants
+context deadline exceeded / EOF для вариантов GET /api/events
 ```
 
-At 100k generated events, the unoptimized read endpoint did not produce stable
-responses even at `RATE=20`. Vegeta timed out after 30 seconds. This became the
-main bottleneck for the optimization cycle.
+После генерации 100 тыс. событий endpoint чтения не давал стабильных ответов
+даже при `RATE=20`. Vegeta упиралась в timeout 30 секунд. Это стало главным
+бутылочным горлышком для дальнейшей оптимизации.
 
-## Bottleneck Analysis
+## Анализ бутылочного горлышка
 
-The main read query is built in `internal/place/repository/postgres.go` by
+Основной read-запрос строится в `internal/place/repository/postgres.go` функцией
 `buildListEventsQuery`.
 
-The expected hot areas after 100k events are:
+Ожидаемые проблемные места после 100 тыс. событий:
 
-- scanning/sorting `event_session` to find the next active session;
-- `DISTINCT ON (event_id)` over `event_image` to find the first image;
-- repeated `EXISTS` checks by `event_id` in `event_session`;
-- sorting `event` by `created_at`, `title` or next session time;
-- city filtering through `event_place`, `place` and `event_session`;
-- trigram search over `lower(title)`.
+- сканирование и сортировка `event_session` для поиска ближайшей активной
+  сессии;
+- `DISTINCT ON (event_id)` по `event_image` для выбора первой картинки;
+- повторяющиеся `EXISTS`-проверки по `event_id` в `event_session`;
+- сортировка `event` по `created_at`, `title` или времени ближайшей сессии;
+- фильтрация по городу через `event_place`, `place` и `event_session`;
+- trigram-поиск по `lower(title)`.
 
-The baseline plan should be inspected for:
+При анализе baseline-плана нужно смотреть на:
 
-- sequential scans over large tables;
-- external sorts or large in-memory sorts;
-- high shared block reads;
-- nested loops that multiply work by event count;
-- high `total_exec_time` in `pg_stat_statements`.
+- sequential scan по большим таблицам;
+- внешние сортировки или большие in-memory sort;
+- большое число прочитанных shared blocks;
+- nested loop, умножающие работу на количество событий;
+- высокий `total_exec_time` в `pg_stat_statements`.
 
-## Optimization
+## Оптимизация
 
-The first optimization is isolated in:
+Первая оптимизация вынесена в миграцию:
 
 ```text
 db/migrations/0030_perf_event_indexes.up.sql
 ```
 
-It adds indexes for the observed hot paths:
+Она добавляет индексы под горячие пути:
 
 ```sql
 idx_event_created_at_id
@@ -297,7 +298,7 @@ idx_city_lower_name
 idx_event_lower_title_trgm
 ```
 
-Apply it after saving baseline results:
+Применение после сохранения baseline-результатов:
 
 ```bash
 psql "$DATABASE_URL" -f db/migrations/0030_perf_event_indexes.up.sql
@@ -305,34 +306,34 @@ psql "$DATABASE_URL" -c 'ANALYZE;'
 psql "$DATABASE_URL" -f perf_test/scripts/reset_pg_stat_statements.sql
 ```
 
-If the read endpoint still times out after the index-only optimization, apply the
-second optimization from `internal/place/repository/postgres.go`: the event list
-query now selects the paginated `event.id` set first in `page_events`, and only
-then fetches images, tags, nearest sessions, places and favorite counts for that
-small page. This avoids aggregating and sorting large related tables for all
-100k events before `LIMIT`.
+Так как после index-only оптимизации endpoint чтения все еще уходил в timeout,
+была применена вторая оптимизация в `internal/place/repository/postgres.go`:
+запрос списка событий теперь сначала выбирает страницу `event.id` в CTE
+`page_events`, а затем подтягивает изображения, теги, ближайшие сессии, места и
+favorite counts только для этой маленькой страницы. Это снижает объем работы,
+которая раньше выполнялась по связанным таблицам для всех 100 тыс. событий до
+`LIMIT`.
 
-The index-only optimization was applied first and tested as `optimized-read`.
-It did not solve the endpoint timeout at the selected load, so the second
-optimization changed the query shape to a pagination-first approach and was
-tested as `optimized-read-v2`.
+Index-only оптимизация тестировалась как `optimized-read`. Она не решила timeout
+на выбранной нагрузке. После этого была изменена форма запроса, и вариант с
+pagination-first query shape тестировался как `optimized-read-v2`.
 
-## Iteration 2: Read After Optimization
+## Итерация 2: чтение после оптимизации
 
-Command:
+Команда:
 
 ```bash
 COUNT=5000 RATE=20 RESULT_PREFIX=optimized-read ./perf_test/scripts/run_read_test.sh
 ```
 
-Collect DB stats:
+Сбор статистики БД:
 
 ```bash
 psql "$DATABASE_URL" -f perf_test/scripts/collect_db_stats.sql > perf_test/results/optimized-db-stats.txt
 psql "$DATABASE_URL" -f perf_test/scripts/explain_read_events.sql > perf_test/results/optimized-explain-read-events.txt
 ```
 
-Artifacts:
+Артефакты:
 
 ```text
 perf_test/results/optimized-read.bin
@@ -343,10 +344,10 @@ perf_test/results/optimized-db-stats.txt
 perf_test/results/optimized-explain-read-events.txt
 ```
 
-Result:
+Результат:
 
 ```text
-Index-only optimization, COUNT=5000 RATE=20:
+Index-only оптимизация, COUNT=5000 RATE=20:
 
 Requests      [total, rate, throughput]  5000, 20.00, 0.00
 Duration      [total, attack, wait]      4m39.95140021s, 4m9.950580291s, 30.000819919s
@@ -357,9 +358,9 @@ Success       [ratio]                    0.00%
 Status Codes  [code:count]               0:4994  500:6
 Error Set:
 500 Internal Server Error
-context deadline exceeded / EOF for GET /api/events variants
+context deadline exceeded / EOF для вариантов GET /api/events
 
-Pagination-first query rewrite, COUNT=5000 RATE=20:
+Pagination-first rewrite, COUNT=5000 RATE=20:
 
 Requests      [total, rate, throughput]  5000, 20.00, 0.01
 Duration      [total, attack, wait]      4m39.950555106s, 4m9.95023258s, 30.000322526s
@@ -369,63 +370,64 @@ Bytes Out     [total, mean]              0, 0.00
 Success       [ratio]                    0.04%
 Status Codes  [code:count]               0:4998  200:2
 Error Set:
-context deadline exceeded / EOF for GET /api/events variants
+context deadline exceeded / EOF для вариантов GET /api/events
 ```
 
-The index-only optimization made the new indexes visible in PostgreSQL stats,
-especially on `event_session`, `event_image`, `event_place` and `place`, but it
-was insufficient for the selected read workload. The pagination-first rewrite
-allowed a small number of successful responses, but the endpoint was still not
-stable under `RATE=20`. The conclusion is that the bottleneck is not only index
-coverage but also the endpoint/query shape and current service/DB capacity.
+Index-only оптимизация сделала новые индексы видимыми в PostgreSQL stats,
+особенно для `event_session`, `event_image`, `event_place` и `place`, но ее
+оказалось недостаточно для выбранной read-нагрузки. Pagination-first rewrite
+позволил получить небольшое количество успешных ответов, однако endpoint все
+еще оставался нестабильным при `RATE=20`. Вывод: бутылочное горлышко связано не
+только с покрытием индексами, но и с формой endpoint'а/запроса и текущей
+производительностью сервиса и БД.
 
-## Comparison
+## Сравнение
 
-| Scenario | RPS | p50 | p95 | p99 | Success | Notes |
+| Сценарий | RPS/throughput | p50 | p95 | p99 | Успешность | Комментарий |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Create baseline, 100k events | 181.03 throughput | 1.84s | 4.62s | 5.20s | 91.13% main run; final count 100000 | `RATE=200` overloaded write path; fill run completed missing rows |
-| Create fill | 1.98 throughput | 7.68ms | 7.78ms | 7.78ms | 100.00% | Low-rate fill for missing events |
-| Read baseline | 0.00 throughput | 30.00s | 30.00s | 30.00s | 0.00% | Before migration 0030 |
-| Read optimized, indexes | 0.00 throughput | 30.00s | 30.00s | 30.00s | 0.00% | Migration 0030 was insufficient |
-| Read optimized, query rewrite | 0.01 throughput | 30.00s | 30.00s | 30.00s | 0.04% | Pagination-first query shape; still saturated |
+| Создание baseline, 100 тыс. событий | 181.03 throughput | 1.84s | 4.62s | 5.20s | 91.13% основной прогон; итоговый count 100000 | `RATE=200` перегрузил путь создания; недостающие строки дозагружены отдельно |
+| Дозагрузка создания | 1.98 throughput | 7.68ms | 7.78ms | 7.78ms | 100.00% | Дозагрузка недостающих событий |
+| Чтение baseline | 0.00 throughput | 30.00s | 30.00s | 30.00s | 0.00% | До миграции 0030 |
+| Чтение после индексов | 0.00 throughput | 30.00s | 30.00s | 30.00s | 0.00% | Миграции 0030 оказалось недостаточно |
+| Чтение после переписывания запроса | 0.01 throughput | 30.00s | 30.00s | 30.00s | 0.04% | Запрос сначала выбирает страницу событий; endpoint все еще насыщен |
 
-Database comparison:
+Сравнение БД:
 
-| Metric | Baseline | Optimized indexes | Change |
+| Метрика | Baseline | После индексов | Изменение |
 | --- | ---: | ---: | ---: |
-| Top pg_stat_statements total_exec_time | 33233.08ms | 29920.14ms | -3312.94ms |
-| Top pg_stat_statements mean_exec_time | 6.65ms | 5.98ms | -0.67ms |
+| total_exec_time самого тяжелого запроса в pg_stat_statements | 33233.08ms | 29920.14ms | -3312.94ms |
+| mean_exec_time самого тяжелого запроса в pg_stat_statements | 6.65ms | 5.98ms | -0.67ms |
 | DB shared blocks read | 9952 | 15057 | +5105 |
 | DB shared blocks hit | 42643996 | 74667006 | +32023010 |
-| Deadlocks | 0 | 0 | no change |
+| Deadlocks | 0 | 0 | без изменений |
 
-## Conclusion
+## Вывод
 
-The workload successfully created 100k main entities through the public API.
-The write path at `RATE=200` was close to the VM's limit: p95 was `4.62s`, p99
-was `5.20s`, and the service returned errors. A low-rate fill completed the data
-set.
+Нагрузка успешно создала 100 тыс. основных сущностей через публичное API.
+Путь создания при `RATE=200` был близок к пределу VM: p95 составил `4.62s`, p99 -
+`5.20s`, сервис возвращал ошибки. Low-rate дозагрузка завершила формирование
+набора данных.
 
-The read path became the main bottleneck. With 100k generated events,
-`GET /api/events` timed out at 30 seconds even at `RATE=20`. Indexes from
-migration `0030` were used by PostgreSQL, but the index-only optimization did
-not restore stable read throughput. A second optimization changed the query to
-fetch the paginated event page first and then load related data for that page,
-but the endpoint still remained saturated on the VM.
+Read path стал основным бутылочным горлышком. При 100 тыс. сгенерированных
+событий `GET /api/events` уходил в timeout 30 секунд даже при `RATE=20`.
+Индексы из миграции `0030` использовались PostgreSQL, но index-only оптимизация
+не восстановила стабильный read throughput. Вторая оптимизация изменила запрос:
+сначала выбирается страница событий, затем подтягиваются связанные данные только
+для этой страницы. Несмотря на это, endpoint все еще оставался насыщенным на VM.
 
-The practical conclusion is that CityHawk needs further read-side work before
-this endpoint can serve 100k events under concurrent load: narrower endpoint
-queries, removing expensive total counts from hot paths, caching/precomputed
-event cards, or separate read models/materialized views for event listings.
+Практический вывод: для стабильной работы CityHawk на 100 тыс. событий под
+конкурентной нагрузкой нужна дальнейшая оптимизация read path: более узкие
+запросы endpoint'ов, отказ от дорогого total count в горячем пути, кэширование
+или предрассчитанная read model/materialized view для карточек событий.
 
-## Reproducibility Checklist
+## Чеклист воспроизводимости
 
-Before submitting, make sure the repository contains:
+Перед сдачей в репозитории должны быть:
 
 - `perf_test/init.sql`
-- all scripts under `perf_test/scripts`
-- raw vegeta outputs in `perf_test/results`
-- DB stats and explain outputs in `perf_test/results`
-- HTML plots or screenshots in `perf_test/reports`
-- filled comparison tables in this README
-- the optimization migration `0030_perf_event_indexes`
+- все скрипты в `perf_test/scripts`
+- сырые результаты vegeta в `perf_test/results`
+- DB stats и explain outputs в `perf_test/results`
+- HTML-графики или скриншоты в `perf_test/reports`
+- заполненные таблицы сравнения в этом README
+- оптимизационная миграция `0030_perf_event_indexes`

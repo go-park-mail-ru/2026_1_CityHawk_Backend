@@ -1,22 +1,22 @@
-# HW 4 Performance Test Summary
+# Краткая сводка по ДЗ 4
 
-Main entity: `event`.
+Основная сущность: `event`.
 
-Write endpoint:
+Endpoint создания:
 
 ```text
 POST /api/events
 ```
 
-Read endpoint:
+Endpoint чтения:
 
 ```text
 GET /api/events
 ```
 
-## Data Volume
+## Объем данных
 
-Final DB check:
+Финальная проверка БД:
 
 ```sql
 SELECT count(*) FROM event WHERE title LIKE 'Perf Event %';
@@ -26,35 +26,35 @@ SELECT count(*) FROM event WHERE title LIKE 'Perf Event %';
 count = 100000
 ```
 
-## Load Test Results
+## Результаты нагрузочного тестирования
 
-| Scenario | Requests | Rate | Throughput | p50 | p95 | p99 | Success | Notes |
+| Сценарий | Запросы | Rate | Throughput | p50 | p95 | p99 | Успешность | Комментарий |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| baseline-create | 100000 | 200.00 | 181.03 | 1.84s | 4.62s | 5.20s | 91.13% | Write path overloaded at RATE=200 |
-| baseline-create-fill | 2 | 2.00 | 1.98 | 7.68ms | 7.78ms | 7.78ms | 100.00% | Filled missing events |
-| baseline-read | 5000 | 20.00 | 0.00 | 30.00s | 30.00s | 30.00s | 0.00% | Timed out before optimization |
-| optimized-read | 5000 | 20.00 | 0.00 | 30.00s | 30.00s | 30.00s | 0.00% | Index-only optimization insufficient |
-| optimized-read-v2 | 5000 | 20.00 | 0.01 | 30.00s | 30.00s | 30.00s | 0.04% | Pagination-first query rewrite still saturated |
+| baseline-create | 100000 | 200.00 | 181.03 | 1.84s | 4.62s | 5.20s | 91.13% | Путь создания перегружен при RATE=200 |
+| baseline-create-fill | 2 | 2.00 | 1.98 | 7.68ms | 7.78ms | 7.78ms | 100.00% | Дозагрузка недостающих событий |
+| baseline-read | 5000 | 20.00 | 0.00 | 30.00s | 30.00s | 30.00s | 0.00% | Timeout до оптимизации |
+| optimized-read | 5000 | 20.00 | 0.00 | 30.00s | 30.00s | 30.00s | 0.00% | Индексов оказалось недостаточно |
+| optimized-read-v2 | 5000 | 20.00 | 0.01 | 30.00s | 30.00s | 30.00s | 0.04% | Переписывание запроса с выбором страницы в начале, endpoint все еще насыщен |
 
-## DB Stats Snapshot
+## Снимок DB-статистики
 
-| Metric | Baseline | Optimized indexes |
+| Метрика | Baseline | После индексов |
 | --- | ---: | ---: |
 | events_count | 100106 | 100106 |
 | event_sessions_count | 100100 | 100100 |
 | event_images_count | 100211 | 100211 |
-| top query total_exec_time | 33233.08ms | 29920.14ms |
-| top query mean_exec_time | 6.65ms | 5.98ms |
+| total_exec_time самого тяжелого запроса | 33233.08ms | 29920.14ms |
+| mean_exec_time самого тяжелого запроса | 6.65ms | 5.98ms |
 | deadlocks | 0 | 0 |
 
-## Conclusion
+## Вывод
 
-The write workload created the required 100k main entities. The read endpoint
-became the bottleneck: with 100k events, `GET /api/events` timed out at the
-selected read load. Adding indexes helped PostgreSQL use more targeted access
-paths, but did not make the endpoint stable. A second optimization changed the
-query to select the page of event IDs first and load related data only for that
-page, but the service still saturated on the VM. Further work should focus on
-removing expensive count/sort work from the hot read path and introducing a
-precomputed read model or cache for event cards.
-
+Нагрузка создала требуемые 100 тыс. основных сущностей. Endpoint чтения стал
+бутылочным горлышком: на 100 тыс. событий `GET /api/events` уходил в timeout
+при выбранной read-нагрузке. Индексы помогли PostgreSQL использовать более
+точечные пути доступа, но не сделали endpoint стабильным. Вторая оптимизация
+переписала запрос так, чтобы сначала выбирать страницу event ID, а затем
+подгружать связанные данные только для нее. На текущей VM сервис все еще
+насыщался, поэтому дальнейшие работы должны быть направлены на удаление дорогих
+операций подсчета и сортировки из горячего пути чтения и на создание кэша или
+отдельной модели чтения для карточек событий.
