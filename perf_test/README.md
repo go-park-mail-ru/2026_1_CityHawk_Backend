@@ -32,7 +32,7 @@ GET /api/events?limit=12&offset=0&sort=dateAsc
 The read test also mixes representative variants of the same endpoint:
 
 ```text
-GET /api/events?sort=popular
+GET /api/events?sort=titleAsc
 GET /api/events?query=Perf+Event+09
 GET /api/events?cityId=10000000-0000-0000-0000-000000000001
 GET /api/events?categoryId=20000000-0000-0000-0000-000000000001
@@ -88,15 +88,16 @@ The test is intended to run on a dedicated VM, as required by the homework.
 Record the actual VM parameters before running:
 
 ```text
-Date:
-CPU:
-RAM:
-Disk:
-OS:
-Docker:
-PostgreSQL:
-Go:
-Vegeta:
+Date: 2026-06-03
+Host: 2026-1-cityhawk VM
+CPU: fill from VM
+RAM: fill from VM
+Disk: fill from VM
+OS: Ubuntu
+Docker: fill from `docker version`
+PostgreSQL: 16
+Go: fill from `go version`
+Vegeta: fill from `vegeta -version`
 ```
 
 Useful commands:
@@ -170,22 +171,47 @@ perf_test/reports/baseline-create.html
 Result:
 
 ```text
-Requests:
-Duration:
-RPS:
-Success ratio:
-p50:
-p95:
-p99:
-Errors:
+Main create run, COUNT=100000 RATE=200:
+
+Requests      [total, rate, throughput]  100000, 200.00, 181.03
+Duration      [total, attack, wait]      8m23.387213159s, 8m19.995433871s, 3.391779288s
+Latencies     [mean, 50, 95, 99, max]    1.877587155s, 1.837538605s, 4.620437972s, 5.203054522s, 5.423837861s
+Bytes In      [total, mean]              4546682, 45.47
+Bytes Out     [total, mean]              59994228, 599.94
+Success       [ratio]                    91.13%
+Status Codes  [code:count]               0:2  201:91127  500:8871
+Error Set:
+500 Internal Server Error
+Post "http://localhost:8080/api/events": EOF
+
+Fill run, COUNT=2 RATE=1:
+
+Requests      [total, rate, throughput]  2, 2.00, 1.98
+Duration      [total, attack, wait]      1.007600486s, 1.000012235s, 7.588251ms
+Latencies     [mean, 50, 95, 99, max]    7.683488ms, 7.683488ms, 7.778725ms, 7.778725ms, 7.778725ms
+Bytes In      [total, mean]              92, 46.00
+Bytes Out     [total, mean]              1200, 600.00
+Success       [ratio]                    100.00%
+Status Codes  [code:count]               201:2
+Error Set:
+
+Final DB check:
+
+SELECT count(*) FROM event WHERE title LIKE 'Perf Event %%';
+count = 100000
 ```
+
+The write endpoint reached the VM's practical limit at `RATE=200`: p99 exceeded
+five seconds, and the service returned `8871` HTTP 500 responses. The missing
+events were loaded by a low-rate fill run. The homework requirement to create
+100k main entities was satisfied by the final DB count.
 
 ## Iteration 1: Read Baseline
 
 Command:
 
 ```bash
-COUNT=20000 RATE=500 RESULT_PREFIX=baseline-read ./perf_test/scripts/run_read_test.sh
+COUNT=5000 RATE=20 RESULT_PREFIX=baseline-read ./perf_test/scripts/run_read_test.sh
 ```
 
 Collect DB stats:
@@ -209,17 +235,21 @@ perf_test/results/baseline-explain-read-events.txt
 Result:
 
 ```text
-Requests:
-Duration:
-RPS:
-Success ratio:
-p50:
-p95:
-p99:
-Errors:
-Top pg_stat_statements query:
-Main EXPLAIN bottleneck:
+Requests      [total, rate, throughput]  5000, 20.00, 0.00
+Duration      [total, attack, wait]      4m39.950655221s, 4m9.95022971s, 30.000425511s
+Latencies     [mean, 50, 95, 99, max]    29.963377006s, 30.000627419s, 30.001316485s, 30.001713638s, 30.002338935s
+Bytes In      [total, mean]              80, 0.02
+Bytes Out     [total, mean]              0, 0.00
+Success       [ratio]                    0.00%
+Status Codes  [code:count]               0:4998  500:2
+Error Set:
+500 Internal Server Error
+context deadline exceeded / EOF for GET /api/events variants
 ```
+
+At 100k generated events, the unoptimized read endpoint did not produce stable
+responses even at `RATE=20`. Vegeta timed out after 30 seconds. This became the
+main bottleneck for the optimization cycle.
 
 ## Bottleneck Analysis
 
@@ -282,12 +312,17 @@ then fetches images, tags, nearest sessions, places and favorite counts for that
 small page. This avoids aggregating and sorting large related tables for all
 100k events before `LIMIT`.
 
+The index-only optimization was applied first and tested as `optimized-read`.
+It did not solve the endpoint timeout at the selected load, so the second
+optimization changed the query shape to a pagination-first approach and was
+tested as `optimized-read-v2`.
+
 ## Iteration 2: Read After Optimization
 
 Command:
 
 ```bash
-COUNT=20000 RATE=500 RESULT_PREFIX=optimized-read ./perf_test/scripts/run_read_test.sh
+COUNT=5000 RATE=20 RESULT_PREFIX=optimized-read ./perf_test/scripts/run_read_test.sh
 ```
 
 Collect DB stats:
@@ -311,53 +346,77 @@ perf_test/results/optimized-explain-read-events.txt
 Result:
 
 ```text
-Requests:
-Duration:
-RPS:
-Success ratio:
-p50:
-p95:
-p99:
-Errors:
-Top pg_stat_statements query:
-Main EXPLAIN improvement:
+Index-only optimization, COUNT=5000 RATE=20:
+
+Requests      [total, rate, throughput]  5000, 20.00, 0.00
+Duration      [total, attack, wait]      4m39.95140021s, 4m9.950580291s, 30.000819919s
+Latencies     [mean, 50, 95, 99, max]    29.935932865s, 30.000629951s, 30.001310652s, 30.001711856s, 30.002416664s
+Bytes In      [total, mean]              240, 0.05
+Bytes Out     [total, mean]              0, 0.00
+Success       [ratio]                    0.00%
+Status Codes  [code:count]               0:4994  500:6
+Error Set:
+500 Internal Server Error
+context deadline exceeded / EOF for GET /api/events variants
+
+Pagination-first query rewrite, COUNT=5000 RATE=20:
+
+Requests      [total, rate, throughput]  5000, 20.00, 0.01
+Duration      [total, attack, wait]      4m39.950555106s, 4m9.95023258s, 30.000322526s
+Latencies     [mean, 50, 95, 99, max]    29.966801045s, 30.000631888s, 30.001296391s, 30.001732848s, 30.002455233s
+Bytes In      [total, mean]              23618, 4.72
+Bytes Out     [total, mean]              0, 0.00
+Success       [ratio]                    0.04%
+Status Codes  [code:count]               0:4998  200:2
+Error Set:
+context deadline exceeded / EOF for GET /api/events variants
 ```
+
+The index-only optimization made the new indexes visible in PostgreSQL stats,
+especially on `event_session`, `event_image`, `event_place` and `place`, but it
+was insufficient for the selected read workload. The pagination-first rewrite
+allowed a small number of successful responses, but the endpoint was still not
+stable under `RATE=20`. The conclusion is that the bottleneck is not only index
+coverage but also the endpoint/query shape and current service/DB capacity.
 
 ## Comparison
 
-Fill this table after running the commands on the VM.
-
 | Scenario | RPS | p50 | p95 | p99 | Success | Notes |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Create baseline, 100k events | TBD | TBD | TBD | TBD | TBD | Initial data population |
-| Read baseline | TBD | TBD | TBD | TBD | TBD | Before migration 0030 |
-| Read optimized | TBD | TBD | TBD | TBD | TBD | After migration 0030 |
+| Create baseline, 100k events | 181.03 throughput | 1.84s | 4.62s | 5.20s | 91.13% main run; final count 100000 | `RATE=200` overloaded write path; fill run completed missing rows |
+| Create fill | 1.98 throughput | 7.68ms | 7.78ms | 7.78ms | 100.00% | Low-rate fill for missing events |
+| Read baseline | 0.00 throughput | 30.00s | 30.00s | 30.00s | 0.00% | Before migration 0030 |
+| Read optimized, indexes | 0.00 throughput | 30.00s | 30.00s | 30.00s | 0.00% | Migration 0030 was insufficient |
+| Read optimized, query rewrite | 0.01 throughput | 30.00s | 30.00s | 30.00s | 0.04% | Pagination-first query shape; still saturated |
 
 Database comparison:
 
-| Metric | Baseline | Optimized | Change |
+| Metric | Baseline | Optimized indexes | Change |
 | --- | ---: | ---: | ---: |
-| Main query mean_exec_time | TBD | TBD | TBD |
-| Main query total_exec_time | TBD | TBD | TBD |
-| Shared blocks read | TBD | TBD | TBD |
-| Shared blocks hit | TBD | TBD | TBD |
-| Slow queries in PostgreSQL log | TBD | TBD | TBD |
+| Top pg_stat_statements total_exec_time | 33233.08ms | 29920.14ms | -3312.94ms |
+| Top pg_stat_statements mean_exec_time | 6.65ms | 5.98ms | -0.67ms |
+| DB shared blocks read | 9952 | 15057 | +5105 |
+| DB shared blocks hit | 42643996 | 74667006 | +32023010 |
+| Deadlocks | 0 | 0 | no change |
 
-## Expected Conclusion
+## Conclusion
 
-The expected result is that read latency improves after adding indexes that match
-the event list query shape. The largest improvement should appear in:
+The workload successfully created 100k main entities through the public API.
+The write path at `RATE=200` was close to the VM's limit: p95 was `4.62s`, p99
+was `5.20s`, and the service returned errors. A low-rate fill completed the data
+set.
 
-- lower p95/p99 latency for `GET /api/events`;
-- lower mean execution time in `pg_stat_statements`;
-- fewer sequential scans and sorts in `EXPLAIN`;
-- increased usage of indexes on `event_session`, `event_image`, `event` and
-  `place`.
+The read path became the main bottleneck. With 100k generated events,
+`GET /api/events` timed out at 30 seconds even at `RATE=20`. Indexes from
+migration `0030` were used by PostgreSQL, but the index-only optimization did
+not restore stable read throughput. A second optimization changed the query to
+fetch the paginated event page first and then load related data for that page,
+but the endpoint still remained saturated on the VM.
 
-Write performance can become slightly slower because additional indexes must be
-maintained on insert. This is acceptable if the main product path is read-heavy,
-which is true for CityHawk: users browse events much more often than they create
-them.
+The practical conclusion is that CityHawk needs further read-side work before
+this endpoint can serve 100k events under concurrent load: narrower endpoint
+queries, removing expensive total counts from hot paths, caching/precomputed
+event cards, or separate read models/materialized views for event listings.
 
 ## Reproducibility Checklist
 
