@@ -28,6 +28,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", default="http://localhost:8080")
     parser.add_argument("--count", type=int, default=100_000)
+    parser.add_argument("--start-index", type=int, default=0)
     parser.add_argument("--places", type=int, default=2048)
     parser.add_argument("--csrf-token", required=True)
     parser.add_argument("--cookie-header", required=True)
@@ -35,7 +36,7 @@ def main() -> None:
 
     start = datetime(2027, 1, 1, 9, 0, tzinfo=timezone.utc)
 
-    for i in range(args.count):
+    for i in range(args.start_index, args.start_index + args.count):
         current_place = (i % args.places) + 1
         slot = i // args.places
         starts_at = start + timedelta(hours=3 * slot)

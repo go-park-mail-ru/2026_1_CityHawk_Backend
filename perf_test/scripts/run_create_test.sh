@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 COUNT="${COUNT:-100000}"
+START_INDEX="${START_INDEX:-0}"
 RATE="${RATE:-200}"
 DURATION_SECONDS="${DURATION_SECONDS:-$((COUNT / RATE))}"
 RESULT_PREFIX="${RESULT_PREFIX:-baseline-create}"
@@ -18,6 +19,7 @@ source "$AUTH_ENV"
 python3 "$ROOT_DIR/perf_test/scripts/generate_create_targets.py" \
   --base-url "$BASE_URL" \
   --count "$COUNT" \
+  --start-index "$START_INDEX" \
   --csrf-token "$CSRF_TOKEN" \
   --cookie-header "$COOKIE_HEADER" \
   > "$TARGETS"

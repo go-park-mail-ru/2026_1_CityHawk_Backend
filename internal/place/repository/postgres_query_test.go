@@ -31,7 +31,6 @@ func TestBuildListEventsQueryUsesJoinFilters(t *testing.T) {
 	})
 
 	for _, unwanted := range []string{
-		"SELECT DISTINCT ON (es.event_id)",
 		"EXISTS (SELECT 1 FROM event_category ec_filter",
 		"EXISTS (SELECT 1 FROM event_tag et_filter",
 		"EXISTS (SELECT 1 FROM event_session",
@@ -57,7 +56,9 @@ func TestBuildListEventsQueryUsesJoinFilters(t *testing.T) {
 		"FROM user_interest_tag uit",
 		"JOIN event_tag et ON et.event_id = fe.event_id",
 		"LEFT JOIN recommendation_scores rs",
-		"recommendation_score DESC",
+		"COALESCE(rs.recommendation_score, 0) DESC",
+		"page_events AS",
+		"JOIN page_events pe",
 		"ROW_NUMBER() OVER (PARTITION BY es.event_id",
 	} {
 		if !strings.Contains(query, wanted) {

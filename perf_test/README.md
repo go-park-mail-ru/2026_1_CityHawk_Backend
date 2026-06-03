@@ -245,7 +245,7 @@ The baseline plan should be inspected for:
 
 ## Optimization
 
-The optimization is isolated in:
+The first optimization is isolated in:
 
 ```text
 db/migrations/0030_perf_event_indexes.up.sql
@@ -274,6 +274,13 @@ psql "$DATABASE_URL" -f db/migrations/0030_perf_event_indexes.up.sql
 psql "$DATABASE_URL" -c 'ANALYZE;'
 psql "$DATABASE_URL" -f perf_test/scripts/reset_pg_stat_statements.sql
 ```
+
+If the read endpoint still times out after the index-only optimization, apply the
+second optimization from `internal/place/repository/postgres.go`: the event list
+query now selects the paginated `event.id` set first in `page_events`, and only
+then fetches images, tags, nearest sessions, places and favorite counts for that
+small page. This avoids aggregating and sorting large related tables for all
+100k events before `LIMIT`.
 
 ## Iteration 2: Read After Optimization
 

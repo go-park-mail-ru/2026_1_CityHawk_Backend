@@ -21,7 +21,7 @@ func TestPostgresRepositoryReadMethodsWithFakeDB(t *testing.T) {
 			"FROM city c ORDER BY":                                      {{"city-1", "Moscow", "Russia", "Europe/Moscow"}},
 			"FROM collection c\n\t\tLEFT JOIN":                          {{"collection-1", "Weekend", "Best", "/uploads/collection.png", true}},
 			"FROM candidates":                                           {{"event-1", "event", "Jazz night", "Jazz night", nil, false}},
-			"FROM filtered_events filtered":                             {{"event-1", "Jazz night", "Short", "/uploads/event.png", []string{"tag-1"}, []string{"Jazz"}, &now, "place-1", "Hall", "Lenina 1", 55.7, 37.6, "city-1", "Moscow", "Russia", "Europe/Moscow", 1, true, 3}},
+			"FROM page_events pe":                                       {{"event-1", "Jazz night", "Short", "/uploads/event.png", []string{"tag-1"}, []string{"Jazz"}, &now, "place-1", "Hall", "Lenina 1", 55.7, 37.6, "city-1", "Moscow", "Russia", "Europe/Moscow", 1, true, 3}},
 			"FROM event e\n\t\tLEFT JOIN first_image":                   {{"event-1", "Jazz night", "/uploads/event.png", []string{"tag-1"}, []string{"Jazz"}, &now, "Hall", "Lenina 1"}},
 			"SELECT c.id::text, c.name\n\t\tFROM category c\n\t\tWHERE": {{"cat-1", "Music"}},
 			"SELECT\n\t\t\tc.id::text":                                  {{"collection-1", "Weekend", "Best", "/uploads/collection.png"}},
@@ -123,8 +123,8 @@ func (f *fakePlaceDB) Exec(context.Context, string, ...any) (pgconn.CommandTag, 
 	return pgconn.CommandTag{}, nil
 }
 func (f *fakePlaceDB) Query(_ context.Context, sql string, _ ...any) (pgx.Rows, error) {
-	if strings.Contains(sql, "FROM filtered_events filtered") {
-		return &fakePlaceRows{rows: f.rows["FROM filtered_events filtered"], index: -1}, nil
+	if strings.Contains(sql, "FROM page_events pe") {
+		return &fakePlaceRows{rows: f.rows["FROM page_events pe"], index: -1}, nil
 	}
 	if strings.Contains(sql, "FROM event e") && strings.Contains(sql, "LEFT JOIN recommendation_scores rs") {
 		return &fakePlaceRows{rows: f.rows["FROM event e\n\t\tLEFT JOIN first_image"], index: -1}, nil

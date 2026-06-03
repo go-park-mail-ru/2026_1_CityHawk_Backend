@@ -26,7 +26,7 @@ VALUES
     ('30000000-0000-0000-0000-000000000001', 'Perf Live', 'format'),
     ('30000000-0000-0000-0000-000000000002', 'Perf Outdoor', 'format'),
     ('30000000-0000-0000-0000-000000000003', 'Perf Family', 'audience'),
-    ('30000000-0000-0000-0000-000000000004', 'Perf Evening', 'time')
+    ('30000000-0000-0000-0000-000000000004', 'Perf Evening', 'mood')
 ON CONFLICT (name)
 DO UPDATE SET tag_group = EXCLUDED.tag_group, updated_at = now();
 
