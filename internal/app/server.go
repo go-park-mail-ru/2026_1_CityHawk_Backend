@@ -36,7 +36,7 @@ import (
 
 func NewServer(cfg appconfig.Config) (*http.Server, func(), error) {
 	ctx := context.Background()
-	pool, err := platformpostgres.NewPool(ctx, cfg.Database.DSN())
+	pool, err := platformpostgres.NewPool(ctx, cfg.Database.DSN(), postgresPoolConfig(cfg))
 	if err != nil {
 		return nil, nil, err
 	}

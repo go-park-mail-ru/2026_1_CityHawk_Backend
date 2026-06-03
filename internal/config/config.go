@@ -60,12 +60,19 @@ type OAuthProviderConfig struct {
 }
 
 type DatabaseConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Name     string
-	SSLMode  string
+	Host                string
+	Port                string
+	User                string
+	Password            string
+	Name                string
+	SSLMode             string
+	ApplicationName     string
+	PoolMaxConns        int
+	PoolMinConns        int
+	PoolMaxConnLifetime time.Duration
+	PoolMaxConnIdleTime time.Duration
+	StatementTimeout    time.Duration
+	LockTimeout         time.Duration
 }
 
 type PhotonConfig struct {
@@ -124,12 +131,19 @@ func LoadFromEnv() Config {
 			},
 		},
 		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnv("DB_PORT", "5432"),
-			User:     getEnv("DB_USER", "cityhawk"),
-			Password: getEnv("DB_PASSWORD", ""),
-			Name:     getEnv("DB_NAME", "cityhawk"),
-			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+			Host:                getEnv("DB_HOST", "localhost"),
+			Port:                getEnv("DB_PORT", "5432"),
+			User:                getEnv("DB_USER", "cityhawk_app"),
+			Password:            getEnv("DB_PASSWORD", ""),
+			Name:                getEnv("DB_NAME", "cityhawk"),
+			SSLMode:             getEnv("DB_SSLMODE", "disable"),
+			ApplicationName:     getEnv("DB_APPLICATION_NAME", "cityhawk-backend"),
+			PoolMaxConns:        parseIntEnv("DB_POOL_MAX_CONNS", 10),
+			PoolMinConns:        parseIntEnv("DB_POOL_MIN_CONNS", 1),
+			PoolMaxConnLifetime: parseDurationEnv("DB_POOL_MAX_CONN_LIFETIME", 30*time.Minute),
+			PoolMaxConnIdleTime: parseDurationEnv("DB_POOL_MAX_CONN_IDLE_TIME", 5*time.Minute),
+			StatementTimeout:    parseDurationEnv("DB_STATEMENT_TIMEOUT", 5*time.Second),
+			LockTimeout:         parseDurationEnv("DB_LOCK_TIMEOUT", 1*time.Second),
 		},
 		Photon: PhotonConfig{
 			Enabled:         parseBoolEnv("PHOTON_ENABLED", false),

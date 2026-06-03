@@ -353,6 +353,211 @@
       },
       "fieldConfig": {
         "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 30
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (datname, state) (pg_stat_activity_count{datname=\"cityhawk\"})",
+          "legendFormat": "{{datname}} {{state}}",
+          "refId": "A"
+        }
+      ],
+      "title": "PostgreSQL connections",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 30
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (datname) (rate(pg_stat_database_xact_commit{datname=\"cityhawk\"}[5m]) + rate(pg_stat_database_xact_rollback{datname=\"cityhawk\"}[5m]))",
+          "legendFormat": "{{datname}}",
+          "refId": "A"
+        }
+      ],
+      "title": "PostgreSQL transactions",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 30
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (datname, mode) (pg_locks_count{datname=\"cityhawk\"})",
+          "legendFormat": "locks {{mode}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (datname) (increase(pg_stat_database_deadlocks{datname=\"cityhawk\"}[5m]))",
+          "legendFormat": "deadlocks {{datname}}",
+          "refId": "B"
+        }
+      ],
+      "title": "PostgreSQL locks and deadlocks",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 37
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "pg_database_size_bytes{datname=\"cityhawk\"}",
+          "legendFormat": "{{datname}}",
+          "refId": "A"
+        }
+      ],
+      "title": "PostgreSQL database size",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 37
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "100 * (sum by (datname) (pg_stat_database_blks_hit{datname=\"cityhawk\"}) / sum by (datname) (pg_stat_database_blks_hit{datname=\"cityhawk\"} + pg_stat_database_blks_read{datname=\"cityhawk\"}))",
+          "legendFormat": "{{datname}}",
+          "refId": "A"
+        }
+      ],
+      "title": "PostgreSQL cache hit ratio",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
           "mappings": [
             {
               "options": {
@@ -377,7 +582,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 30
+        "y": 44
       },
       "id": 9,
       "options": {
@@ -397,7 +602,7 @@
       "pluginVersion": "11.4.0",
       "targets": [
         {
-          "expr": "up{job=~\"cityhawk-backend|cityhawk-grpc-services|node-exporter|cadvisor\"}",
+          "expr": "up{job=~\"cityhawk-backend|cityhawk-grpc-services|node-exporter|cadvisor|postgres-exporter\"}",
           "legendFormat": "{{job}} {{instance}}",
           "refId": "A"
         }

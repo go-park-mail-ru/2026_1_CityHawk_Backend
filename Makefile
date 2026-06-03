@@ -6,7 +6,7 @@ OUT ?= coverage.out
 TOOLCHAIN ?= go1.25.0
 GO_CACHE_DIR ?= $(CURDIR)/.cache/go-build
 GO_TMP_DIR ?= $(CURDIR)/.cache/gotmp
-DATABASE_URL ?= postgres://cityhawk:cityhawk@localhost:5433/cityhawk?sslmode=disable
+DATABASE_URL ?= postgres://cityhawk_migrator:cityhawk_migrator@localhost:5432/cityhawk?sslmode=disable
 
 .PHONY: test coverage coverage-check generate proto build-services clean db-schema db-seed db-reset
 
@@ -60,6 +60,7 @@ coverage-check:
 
 db-schema:
 	psql "$(DATABASE_URL)" -f db/migrations/0001_init.up.sql
+	psql "$(DATABASE_URL)" -f db/migrations/0029_pg_stat_statements.up.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0003_search_trgm.up.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0004_media_paths.up.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0005_support_tickets.up.sql
@@ -74,6 +75,7 @@ db-seed:
 	psql "$(DATABASE_URL)" -f db/migrations/0002_seed.up.sql
 
 db-reset:
+	psql "$(DATABASE_URL)" -f db/migrations/0029_pg_stat_statements.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0002_seed.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0011_event_place.down.sql
 	psql "$(DATABASE_URL)" -f db/migrations/0010_invitations_notifications_share_links.down.sql
