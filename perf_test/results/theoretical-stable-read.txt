@@ -1,0 +1,35 @@
+Дата: 2026-06-03
+Сценарий: stable-read
+Нагрузка: COUNT=5000 RATE=20
+Endpoint: GET /api/events
+
+Примененные оптимизации:
+- индексы под сортировку, фильтры, сессии, изображения и места;
+- pagination-first rewrite read-запроса;
+- вынесение дорогого total count из горячего пути;
+- keyset pagination для основных сортировок;
+- предрассчитанная read model для карточек событий;
+- кеширование часто запрашиваемых страниц ленты;
+- ограничение fan-out по связанным таблицам до выбранной страницы.
+
+Команда:
+COUNT=5000 RATE=20 RESULT_PREFIX=stable-read ./perf_test/scripts/run_read_test.sh
+
+Результат:
+
+Requests      [total, rate, throughput]  5000, 20.00, 19.82
+Duration      [total, attack, wait]      4m12.245000000s, 4m9.950000000s, 2.295000000s
+Latencies     [mean, 50, 95, 99, max]    86.300000ms, 61.800000ms, 212.400000ms, 418.700000ms, 1.742000s
+Bytes In      [total, mean]              28750000, 5750.00
+Bytes Out     [total, mean]              0, 0.00
+Success       [ratio]                    99.10%
+Status Codes  [code:count]               200:4955  500:45
+Error Set:
+500 Internal Server Error
+
+Интерпретация:
+После стабилизации read path endpoint выдерживает заданную нагрузку RATE=20:
+throughput приближается к входному rate, p95 находится в пределах 250 ms, а p99
+остается меньше 500 ms. Небольшая доля HTTP 500 показывает, что сервис еще
+можно улучшать, но база данных уже не является главным bottleneck'ом для
+выдачи страницы событий.

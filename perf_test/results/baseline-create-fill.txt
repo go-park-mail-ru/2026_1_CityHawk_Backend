@@ -1,0 +1,16 @@
+Дата: 2026-06-03
+Сценарий: baseline-create-fill
+Команда: START_INDEX=100000 COUNT=2 RATE=1 DURATION_SECONDS=2 RESULT_PREFIX=baseline-create-fill ./perf_test/scripts/run_create_test.sh
+
+Requests      [total, rate, throughput]  2, 2.00, 1.98
+Duration      [total, attack, wait]      1.007600486s, 1.000012235s, 7.588251ms
+Latencies     [mean, 50, 95, 99, max]    7.683488ms, 7.683488ms, 7.778725ms, 7.778725ms, 7.778725ms
+Bytes In      [total, mean]              92, 46.00
+Bytes Out     [total, mean]              1200, 600.00
+Success       [ratio]                    100.00%
+Status Codes  [code:count]               201:2
+Error Set:
+
+Комментарий:
+Low-rate дозагрузка завершила формирование набора данных. Финальная проверка:
+SELECT count(*) FROM event WHERE title LIKE 'Perf Event %'; -> 100000.

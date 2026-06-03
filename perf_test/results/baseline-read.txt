@@ -1,0 +1,26 @@
+Дата: 2026-06-03
+Сценарий: baseline-read
+Команда: COUNT=5000 RATE=20 RESULT_PREFIX=baseline-read ./perf_test/scripts/run_read_test.sh
+
+Requests      [total, rate, throughput]  5000, 20.00, 0.00
+Duration      [total, attack, wait]      4m39.950655221s, 4m9.95022971s, 30.000425511s
+Latencies     [mean, 50, 95, 99, max]    29.963377006s, 30.000627419s, 30.001316485s, 30.001713638s, 30.002338935s
+Bytes In      [total, mean]              80, 0.02
+Bytes Out     [total, mean]              0, 0.00
+Success       [ratio]                    0.00%
+Status Codes  [code:count]               0:4998  500:2
+Error Set:
+500 Internal Server Error
+Get "http://localhost:8080/api/events?limit=12&offset=0&sort=dateAsc": EOF
+Get "http://localhost:8080/api/events?limit=12&offset=120&sort=dateAsc": EOF
+Get "http://localhost:8080/api/events?limit=12&offset=1200&sort=dateAsc": EOF
+Get "http://localhost:8080/api/events?limit=12&offset=0&sort=titleAsc": EOF
+Get "http://localhost:8080/api/events?cityId=10000000-0000-0000-0000-000000000001&limit=12&offset=0": EOF
+Get "http://localhost:8080/api/events?query=Perf+Event+09&limit=12&offset=0": EOF
+Get "http://localhost:8080/api/events?categoryId=20000000-0000-0000-0000-000000000001&limit=12&offset=0": EOF
+Get "http://localhost:8080/api/events?tag=30000000-0000-0000-0000-000000000001&limit=12&offset=0": EOF
+context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+
+Комментарий:
+После загрузки 100 тыс. событий endpoint чтения не выдержал RATE=20. Почти все
+запросы уперлись в клиентский timeout 30 секунд.

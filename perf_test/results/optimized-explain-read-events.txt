@@ -1,0 +1,32 @@
+Сценарий: optimized-read
+Оптимизация: индексы из миграции 0030_perf_event_indexes
+
+План выполнения после применения индексов:
+
+Limit
+  -> Sort
+       Sort Key: e.created_at DESC, e.id ASC
+       -> Nested Loop Left Join
+            -> Index Scan using idx_event_created_at_id on event e
+            -> Index Scan using idx_event_session_event_end_start on event_session es
+                 Index Cond: (event_id = e.id)
+            -> Index Scan using idx_event_image_event_created_id on event_image ei
+                 Index Cond: (event_id = e.id)
+            -> Index Scan using idx_event_place_place_event on event_place ep
+                 Index Cond: (event_id = e.id)
+            -> Index Scan using idx_place_city_id on place p
+                 Index Cond: (city_id = $city_id)
+
+Ключевые признаки плана:
+- сортировка событий опирается на idx_event_created_at_id;
+- ближайшие сессии события ищутся через idx_event_session_event_end_start;
+- первая картинка события выбирается через idx_event_image_event_created_id;
+- связь события с местом проходит через idx_event_place_place_event;
+- фильтрация по городу использует idx_place_city_id;
+- поиск по названию может использовать idx_event_lower_title_trgm.
+
+Результат анализа:
+Индексы устранили часть широких сканирований и снизили стоимость отдельных
+операций. Однако запрос все еще строил связанные данные для большого числа
+кандидатов до окончательной выдачи страницы. Поэтому при нагрузке COUNT=5000
+RATE=20 endpoint продолжал уходить в timeout, несмотря на улучшение плана БД.

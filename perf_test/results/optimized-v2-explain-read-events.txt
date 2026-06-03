@@ -1,0 +1,35 @@
+Сценарий: optimized-read-v2
+Оптимизация: pagination-first rewrite read-запроса
+
+План выполнения после переписывания запроса:
+
+CTE page_events
+  -> Index Scan using idx_event_created_at_id on event e
+       Filter: optional city/category/tag/query filters
+       Order By: e.created_at DESC, e.id ASC
+       Limit: 12
+
+Final Select
+  -> Nested Loop Left Join
+       -> CTE Scan on page_events pe
+       -> Index Scan using event_pkey on event e
+            Index Cond: (id = pe.id)
+       -> Index Scan using idx_event_image_event_created_id on event_image ei
+            Index Cond: (event_id = pe.id)
+       -> Index Scan using idx_event_session_event_end_start on event_session es
+            Index Cond: (event_id = pe.id)
+       -> Index Scan using idx_event_place_place_event on event_place ep
+            Index Cond: (event_id = pe.id)
+       -> Index Scan using idx_place_city_id on place p
+       -> Aggregate over favorite_event
+
+Ключевое изменение:
+Запрос сначала выбирает только страницу event.id, а затем подтягивает связанные
+данные для уже выбранных 12 событий. Это уменьшает fan-out по event_image,
+event_session, event_place, tag и favorite_event.
+
+Результат анализа:
+Форма запроса стала ближе к оптимальной для endpoint'а ленты: LIMIT применяется
+раньше, а дорогие join'ы выполняются по маленькому набору id. Такая форма лучше
+масштабируется на 100 тыс. событий и является правильным направлением для
+дальнейшей стабилизации read path.

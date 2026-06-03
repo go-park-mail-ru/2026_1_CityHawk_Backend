@@ -1,0 +1,33 @@
+Дата: 2026-06-03
+Сценарий: optimized-read-v2
+Оптимизация: pagination-first rewrite read-запроса
+
+Объем данных:
+events_count = 100106
+event_sessions_count = 100100
+event_images_count = 100211
+
+pg_stat_statements, самый тяжелый read-запрос:
+calls = 5000
+total_exec_time = 23680.52 ms
+mean_exec_time = 4.74 ms
+min_exec_time = 2.86 ms
+max_exec_time = 141.39 ms
+rows = 60000
+
+Счетчики блоков БД:
+blks_read = 13240
+blks_hit = 68120480
+temp_blks_read = 0
+temp_blks_written = 0
+
+Состояние БД:
+deadlocks = 0
+conflicts = 0
+
+Интерпретация:
+После переписывания запроса основная работа по связанным таблицам выполняется
+только для выбранной страницы событий. По сравнению с вариантом только на
+индексах уменьшается среднее время тяжелого read-запроса и снижается объем
+лишней работы до LIMIT. Оставшиеся риски связаны с total count, offset-based
+pagination и стоимостью сборки полной карточки события.

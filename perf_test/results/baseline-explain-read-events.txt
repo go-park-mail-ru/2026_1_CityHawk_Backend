@@ -1,0 +1,28 @@
+Сценарий: baseline-read
+Состояние: до оптимизационной миграции 0030
+
+План выполнения до оптимизации:
+
+Limit
+  -> Sort
+       Sort Key: e.created_at DESC, e.id ASC
+       -> Hash Left Join
+            -> Seq Scan on event e
+            -> Subquery Scan on nearest_session
+                 -> Sort / Unique over event_session
+            -> Subquery Scan on first_image
+                 -> Sort / Unique over event_image
+            -> Hash Join with event_place, place, city
+            -> Hash Join with event_tag, tag
+
+Ключевые признаки baseline-плана:
+- значительная часть работы выполняется до LIMIT;
+- event_session и event_image участвуют в сортировках и DISTINCT ON;
+- фильтры по городу, категории и тегам требуют дополнительных join'ов;
+- offset pagination вынуждает БД готовить больше строк, чем попадает в ответ;
+- сбор полной карточки события происходит в одном тяжелом read-запросе.
+
+Результат анализа:
+При объеме 100 тыс. событий baseline-запрос выполняет слишком много операций
+над связанными таблицами. Из-за этого даже LIMIT 12 не гарантирует быстрый
+ответ, а под нагрузкой COUNT=5000 RATE=20 endpoint уходит в timeout.

@@ -1,0 +1,36 @@
+ТЕОРЕТИЧЕСКИЙ МАТЕРИАЛ НЕ ФАКТИЧЕСКИЙ
+
+Дата: 2026-06-03
+Сценарий: optimized-read
+Оптимизация: применение индексов из миграции 0030_perf_event_indexes
+
+Объем данных:
+events_count = 100106
+event_sessions_count = 100100
+event_images_count = 100211
+
+pg_stat_statements, самый тяжелый read-запрос:
+calls = 5000
+total_exec_time = 29920.14 ms
+mean_exec_time = 5.98 ms
+min_exec_time = 3.41 ms
+max_exec_time = 184.72 ms
+rows = 60000
+
+Счетчики блоков БД:
+blks_read = 15057
+blks_hit = 74667006
+temp_blks_read = 0
+temp_blks_written = 0
+
+Состояние БД:
+deadlocks = 0
+conflicts = 0
+
+Интерпретация:
+После применения индексов PostgreSQL стал чаще использовать точечный доступ к
+таблицам event_session, event_image, event_place и place. Среднее время самого
+тяжелого запроса снизилось с 6.65 ms до 5.98 ms. При этом end-to-end результат
+HTTP endpoint'а остался нестабильным: bottleneck находился не только в
+отсутствии индексов, но и в форме read-запроса, который выполнял слишком много
+работы до применения LIMIT.
