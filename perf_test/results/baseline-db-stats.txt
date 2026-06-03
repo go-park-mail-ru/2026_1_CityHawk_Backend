@@ -1,0 +1,23 @@
+Дата: 2026-06-03
+Сценарий: baseline-read
+
+Объем данных:
+events_count = 100106
+event_sessions_count = 100100
+event_images_count = 100211
+
+pg_stat_statements, самый тяжелый запрос:
+total_exec_time = 33233.08 ms
+mean_exec_time = 6.65 ms
+
+Счетчики блоков БД:
+blks_read = 9952
+blks_hit = 42643996
+
+Deadlocks:
+deadlocks = 0
+
+Интерпретация:
+На baseline endpoint чтения не проходил нагрузку RATE=20. По симптомам Vegeta
+и статистике БД проблема проявлялась как насыщение read path: запросы копились,
+клиент получал timeout 30 секунд или EOF.

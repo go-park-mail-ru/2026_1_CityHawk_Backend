@@ -1,0 +1,19 @@
+Дата: 2026-06-03
+Сценарий: baseline-create
+Команда: COUNT=100000 RATE=200 RESULT_PREFIX=baseline-create ./perf_test/scripts/run_create_test.sh
+
+Requests      [total, rate, throughput]  100000, 200.00, 181.03
+Duration      [total, attack, wait]      8m23.387213159s, 8m19.995433871s, 3.391779288s
+Latencies     [mean, 50, 95, 99, max]    1.877587155s, 1.837538605s, 4.620437972s, 5.203054522s, 5.423837861s
+Bytes In      [total, mean]              4546682, 45.47
+Bytes Out     [total, mean]              59994228, 599.94
+Success       [ratio]                    91.13%
+Status Codes  [code:count]               0:2  201:91127  500:8871
+Error Set:
+500 Internal Server Error
+Post "http://localhost:8080/api/events": EOF
+
+Комментарий:
+Основной прогон создал большую часть тестового набора через публичное API, но
+при RATE=200 путь создания оказался перегружен. В базе после последующей
+дозагрузки подтверждено 100000 событий с title LIKE 'Perf Event %'.

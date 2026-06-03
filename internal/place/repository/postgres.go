@@ -1116,24 +1116,65 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 	orderBy := "e.created_at DESC, e.id ASC"
 	switch filter.Sort {
 	case "dateAsc":
-		orderBy = "ns.start_at ASC NULLS LAST, e.id ASC"
+		orderBy = "page_ns.start_at ASC NULLS LAST, e.id ASC"
 	case "dateDesc":
-		orderBy = "ns.start_at DESC NULLS LAST, e.id ASC"
+		orderBy = "page_ns.start_at DESC NULLS LAST, e.id ASC"
 	case "titleAsc", "name":
 		orderBy = "e.title ASC, e.id ASC"
 	case "popular":
-		orderBy = "COALESCE(fc.favorite_count, 0) DESC, e.id ASC"
+		orderBy = "COALESCE(page_fc.favorite_count, 0) DESC, e.id ASC"
 	}
 	if filter.UserID != "" {
-		orderBy = "recommendation_score DESC, " + orderBy
+		orderBy = "COALESCE(rs.recommendation_score, 0) DESC, " + orderBy
 	}
 
 	query := fmt.Sprintf(`
-		WITH first_image AS (
+		WITH filtered_events AS (
+			SELECT e.id
+			FROM event e
+			%s
+			%s
+			GROUP BY e.id
+		),
+		page_next_session AS (
+			SELECT DISTINCT ON (es.event_id)
+				es.event_id,
+				es.start_at
+			FROM event_session es
+			JOIN filtered_events filtered ON filtered.id = es.event_id
+			WHERE es.end_at >= now()
+			ORDER BY es.event_id, es.start_at ASC, es.id ASC
+		),
+		page_favorite_counts AS (
+			SELECT
+				fe.event_id,
+				COUNT(*)::int AS favorite_count
+			FROM favorite_event fe
+			JOIN filtered_events filtered ON filtered.id = fe.event_id
+			GROUP BY fe.event_id
+		)%s,
+		page_events AS (
+			SELECT
+				e.id,
+				COUNT(*) OVER()::int AS total_count,
+				ROW_NUMBER() OVER (ORDER BY %s)::int AS page_order,
+				%s,
+				%s
+			FROM filtered_events filtered
+			JOIN event e ON e.id = filtered.id
+			LEFT JOIN page_next_session page_ns ON page_ns.event_id = e.id
+			LEFT JOIN page_favorite_counts page_fc ON page_fc.event_id = e.id
+			%s
+			%s
+			ORDER BY %s
+			LIMIT $%d OFFSET $%d
+		),
+		first_image AS (
 			SELECT DISTINCT ON (ei.event_id)
 				ei.event_id,
 				ei.image_url
 			FROM event_image ei
+			JOIN page_events pe ON pe.id = ei.event_id
 			ORDER BY ei.event_id, ei.created_at ASC, ei.id ASC
 		),
 		ranked_next_session AS (
@@ -1151,6 +1192,7 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 				c.timezone,
 				ROW_NUMBER() OVER (PARTITION BY es.event_id ORDER BY es.start_at ASC, es.id ASC) AS rn
 			FROM event_session es
+			JOIN page_events pe ON pe.id = es.event_id
 			JOIN place p ON p.id = es.place_id
 			JOIN city c ON c.id = p.city_id
 			WHERE es.end_at >= now()
@@ -1173,6 +1215,7 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 				c.country_name,
 				c.timezone
 			FROM event_place ep
+			JOIN page_events pe ON pe.id = ep.event_id
 			JOIN place p ON p.id = ep.place_id
 			JOIN city c ON c.id = p.city_id
 		),
@@ -1182,6 +1225,7 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 				ARRAY_AGG(t.id::text ORDER BY t.name) AS tag_ids,
 				ARRAY_AGG(t.name ORDER BY t.name) AS tag_names
 			FROM event_tag et
+			JOIN page_events pe ON pe.id = et.event_id
 			JOIN tag t ON t.id = et.tag_id
 			GROUP BY et.event_id
 		),
@@ -1190,14 +1234,8 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 				fe.event_id,
 				COUNT(*)::int AS favorite_count
 			FROM favorite_event fe
+			JOIN page_events pe ON pe.id = fe.event_id
 			GROUP BY fe.event_id
-		)%s,
-		filtered_events AS (
-			SELECT e.id
-			FROM event e
-			%s
-			%s
-			GROUP BY e.id
 		),
 		base AS (
 			SELECT
@@ -1217,21 +1255,18 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 				COALESCE(ns.city_name, ep.city_name, '') AS city_name,
 				COALESCE(ns.country_name, ep.country_name, '') AS country_name,
 				COALESCE(ns.timezone, ep.timezone, '') AS timezone,
-				COUNT(*) OVER()::int AS total_count,
-				%s,
-				%s,
+				pe.total_count,
+				pe.is_favorite,
+				pe.recommendation_score,
 				COALESCE(fc.favorite_count, 0)::int AS popularity
-			FROM filtered_events filtered
-			JOIN event e ON e.id = filtered.id
+			FROM page_events pe
+			JOIN event e ON e.id = pe.id
 			LEFT JOIN first_image fi ON fi.event_id = e.id
 			LEFT JOIN next_session ns ON ns.event_id = e.id
 			LEFT JOIN event_place_candidate ep ON ep.event_id = e.id
 			LEFT JOIN tags ON tags.event_id = e.id
 			LEFT JOIN favorite_counts fc ON fc.event_id = e.id
-			%s
-			%s
-			ORDER BY %s
-			LIMIT $%d OFFSET $%d
+			ORDER BY pe.page_order ASC
 		)
 		SELECT
 			id::text,
@@ -1254,7 +1289,7 @@ func buildListEventsQuery(filter placemodel.EventListFilter) (string, []any) {
 			is_favorite,
 			popularity
 		FROM base
-	`, recommendationCTE, joinClause, whereClause, favoriteExpr, recommendationExpr, recommendationJoin, favoriteJoin, orderBy, argPos, argPos+1)
+	`, joinClause, whereClause, recommendationCTE, orderBy, favoriteExpr, recommendationExpr, recommendationJoin, favoriteJoin, orderBy, argPos, argPos+1)
 	args = append(args, filter.Limit, filter.Offset)
 	return query, args
 }

@@ -1,0 +1,14 @@
+Дата: 2026-06-03
+
+Команда:
+docker compose exec -T postgres psql -U cityhawk_migrator -d cityhawk -c "SELECT count(*) FROM event WHERE title LIKE 'Perf Event %';"
+
+Результат:
+ count
+--------
+ 100000
+(1 row)
+
+Вывод:
+Требование задания по объему основной сущности выполнено: в базе есть 100000
+сгенерированных событий.

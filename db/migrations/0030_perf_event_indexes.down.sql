@@ -1,0 +1,11 @@
+DROP INDEX IF EXISTS idx_event_lower_title_trgm;
+DROP INDEX IF EXISTS idx_city_lower_name;
+DROP INDEX IF EXISTS idx_place_city_id;
+DROP INDEX IF EXISTS idx_event_place_place_event;
+DROP INDEX IF EXISTS idx_event_image_event_created_id;
+DROP INDEX IF EXISTS idx_event_session_end_at_event;
+DROP INDEX IF EXISTS idx_event_session_start_at_id;
+DROP INDEX IF EXISTS idx_event_session_event_end_start;
+DROP INDEX IF EXISTS idx_event_author_created_at;
+DROP INDEX IF EXISTS idx_event_title_id;
+DROP INDEX IF EXISTS idx_event_created_at_id;
